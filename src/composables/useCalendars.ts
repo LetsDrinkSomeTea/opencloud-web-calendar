@@ -6,12 +6,66 @@ import { useUserProfiles } from './useUserProfiles'
 import type { Calendar } from '../types/calendar'
 import type { Share } from '../caldav/client'
 
+export interface JoinedCalendarRecord {
+  token: string
+  displayName: string
+  color: string
+  permissions: string // 'r' | 'rw'
+  owner?: string
+  joinedAt: number
+}
+
 const calendars = ref<Calendar[]>([])
 const pendingShares = ref<Share[]>([])
 const loading = ref(false)
 const error = ref<Error | null>(null)
 const calendarHomeUrl = ref<string>('')
 let pollInterval: ReturnType<typeof setInterval> | null = null
+
+function getStorageKey(userId: string): string {
+  return `opencloud_web_cal_joined_tokens_${userId}`
+}
+
+export function getJoinedTokenCalendars(userId: string): JoinedCalendarRecord[] {
+  try {
+    const raw = localStorage.getItem(getStorageKey(userId))
+    return raw ? JSON.parse(raw) : []
+  } catch (e) {
+    console.error('Failed to read joined token calendars:', e)
+    return []
+  }
+}
+
+export function saveJoinedTokenCalendars(userId: string, records: JoinedCalendarRecord[]): void {
+  try {
+    localStorage.setItem(getStorageKey(userId), JSON.stringify(records))
+  } catch (e) {
+    console.error('Failed to save joined token calendars:', e)
+  }
+}
+
+export function addJoinedTokenCalendar(userId: string, record: JoinedCalendarRecord): void {
+  const existing = getJoinedTokenCalendars(userId)
+  const normalize = (t: string) => {
+    let p = t.startsWith('/caldav/') ? t.slice(7) : t
+    return p.startsWith('/') ? p : `/${p}`
+  }
+  const target = normalize(record.token)
+  const filtered = existing.filter((r) => normalize(r.token) !== target)
+  filtered.push(record)
+  saveJoinedTokenCalendars(userId, filtered)
+}
+
+export function removeJoinedTokenCalendar(userId: string, token: string): void {
+  const existing = getJoinedTokenCalendars(userId)
+  const normalize = (t: string) => {
+    let p = t.startsWith('/caldav/') ? t.slice(7) : t
+    return p.startsWith('/') ? p : `/${p}`
+  }
+  const target = normalize(token)
+  const filtered = existing.filter((r) => normalize(r.token) !== target)
+  saveJoinedTokenCalendars(userId, filtered)
+}
 
 export function useCalendars() {
   const client = getCalDAVClient()
@@ -98,6 +152,29 @@ export function useCalendars() {
             })
             discoveredHrefs.add(sharePath)
           }
+        }
+      }
+
+      // Add joined token-based calendars from local storage
+      const joinedTokenCals = getJoinedTokenCalendars(normalizedCurrentUserId)
+      for (const joined of joinedTokenCals) {
+        const tokenPath = joined.token.startsWith('/') ? joined.token : `/${joined.token}`
+        const fullHref = tokenPath.startsWith('/caldav/') ? tokenPath : `/caldav${tokenPath}`
+        const normalizedHref = normalize(fullHref)
+
+        if (!discoveredHrefs.has(normalizedHref)) {
+          calendars.value.push({
+            href: fullHref.endsWith('/') ? fullHref : `${fullHref}/`,
+            displayName: joined.displayName || 'Shared Calendar',
+            color: joined.color || '#3788d8',
+            ctag: '',
+            visible: true,
+            isShared: true,
+            owner: joined.owner || '',
+            sharePathOrToken: joined.token,
+            readOnly: joined.permissions === 'r'
+          })
+          discoveredHrefs.add(normalizedHref)
         }
       }
 
@@ -221,7 +298,17 @@ export function useCalendars() {
 
     loading.value = true
     try {
+      const currentUserId = await waitForUserId()
+      const normalizedCurrentUserId = (currentUserId || '').toLowerCase().trim()
       const path = calendar.sharePathOrToken || (calendar.href.startsWith('/caldav/') ? calendar.href.slice(7) : calendar.href)
+
+      // If it's a token share or joined via link, remove from local storage
+      if (path.includes('.token') || path.startsWith('/.token') || path.startsWith('.token')) {
+        removeJoinedTokenCalendar(normalizedCurrentUserId, path)
+        await loadCalendars()
+        return true
+      }
+
       await recipientRemoveShare(path)
       await loadCalendars()
       return true
@@ -232,6 +319,59 @@ export function useCalendars() {
     } finally {
       loading.value = false
     }
+  }
+
+  async function joinCalendarViaToken(record: {
+    token: string
+    displayName: string
+    color: string
+    permissions: string
+    owner?: string
+  }): Promise<boolean> {
+    try {
+      const currentUserId = await waitForUserId()
+      if (!currentUserId) throw new Error('User not authenticated')
+      const normalizedCurrentUserId = currentUserId.toLowerCase().trim()
+
+      addJoinedTokenCalendar(normalizedCurrentUserId, {
+        token: record.token,
+        displayName: record.displayName,
+        color: record.color,
+        permissions: record.permissions,
+        owner: record.owner,
+        joinedAt: Date.now()
+      })
+
+      await loadCalendars()
+      return true
+    } catch (err) {
+      console.error('Failed to join calendar:', err)
+      error.value = err instanceof Error ? err : new Error('Failed to join calendar')
+      return false
+    }
+  }
+
+  function isCalendarAlreadyJoined(token: string, currentUserId?: string): boolean {
+    const normalize = (t: string) => {
+      let p = t.startsWith('/caldav/') ? t.slice(7) : t
+      return p.startsWith('/') ? p : `/${p}`
+    }
+    const target = normalize(token)
+
+    // Check in currently loaded calendars
+    const inLoaded = calendars.value.some((c) => {
+      const cPath = normalize(c.sharePathOrToken || c.href)
+      return cPath === target || cPath.endsWith(target) || target.endsWith(cPath)
+    })
+    if (inLoaded) return true
+
+    // Check in local storage if userId is provided
+    if (currentUserId) {
+      const joined = getJoinedTokenCalendars(currentUserId.toLowerCase().trim())
+      return joined.some((r) => normalize(r.token) === target)
+    }
+
+    return false
   }
 
   function toggleCalendarVisibility(calendarHref: string): void {
@@ -286,6 +426,8 @@ export function useCalendars() {
     acceptShare,
     declineShare,
     leaveCalendar,
+    joinCalendarViaToken,
+    isCalendarAlreadyJoined,
     toggleCalendarVisibility,
     setCalendarVisibility,
     getCalendarByHref,

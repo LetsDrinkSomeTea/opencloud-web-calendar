@@ -28,6 +28,8 @@ const {
 
 const newUserEmail = ref('')
 const newSharePermission = ref('r')
+const newLinkPermission = ref('r')
+const copiedKey = ref<string | null>(null)
 
 onMounted(() => {
   if (props.isOpen) {
@@ -47,21 +49,37 @@ async function handleShareWithUser() {
 
 async function handleCreatePublicLink() {
   try {
-    await createPublicLink('r')
+    await createPublicLink(newLinkPermission.value)
   } catch (e) {
     // Error is handled in composable
   }
 }
 
-function copyToClipboard(text: string) {
+function copyToClipboard(text: string, key?: string) {
   navigator.clipboard.writeText(text)
-  // Show some toast or feedback
+  if (key) {
+    copiedKey.value = key
+    setTimeout(() => {
+      if (copiedKey.value === key) copiedKey.value = null
+    }, 2000)
+  }
 }
 
-function getShareUrl(token: string) {
+function getWebInviteUrl(token: string, perm: string) {
   const origin = window.location.origin
-  // Radicale token path is typically /.token/v1/...
-  return `${origin}${token}`
+  const pathname = window.location.pathname
+  const tokenParam = encodeURIComponent(token)
+  const nameParam = encodeURIComponent(props.calendar.displayName)
+  const colorParam = encodeURIComponent(props.calendar.color || '#3788d8')
+  return `${origin}${pathname}#/?join_token=${tokenParam}&name=${nameParam}&color=${colorParam}&perm=${perm}`
+}
+
+function getCalDAVUrl(token: string) {
+  const origin = window.location.origin
+  const caldavPath = token.startsWith('/caldav/')
+    ? token
+    : `/caldav${token.startsWith('/') ? '' : '/'}${token}`
+  return `${origin}${caldavPath}`
 }
 </script>
 
@@ -92,6 +110,7 @@ function getShareUrl(token: string) {
           {{ error }}
         </div>
 
+        <!-- Section: Share with users -->
         <section class="ext:mb-8">
           <h3 class="ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-3">
             {{ t('Share with users') }}
@@ -183,33 +202,61 @@ function getShareUrl(token: string) {
           </ul>
         </section>
 
+        <!-- Section: Invite & Public Links -->
         <section>
-          <div class="ext:flex ext:items-center ext:justify-between ext:mb-3">
-            <h3 class="ext:text-sm ext:font-medium ext:text-gray-700">
-              {{ t('Public links') }}
-            </h3>
+          <h3 class="ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-3">
+            {{ t('Invite & Public links') }}
+          </h3>
+          <div class="ext:flex ext:gap-2 ext:mb-4">
+            <select
+              v-model="newLinkPermission"
+              class="ext:rounded-md ext:border-gray-300 ext:text-sm focus:ext:border-blue-500 focus:ext:ring-blue-500"
+            >
+              <option value="r">{{ t('Read') }}</option>
+              <option value="rw">{{ t('Read & Write') }}</option>
+            </select>
             <button
               type="button"
-              class="ext:text-sm ext:text-blue-600 hover:ext:text-blue-700"
+              class="ext:px-4 ext:py-2 ext:bg-blue-600 ext:text-white ext:text-sm ext:font-medium ext:rounded-md hover:ext:bg-blue-700 disabled:ext:opacity-50"
+              :disabled="loading"
               @click="handleCreatePublicLink"
             >
-              {{ t('Create link') }}
+              {{ t('Create invite link') }}
             </button>
           </div>
 
-          <ul v-if="tokenShares.length > 0" class="ext:space-y-3">
+          <ul v-if="tokenShares.length > 0" class="ext:space-y-4">
             <li
               v-for="share in tokenShares"
               :key="share.PathOrToken"
-              class="ext:p-3 ext:bg-gray-50 ext:rounded-lg"
+              class="ext:p-4 ext:bg-gray-50 ext:rounded-lg ext:border ext:border-gray-200"
             >
-              <div class="ext:flex ext:items-center ext:justify-between ext:mb-2">
-                <span class="ext:text-xs ext:font-medium ext:text-gray-500 ext:uppercase">
-                  {{ t('Read only link') }}
-                </span>
+              <!-- Link Header: Permissions & Actions -->
+              <div class="ext:flex ext:items-center ext:justify-between ext:mb-3">
+                <div class="ext:flex ext:items-center ext:gap-2">
+                  <span
+                    :class="[
+                      'ext:px-2 ext:py-0.5 ext:text-xs ext:font-medium ext:rounded-full',
+                      share.Permissions === 'rw'
+                        ? 'ext:bg-blue-100 ext:text-blue-800'
+                        : 'ext:bg-gray-200 ext:text-gray-700'
+                    ]"
+                  >
+                    {{ share.Permissions === 'rw' ? t('Read & Write') : t('Read only') }}
+                  </span>
+                  <select
+                    :value="share.Permissions"
+                    class="ext:text-xs ext:rounded ext:border-gray-300 ext:bg-white ext:py-0.5 ext:px-1.5"
+                    @change="updatePermissions(share, ($event.target as HTMLSelectElement).value)"
+                  >
+                    <option value="r">{{ t('Read') }}</option>
+                    <option value="rw">{{ t('Read & Write') }}</option>
+                  </select>
+                </div>
                 <button
                   type="button"
                   class="ext:p-1 ext:text-gray-400 hover:ext:text-red-600"
+                  :title="t('Revoke link')"
                   @click="removeShare(share)"
                 >
                   <svg class="ext:w-4 ext:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,20 +264,55 @@ function getShareUrl(token: string) {
                   </svg>
                 </button>
               </div>
-              <div class="ext:flex ext:gap-2">
-                <input
-                  type="text"
-                  readonly
-                  :value="getShareUrl(share.PathOrToken)"
-                  class="ext:flex-1 ext:text-xs ext:bg-white ext:border-gray-300 ext:rounded ext:p-2"
-                />
-                <button
-                  type="button"
-                  class="ext:px-3 ext:py-1 ext:bg-gray-200 ext:text-gray-700 ext:text-xs ext:font-medium ext:rounded hover:ext:bg-gray-300"
-                  @click="copyToClipboard(getShareUrl(share.PathOrToken))"
-                >
-                  {{ t('Copy') }}
-                </button>
+
+              <!-- Web Invite Link -->
+              <div class="ext:mb-2.5">
+                <div class="ext:text-xs ext:font-medium ext:text-gray-600 ext:mb-1 ext:flex ext:items-center ext:gap-1.5">
+                  <svg class="ext:w-3.5 ext:h-3.5 ext:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span>{{ t('Web Invite Link') }} (OpenCloud)</span>
+                </div>
+                <div class="ext:flex ext:gap-2">
+                  <input
+                    type="text"
+                    readonly
+                    :value="getWebInviteUrl(share.PathOrToken, share.Permissions)"
+                    class="ext:flex-1 ext:text-xs ext:bg-white ext:border ext:border-gray-300 ext:rounded ext:p-2 ext:text-gray-700"
+                  />
+                  <button
+                    type="button"
+                    class="ext:px-3 ext:py-1 ext:bg-blue-50 ext:text-blue-700 ext:border ext:border-blue-200 ext:text-xs ext:font-medium ext:rounded hover:ext:bg-blue-100 ext:whitespace-nowrap"
+                    @click="copyToClipboard(getWebInviteUrl(share.PathOrToken, share.Permissions), 'web-' + share.PathOrToken)"
+                  >
+                    {{ copiedKey === 'web-' + share.PathOrToken ? t('Copied!') : t('Copy Web Invite') }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- CalDAV Direct Link -->
+              <div>
+                <div class="ext:text-xs ext:font-medium ext:text-gray-500 ext:mb-1 ext:flex ext:items-center ext:gap-1.5">
+                  <svg class="ext:w-3.5 ext:h-3.5 ext:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>{{ t('CalDAV Link') }} (Thunderbird, Apple Calendar)</span>
+                </div>
+                <div class="ext:flex ext:gap-2">
+                  <input
+                    type="text"
+                    readonly
+                    :value="getCalDAVUrl(share.PathOrToken)"
+                    class="ext:flex-1 ext:text-xs ext:bg-white ext:border ext:border-gray-300 ext:rounded ext:p-2 ext:text-gray-500"
+                  />
+                  <button
+                    type="button"
+                    class="ext:px-3 ext:py-1 ext:bg-gray-200 ext:text-gray-700 ext:text-xs ext:font-medium ext:rounded hover:ext:bg-gray-300 ext:whitespace-nowrap"
+                    @click="copyToClipboard(getCalDAVUrl(share.PathOrToken), 'caldav-' + share.PathOrToken)"
+                  >
+                    {{ copiedKey === 'caldav-' + share.PathOrToken ? t('Copied!') : t('Copy CalDAV URL') }}
+                  </button>
+                </div>
               </div>
             </li>
           </ul>

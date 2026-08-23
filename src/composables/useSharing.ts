@@ -61,18 +61,19 @@ export function useSharing(calendarHref: string) {
     }
   }
 
-  async function createPublicLink(permissions: string = 'r') {
+  async function createPublicLink(permissions: string = 'r'): Promise<{ PathOrToken: string }> {
     loading.value = true
     error.value = null
     try {
       const internalPath = calendarHref.startsWith('/caldav/') ? calendarHref.slice(7) : calendarHref
-      await client.createShare('token', {
+      const result = await client.createShare('token', {
         PathMapped: internalPath,
         Permissions: permissions,
         Enabled: true,
         Hidden: false
       })
       await fetchShares()
+      return result
     } catch (e: any) {
       error.value = e.message
       throw e

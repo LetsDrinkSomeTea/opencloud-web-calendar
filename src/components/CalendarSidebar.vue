@@ -180,8 +180,10 @@ const emit = defineEmits<{
               </button>
             </div>
           </div>
-          <div v-if="calendar.isShared && calendar.owner" class="ext:pl-9 ext:text-[10px] ext:text-gray-500 ext:truncate">
-            {{ t('Shared by:') }} {{ userProfiles?.[calendar.owner] || calendar.owner }}
+          <div v-if="calendar.isShared" class="ext:pl-9 ext:text-[10px] ext:text-gray-500 ext:truncate">
+            <span v-if="calendar.owner">{{ t('Shared by:') }} {{ userProfiles?.[calendar.owner] || calendar.owner }}</span>
+            <span v-else>{{ t('Shared via link') }}</span>
+            <span v-if="calendar.readOnly" class="ext:text-gray-400"> ({{ t('Read only') }})</span>
           </div>
           <div v-else-if="calendar.readOnly" class="ext:pl-9 ext:text-[10px] ext:text-gray-400">
             {{ t('Read only') }}

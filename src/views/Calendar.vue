@@ -9,6 +9,7 @@ import CalendarDialog from '../components/CalendarDialog.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ICSImportDialog from '../components/ICSImportDialog.vue'
 import CalendarSharingDialog from '../components/CalendarSharingDialog.vue'
+import InviteJoinDialog, { type InviteData } from '../components/InviteJoinDialog.vue'
 import { useCalendars } from '../composables/useCalendars'
 import { useEvents } from '../composables/useEvents'
 import { useEventEditor } from '../composables/useEventEditor'
@@ -37,6 +38,8 @@ const {
   getDefaultCalendar,
   deleteCalendar,
   leaveCalendar,
+  joinCalendarViaToken,
+  isCalendarAlreadyJoined,
   pendingShares,
   acceptShare,
   declineShare,
@@ -74,6 +77,96 @@ const confirmAction = ref<{
 // Sharing dialog state
 const sharingCalendar = ref<Calendar | null>(null)
 
+// Invite Join dialog state
+const pendingJoinInvite = ref<InviteData | null>(null)
+const joinLoading = ref(false)
+const toastMessage = ref<string | null>(null)
+let toastTimeout: ReturnType<typeof setTimeout> | null = null
+
+function showToast(message: string) {
+  toastMessage.value = message
+  if (toastTimeout) clearTimeout(toastTimeout)
+  toastTimeout = setTimeout(() => {
+    toastMessage.value = null
+  }, 3500)
+}
+
+function checkJoinInvite() {
+  const hash = window.location.hash
+  const search = window.location.search
+
+  let params = new URLSearchParams(search)
+  if (!params.get('join_token') && hash.includes('?')) {
+    params = new URLSearchParams(hash.substring(hash.indexOf('?')))
+  }
+
+  const token = params.get('join_token') || params.get('token')
+  if (token) {
+    const decodedToken = decodeURIComponent(token)
+    const name = params.get('name') ? decodeURIComponent(params.get('name')!) : t('Shared Calendar')
+    const color = params.get('color') ? decodeURIComponent(params.get('color')!) : '#3788d8'
+    const perm = params.get('perm') || 'r'
+    const owner = params.get('owner') ? decodeURIComponent(params.get('owner')!) : undefined
+
+    if (isCalendarAlreadyJoined(decodedToken)) {
+      showToast(t('You are already subscribed to this calendar.'))
+      clearJoinUrlParams()
+      return
+    }
+
+    pendingJoinInvite.value = {
+      token: decodedToken,
+      displayName: name,
+      color,
+      permissions: perm,
+      owner
+    }
+  }
+}
+
+function clearJoinUrlParams() {
+  try {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('join_token')
+    url.searchParams.delete('token')
+    url.searchParams.delete('name')
+    url.searchParams.delete('color')
+    url.searchParams.delete('perm')
+    url.searchParams.delete('owner')
+
+    if (url.hash.includes('?')) {
+      const hashBase = url.hash.split('?')[0]
+      url.hash = hashBase
+    }
+    window.history.replaceState({}, document.title, url.toString())
+  } catch (e) {
+    // Ignore
+  }
+}
+
+async function handleJoinCalendar() {
+  if (!pendingJoinInvite.value) return
+  joinLoading.value = true
+  try {
+    const success = await joinCalendarViaToken(pendingJoinInvite.value)
+    if (success) {
+      showToast(t('Joined calendar successfully'))
+      await loadEventsForCurrentRange()
+    }
+  } catch (e) {
+    console.error('Failed to join calendar:', e)
+  } finally {
+    joinLoading.value = false
+    pendingJoinInvite.value = null
+    clearJoinUrlParams()
+  }
+}
+
+function handleCancelJoin() {
+  pendingJoinInvite.value = null
+  clearJoinUrlParams()
+}
+
 const calendarViewRef = ref<InstanceType<typeof CalendarView> | null>(null)
 const currentDate = ref(new Date())
 const viewType = ref<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'>('dayGridMonth')
@@ -83,6 +176,9 @@ const visibleEvents = computed(() => getVisibleEvents(calendars.value as any))
 onMounted(async () => {
   await loadCalendars()
   await loadEventsForCurrentRange()
+  checkJoinInvite()
+  window.addEventListener('hashchange', checkJoinInvite)
+  window.addEventListener('popstate', checkJoinInvite)
 })
 
 watch(
@@ -327,6 +423,25 @@ async function handleImported() {
       @confirm="confirmCalendarAction"
       @cancel="cancelCalendarAction"
     />
+
+    <InviteJoinDialog
+      :is-open="!!pendingJoinInvite"
+      :invite-data="pendingJoinInvite"
+      :loading="joinLoading"
+      @join="handleJoinCalendar"
+      @close="handleCancelJoin"
+    />
+
+    <!-- Toast Notification -->
+    <div
+      v-if="toastMessage"
+      class="ext:fixed ext:bottom-6 ext:right-6 ext:z-50 ext:bg-gray-900/90 ext:text-white ext:px-4 ext:py-2.5 ext:rounded-lg ext:shadow-lg ext:text-sm ext:flex ext:items-center ext:gap-2 ext:backdrop-blur-sm"
+    >
+      <svg class="ext:w-4 ext:h-4 ext:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+      </svg>
+      <span>{{ toastMessage }}</span>
+    </div>
   </div>
 </template>
 
