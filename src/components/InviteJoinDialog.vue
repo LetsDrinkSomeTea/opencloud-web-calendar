@@ -2,7 +2,8 @@
 import { t } from '../composables/useLanguage'
 
 export interface InviteData {
-  token: string
+  token?: string
+  calendarPath?: string
   displayName: string
   color: string
   permissions: string

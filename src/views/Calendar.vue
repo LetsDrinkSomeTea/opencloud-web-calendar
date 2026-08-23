@@ -38,7 +38,7 @@ const {
   getDefaultCalendar,
   deleteCalendar,
   leaveCalendar,
-  joinCalendarViaToken,
+  joinCalendarViaInvite,
   isCalendarAlreadyJoined,
   pendingShares,
   acceptShare,
@@ -96,19 +96,22 @@ function checkJoinInvite() {
   const search = window.location.search
 
   let params = new URLSearchParams(search)
-  if (!params.get('join_token') && hash.includes('?')) {
+  if (!params.get('join_token') && !params.get('path') && hash.includes('?')) {
     params = new URLSearchParams(hash.substring(hash.indexOf('?')))
   }
 
   const token = params.get('join_token') || params.get('token')
-  if (token) {
-    const decodedToken = decodeURIComponent(token)
+  const path = params.get('path') ? decodeURIComponent(params.get('path')!) : undefined
+
+  if (token || path) {
+    const decodedToken = token ? decodeURIComponent(token) : undefined
     const name = params.get('name') ? decodeURIComponent(params.get('name')!) : t('Shared Calendar')
     const color = params.get('color') ? decodeURIComponent(params.get('color')!) : '#3788d8'
     const perm = params.get('perm') || 'r'
     const owner = params.get('owner') ? decodeURIComponent(params.get('owner')!) : undefined
 
-    if (isCalendarAlreadyJoined(decodedToken)) {
+    const checkKey = decodedToken || path || ''
+    if (isCalendarAlreadyJoined(checkKey)) {
       showToast(t('You are already subscribed to this calendar.'))
       clearJoinUrlParams()
       return
@@ -116,6 +119,7 @@ function checkJoinInvite() {
 
     pendingJoinInvite.value = {
       token: decodedToken,
+      calendarPath: path,
       displayName: name,
       color,
       permissions: perm,
@@ -129,6 +133,7 @@ function clearJoinUrlParams() {
     const url = new URL(window.location.href)
     url.searchParams.delete('join_token')
     url.searchParams.delete('token')
+    url.searchParams.delete('path')
     url.searchParams.delete('name')
     url.searchParams.delete('color')
     url.searchParams.delete('perm')
@@ -148,7 +153,7 @@ async function handleJoinCalendar() {
   if (!pendingJoinInvite.value) return
   joinLoading.value = true
   try {
-    const success = await joinCalendarViaToken(pendingJoinInvite.value)
+    const success = await joinCalendarViaInvite(pendingJoinInvite.value)
     if (success) {
       showToast(t('Joined calendar successfully'))
       await loadEventsForCurrentRange()

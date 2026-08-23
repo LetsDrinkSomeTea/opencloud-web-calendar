@@ -69,9 +69,10 @@ function getWebInviteUrl(token: string, perm: string) {
   const origin = window.location.origin
   const pathname = window.location.pathname
   const tokenParam = encodeURIComponent(token)
+  const pathParam = encodeURIComponent(props.calendar.href)
   const nameParam = encodeURIComponent(props.calendar.displayName)
   const colorParam = encodeURIComponent(props.calendar.color || '#3788d8')
-  return `${origin}${pathname}#/?join_token=${tokenParam}&name=${nameParam}&color=${colorParam}&perm=${perm}`
+  return `${origin}${pathname}#/?join_token=${tokenParam}&path=${pathParam}&name=${nameParam}&color=${colorParam}&perm=${perm}`
 }
 
 function getCalDAVUrl(token: string) {

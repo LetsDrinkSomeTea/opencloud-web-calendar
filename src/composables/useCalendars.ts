@@ -321,8 +321,9 @@ export function useCalendars() {
     }
   }
 
-  async function joinCalendarViaToken(record: {
-    token: string
+  async function joinCalendarViaInvite(record: {
+    token?: string
+    calendarPath?: string
     displayName: string
     color: string
     permissions: string
@@ -333,14 +334,45 @@ export function useCalendars() {
       if (!currentUserId) throw new Error('User not authenticated')
       const normalizedCurrentUserId = currentUserId.toLowerCase().trim()
 
-      addJoinedTokenCalendar(normalizedCurrentUserId, {
-        token: record.token,
-        displayName: record.displayName,
-        color: record.color,
-        permissions: record.permissions,
-        owner: record.owner,
-        joinedAt: Date.now()
-      })
+      const internalPath = record.calendarPath
+        ? record.calendarPath.startsWith('/caldav/')
+          ? record.calendarPath.slice(7)
+          : record.calendarPath
+        : ''
+
+      let mappedSuccess = false
+
+      // Try creating a server-side mapped share so user is registered in Radicale and appears under "Share with users"
+      if (internalPath) {
+        try {
+          const pathParts = internalPath.split('/').filter(Boolean)
+          const calendarName = pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'shared-calendar'
+
+          await client.createShare('map', {
+            PathMapped: internalPath,
+            User: normalizedCurrentUserId,
+            Permissions: record.permissions || 'rw',
+            Enabled: true,
+            Hidden: false,
+            PathOrToken: `/${normalizedCurrentUserId}/${calendarName}-shared/`
+          })
+          mappedSuccess = true
+        } catch (e) {
+          console.warn('Direct mapped share creation not available, falling back to token share:', e)
+        }
+      }
+
+      // If mapped share was not created, save token share locally
+      if (!mappedSuccess && record.token) {
+        addJoinedTokenCalendar(normalizedCurrentUserId, {
+          token: record.token,
+          displayName: record.displayName,
+          color: record.color,
+          permissions: record.permissions,
+          owner: record.owner,
+          joinedAt: Date.now()
+        })
+      }
 
       await loadCalendars()
       return true
@@ -351,12 +383,14 @@ export function useCalendars() {
     }
   }
 
-  function isCalendarAlreadyJoined(token: string, currentUserId?: string): boolean {
+  function isCalendarAlreadyJoined(tokenOrPath: string, currentUserId?: string): boolean {
+    if (!tokenOrPath) return false
     const normalize = (t: string) => {
       let p = t.startsWith('/caldav/') ? t.slice(7) : t
-      return p.startsWith('/') ? p : `/${p}`
+      p = p.startsWith('/') ? p : `/${p}`
+      return p.endsWith('/') ? p : `${p}/`
     }
-    const target = normalize(token)
+    const target = normalize(tokenOrPath)
 
     // Check in currently loaded calendars
     const inLoaded = calendars.value.some((c) => {
@@ -426,7 +460,8 @@ export function useCalendars() {
     acceptShare,
     declineShare,
     leaveCalendar,
-    joinCalendarViaToken,
+    joinCalendarViaInvite,
+    joinCalendarViaToken: joinCalendarViaInvite,
     isCalendarAlreadyJoined,
     toggleCalendarVisibility,
     setCalendarVisibility,
