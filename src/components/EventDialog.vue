@@ -8,6 +8,7 @@ import { formatDateForInput, formatTimeForInput } from '../utils/date'
 import { generateICS } from '../caldav/ics-utils'
 import { useLocationSearch } from '../composables/useLocationSearch'
 import { translateError } from '../utils/error-message'
+import { downloadICS, safeFileName } from '../utils/download'
 
 /**
  * Content of the event modal (dispatched via `useModals`, see `useEventDialogs`).
@@ -277,16 +278,7 @@ function handleExport() {
     icsContent = editingEvent.value.icsData
   }
 
-  const safeName = (formData.value.summary || 'event').replace(/[^a-zA-Z0-9_\- ]/g, '_').trim()
-  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${safeName}.ics`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  downloadICS(icsContent, safeFileName(formData.value.summary, 'event'))
 }
 
 defineExpose({ onConfirm })
