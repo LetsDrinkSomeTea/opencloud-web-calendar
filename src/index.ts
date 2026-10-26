@@ -1,9 +1,10 @@
+import translations from '../l10n/translations.json'
 import { defineWebApplication, Extension, AppMenuItemExtension } from '@opencloud-eu/web-pkg'
 import { urlJoin } from '@opencloud-eu/web-client'
 import '@opencloud-eu/extension-sdk/tailwind.css'
 import { RouteRecordRaw } from 'vue-router'
 import { computed } from 'vue'
-import { initLanguage, t } from './composables/useLanguage'
+import { useGettext } from 'vue3-gettext'
 import { initCalendarConfig } from './config'
 
 export default defineWebApplication({
@@ -11,12 +12,11 @@ export default defineWebApplication({
     // Validate the app config (manifest defaults merged with the admin's apps.yaml)
     initCalendarConfig(applicationConfig)
 
-    // Initialize language early
-    initLanguage()
+    const { $gettext } = useGettext()
 
     const appInfo = {
       id: 'web-calendar',
-      name: t('Web Calendar'),
+      name: $gettext('Web Calendar'),
       icon: 'calendar',
       color: '#3788d8'
     }
@@ -28,7 +28,7 @@ export default defineWebApplication({
         component: () => import('./views/Calendar.vue'),
         meta: {
           authContext: 'user',
-          title: t('Web Calendar')
+          title: $gettext('Web Calendar')
         }
       }
     ]
@@ -39,7 +39,8 @@ export default defineWebApplication({
           {
             id: `app.${appInfo.id}.menuItem`,
             type: 'appMenuItem',
-            label: () => appInfo.name,
+            // Evaluated lazily so the label follows language changes
+            label: () => $gettext('Web Calendar'),
             color: appInfo.color,
             icon: appInfo.icon,
             path: urlJoin(appInfo.id)
@@ -52,6 +53,7 @@ export default defineWebApplication({
     return {
       appInfo,
       routes,
+      translations,
       extensions: extensions()
     }
   }

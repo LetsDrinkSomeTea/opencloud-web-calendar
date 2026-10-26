@@ -1,6 +1,7 @@
 <!-- eslint-disable vue/multi-word-component-names -- route view loaded only via the router, never used as a tag; the file name is referenced in index.ts and the roadmap -->
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, unref } from 'vue'
+import { useGettext } from 'vue3-gettext'
 import { useRoute, useRouter } from '@opencloud-eu/web-pkg'
 import type { LocationQuery } from 'vue-router'
 import CalendarToolbar from '../components/CalendarToolbar.vue'
@@ -19,7 +20,6 @@ import { useCalendarEditor } from '../composables/useCalendarEditor'
 import { useTheme } from '../composables/useTheme'
 import { getExtendedRange } from '../utils/date'
 import { getCalDAVClient } from '../caldav/client'
-import { initLanguage, t } from '../composables/useLanguage'
 import { useCalendarConfig, type CalendarViewType } from '../config'
 import {
   dateFromQuery,
@@ -35,8 +35,7 @@ const route = useRoute()
 const router = useRouter()
 const config = useCalendarConfig()
 
-// Initialize language from user profile
-initLanguage()
+const { $gettext } = useGettext()
 
 const {
   calendars,
@@ -77,6 +76,20 @@ const confirmAction = ref<{
   calendarName: string
   calendar?: Calendar
 } | null>(null)
+
+// Built in the script: the messages contain quotes that cannot be nested in a template attribute
+const confirmMessage = computed(() => {
+  const name = confirmAction.value?.calendarName || ''
+  return confirmAction.value?.type === 'leave'
+    ? $gettext(
+        "Are you sure you want to leave '%{name}'? You will no longer have access to this calendar.",
+        { name }
+      )
+    : $gettext(
+        "Are you sure you want to delete '%{name}'? All events in this calendar will be permanently deleted.",
+        { name }
+      )
+})
 
 // Sharing dialog state
 const sharingCalendar = ref<Calendar | null>(null)
@@ -126,7 +139,7 @@ function checkJoinInvite() {
   const checkKey = params.token || params.calendarPath || ''
   if (checkKey === handledJoinKey) return
   if (isCalendarAlreadyJoined(checkKey)) {
-    showToast(t('You are already subscribed to this calendar.'))
+    showToast($gettext('You are already subscribed to this calendar.'))
     clearJoinUrlParams()
     return
   }
@@ -134,7 +147,7 @@ function checkJoinInvite() {
   pendingJoinInvite.value = {
     token: params.token,
     calendarPath: params.calendarPath,
-    displayName: params.displayName || t('Shared Calendar'),
+    displayName: params.displayName || $gettext('Shared Calendar'),
     color: params.color || '#3788d8',
     permissions: params.permissions,
     owner: params.owner
@@ -157,7 +170,7 @@ async function handleJoinCalendar() {
   try {
     const success = await joinCalendarViaInvite(pendingJoinInvite.value)
     if (success) {
-      showToast(t('Joined calendar successfully'))
+      showToast($gettext('Joined calendar successfully'))
       await loadEventsForCurrentRange()
     }
   } catch (e) {
@@ -455,19 +468,11 @@ async function handleImported() {
 
     <ConfirmDialog
       :is-open="confirmAction?.isOpen || false"
-      :title="confirmAction?.type === 'leave' ? t('Leave Calendar') : t('Delete Calendar')"
-      :message="
-        confirmAction?.type === 'leave'
-          ? t(
-              `Are you sure you want to leave '%{name}'? You will no longer have access to this calendar.`,
-              { name: confirmAction?.calendarName || '' }
-            )
-          : t(
-              `Are you sure you want to delete '%{name}'? All events in this calendar will be permanently deleted.`,
-              { name: confirmAction?.calendarName || '' }
-            )
+      :title="
+        confirmAction?.type === 'leave' ? $gettext('Leave Calendar') : $gettext('Delete Calendar')
       "
-      :confirm-text="confirmAction?.type === 'leave' ? t('Leave') : t('Delete')"
+      :message="confirmMessage"
+      :confirm-text="confirmAction?.type === 'leave' ? $gettext('Leave') : $gettext('Delete')"
       :confirm-danger="true"
       @confirm="confirmCalendarAction"
       @cancel="cancelCalendarAction"

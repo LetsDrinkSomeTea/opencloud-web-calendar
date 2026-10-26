@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useGettext } from 'vue3-gettext'
 import { useEventEditor } from '../composables/useEventEditor'
 import type { Calendar, RecurrenceFormData } from '../types/calendar'
 import { formatDateForInput, formatTimeForInput } from '../utils/date'
-import { t } from '../composables/useLanguage'
 import { generateICS } from '../caldav/ics-utils'
 import { useLocationSearch } from '../composables/useLocationSearch'
+import { translateError } from '../utils/error-message'
 
 const props = defineProps<{
   calendars: readonly Calendar[]
@@ -59,15 +60,17 @@ function handleLocationBlur() {
   }, 200)
 }
 
-const WEEKDAYS = [
-  { value: 'MO', label: 'Mon' },
-  { value: 'TU', label: 'Tue' },
-  { value: 'WE', label: 'Wed' },
-  { value: 'TH', label: 'Thu' },
-  { value: 'FR', label: 'Fri' },
-  { value: 'SA', label: 'Sat' },
-  { value: 'SU', label: 'Sun' }
-]
+const { $gettext, $ngettext } = useGettext()
+
+const weekdays = computed(() => [
+  { value: 'MO', label: $gettext('Mon') },
+  { value: 'TU', label: $gettext('Tue') },
+  { value: 'WE', label: $gettext('Wed') },
+  { value: 'TH', label: $gettext('Thu') },
+  { value: 'FR', label: $gettext('Fri') },
+  { value: 'SA', label: $gettext('Sat') },
+  { value: 'SU', label: $gettext('Sun') }
+])
 
 const hasRecurrence = computed({
   get: () => !!formData.value.recurrence,
@@ -266,26 +269,26 @@ function handleExport() {
       <div class="ext:bg-white ext:rounded-lg ext:shadow-xl ext:w-full ext:max-w-sm ext:mx-4">
         <div class="ext:px-6 ext:py-4 ext:border-b">
           <h2 class="ext:text-lg ext:font-semibold ext:text-gray-900">
-            {{ t('Edit Recurring Event') }}
+            {{ $gettext('Edit Recurring Event') }}
           </h2>
         </div>
         <div class="ext:px-6 ext:py-4 ext:space-y-3">
           <p class="ext:text-sm ext:text-gray-600">
-            {{ t('This is a recurring event. What would you like to edit?') }}
+            {{ $gettext('This is a recurring event. What would you like to edit?') }}
           </p>
           <button
             type="button"
             class="ext:w-full ext:px-4 ext:py-2 ext:text-sm ext:text-left ext:text-gray-900 ext:bg-gray-100 ext:rounded hover:ext:bg-gray-200"
             @click="selectEditScope('single')"
           >
-            {{ t('This event only') }}
+            {{ $gettext('This event only') }}
           </button>
           <button
             type="button"
             class="ext:w-full ext:px-4 ext:py-2 ext:text-sm ext:text-left ext:text-gray-900 ext:bg-gray-100 ext:rounded hover:ext:bg-gray-200"
             @click="selectEditScope('series')"
           >
-            {{ t('All events in series') }}
+            {{ $gettext('All events in series') }}
           </button>
         </div>
         <div class="ext:px-6 ext:py-4 ext:border-t ext:bg-gray-50 ext:flex ext:justify-end">
@@ -294,7 +297,7 @@ function handleExport() {
             class="ext:px-4 ext:py-2 ext:text-sm ext:text-gray-700 ext:bg-gray-200 ext:rounded hover:ext:bg-gray-300"
             @click="cancelScopeDialog"
           >
-            {{ t('Cancel') }}
+            {{ $gettext('Cancel') }}
           </button>
         </div>
       </div>
@@ -316,18 +319,18 @@ function handleExport() {
           class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-b ext:shrink-0"
         >
           <h2 class="ext:text-lg ext:font-semibold ext:text-gray-900">
-            {{ isEditing ? t('Edit Event') : t('New Event') }}
+            {{ isEditing ? $gettext('Edit Event') : $gettext('New Event') }}
             <span
               v-if="editScope === 'single'"
               class="ext:text-sm ext:font-normal ext:text-gray-500"
             >
-              — {{ t('this occurrence') }}
+              — {{ $gettext('this occurrence') }}
             </span>
             <span
               v-else-if="editScope === 'series'"
               class="ext:text-sm ext:font-normal ext:text-gray-500"
             >
-              — {{ t('entire series') }}
+              — {{ $gettext('entire series') }}
             </span>
           </h2>
           <button
@@ -352,7 +355,7 @@ function handleExport() {
           class="ext:px-6 ext:py-4 ext:bg-yellow-50 ext:border-b ext:border-yellow-200 ext:shrink-0"
         >
           <p class="ext:text-sm ext:text-yellow-800 ext:mb-3">
-            {{ t('This event was modified by another client. Choose how to resolve:') }}
+            {{ $gettext('This event was modified by another client. Choose how to resolve:') }}
           </p>
           <div class="ext:flex ext:gap-2">
             <button
@@ -360,14 +363,14 @@ function handleExport() {
               class="ext:px-3 ext:py-1.5 ext:text-sm ext:bg-yellow-600 ext:text-white ext:rounded hover:ext:bg-yellow-700"
               @click="resolveConflictKeepLocal"
             >
-              {{ t('Keep my changes') }}
+              {{ $gettext('Keep my changes') }}
             </button>
             <button
               type="button"
               class="ext:px-3 ext:py-1.5 ext:text-sm ext:bg-gray-200 ext:text-gray-700 ext:rounded hover:ext:bg-gray-300"
               @click="resolveConflictUseServer"
             >
-              {{ t('Use server version') }}
+              {{ $gettext('Use server version') }}
             </button>
           </div>
         </div>
@@ -383,7 +386,7 @@ function handleExport() {
               for="event-title"
               class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
             >
-              {{ t('Title') }}
+              {{ $gettext('Title') }}
             </label>
             <input
               id="event-title"
@@ -391,7 +394,7 @@ function handleExport() {
               type="text"
               required
               class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500 ext:focus:border-blue-500"
-              :placeholder="t('Event title')"
+              :placeholder="$gettext('Event title')"
             />
           </div>
 
@@ -401,7 +404,7 @@ function handleExport() {
               for="event-calendar"
               class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
             >
-              {{ t('Calendar') }}
+              {{ $gettext('Calendar') }}
             </label>
             <select
               id="event-calendar"
@@ -423,7 +426,7 @@ function handleExport() {
               class="ext:w-4 ext:h-4 ext:rounded ext:border-gray-300"
             />
             <label for="event-allday" class="ext:text-sm ext:font-medium ext:text-gray-900">
-              {{ t('All day event') }}
+              {{ $gettext('All day event') }}
             </label>
           </div>
 
@@ -438,7 +441,7 @@ function handleExport() {
                 for="event-start-date"
                 class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
               >
-                {{ t('Start Date') }}
+                {{ $gettext('Start Date') }}
               </label>
               <input
                 id="event-start-date"
@@ -453,7 +456,7 @@ function handleExport() {
                 for="event-start-time"
                 class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
               >
-                {{ t('Start Time') }}
+                {{ $gettext('Start Time') }}
               </label>
               <input
                 id="event-start-time"
@@ -476,7 +479,7 @@ function handleExport() {
                 for="event-end-date"
                 class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
               >
-                {{ t('End Date') }}
+                {{ $gettext('End Date') }}
               </label>
               <input
                 id="event-end-date"
@@ -491,7 +494,7 @@ function handleExport() {
                 for="event-end-time"
                 class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
               >
-                {{ t('End Time') }}
+                {{ $gettext('End Time') }}
               </label>
               <input
                 id="event-end-time"
@@ -513,7 +516,7 @@ function handleExport() {
                 class="ext:w-4 ext:h-4 ext:rounded ext:border-gray-300"
               />
               <label for="event-repeat" class="ext:text-sm ext:font-medium ext:text-gray-900">
-                {{ t('Repeat') }}
+                {{ $gettext('Repeat') }}
               </label>
             </div>
 
@@ -523,7 +526,7 @@ function handleExport() {
             >
               <!-- Frequency + Interval -->
               <div class="ext:flex ext:items-center ext:gap-2">
-                <label class="ext:text-sm ext:text-gray-700">{{ t('Every') }}</label>
+                <label class="ext:text-sm ext:text-gray-700">{{ $gettext('Every') }}</label>
                 <input
                   v-model.number="recurrenceInterval"
                   type="number"
@@ -535,17 +538,25 @@ function handleExport() {
                   v-model="recurrenceFrequency"
                   class="ext:px-2 ext:py-1 ext:text-sm ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
                 >
-                  <option value="DAILY">{{ t('day(s)') }}</option>
-                  <option value="WEEKLY">{{ t('week(s)') }}</option>
-                  <option value="MONTHLY">{{ t('month(s)') }}</option>
-                  <option value="YEARLY">{{ t('year(s)') }}</option>
+                  <option value="DAILY">
+                    {{ $ngettext('day', 'days', recurrenceInterval) }}
+                  </option>
+                  <option value="WEEKLY">
+                    {{ $ngettext('week', 'weeks', recurrenceInterval) }}
+                  </option>
+                  <option value="MONTHLY">
+                    {{ $ngettext('month', 'months', recurrenceInterval) }}
+                  </option>
+                  <option value="YEARLY">
+                    {{ $ngettext('year', 'years', recurrenceInterval) }}
+                  </option>
                 </select>
               </div>
 
               <!-- Weekly: day picker -->
               <div v-if="recurrenceFrequency === 'WEEKLY'" class="ext:flex ext:flex-wrap ext:gap-1">
                 <button
-                  v-for="day in WEEKDAYS"
+                  v-for="day in weekdays"
                   :key="day.value"
                   type="button"
                   class="ext:px-2 ext:py-1 ext:text-xs ext:rounded ext:border ext:transition-colors"
@@ -556,13 +567,15 @@ function handleExport() {
                   "
                   @click="toggleWeekday(day.value)"
                 >
-                  {{ t(day.label) }}
+                  {{ day.label }}
                 </button>
               </div>
 
               <!-- End condition -->
               <div class="ext:space-y-2">
-                <label class="ext:text-sm ext:font-medium ext:text-gray-700">{{ t('Ends') }}</label>
+                <label class="ext:text-sm ext:font-medium ext:text-gray-700">{{
+                  $gettext('Ends')
+                }}</label>
 
                 <div class="ext:flex ext:items-center ext:gap-2">
                   <input
@@ -573,7 +586,7 @@ function handleExport() {
                     class="ext:w-4 ext:h-4"
                   />
                   <label for="end-never" class="ext:text-sm ext:text-gray-900">{{
-                    t('Never')
+                    $gettext('Never')
                   }}</label>
                 </div>
 
@@ -586,7 +599,7 @@ function handleExport() {
                     class="ext:w-4 ext:h-4"
                   />
                   <label for="end-count" class="ext:text-sm ext:text-gray-900">{{
-                    t('After')
+                    $gettext('After')
                   }}</label>
                   <input
                     v-model.number="recurrenceCount"
@@ -596,7 +609,9 @@ function handleExport() {
                     :disabled="recurrenceEndType !== 'count'"
                     class="ext:w-20 ext:px-2 ext:py-1 ext:text-sm ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded disabled:ext:opacity-50"
                   />
-                  <span class="ext:text-sm ext:text-gray-700">{{ t('occurrences') }}</span>
+                  <span class="ext:text-sm ext:text-gray-700">{{
+                    $ngettext('occurrence', 'occurrences', recurrenceCount)
+                  }}</span>
                 </div>
 
                 <div class="ext:flex ext:items-center ext:gap-2">
@@ -607,7 +622,9 @@ function handleExport() {
                     value="until"
                     class="ext:w-4 ext:h-4"
                   />
-                  <label for="end-until" class="ext:text-sm ext:text-gray-900">{{ t('On') }}</label>
+                  <label for="end-until" class="ext:text-sm ext:text-gray-900">{{
+                    $gettext('On')
+                  }}</label>
                   <input
                     v-model="recurrenceUntil"
                     type="date"
@@ -625,7 +642,7 @@ function handleExport() {
               for="event-location"
               class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
             >
-              {{ t('Location') }}
+              {{ $gettext('Location') }}
             </label>
             <div class="ext:relative">
               <input
@@ -633,7 +650,7 @@ function handleExport() {
                 v-model="formData.location"
                 type="text"
                 class="ext:w-full ext:px-3 ext:py-2 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-                :placeholder="t('Add location')"
+                :placeholder="$gettext('Add location')"
                 @input="handleLocationInput"
                 @blur="handleLocationBlur"
               />
@@ -684,20 +701,20 @@ function handleExport() {
               for="event-description"
               class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
             >
-              {{ t('Description') }}
+              {{ $gettext('Description') }}
             </label>
             <textarea
               id="event-description"
               v-model="formData.description"
               rows="3"
               class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-              :placeholder="t('Add description')"
+              :placeholder="$gettext('Add description')"
             />
           </div>
 
           <!-- Error -->
           <div v-if="error && !conflictData" class="ext:text-sm ext:text-red-600">
-            {{ error.message }}
+            {{ translateError(error, $gettext) }}
           </div>
         </form>
 
@@ -713,7 +730,7 @@ function handleExport() {
               :disabled="saving"
               @click="handleDelete"
             >
-              {{ editScope === 'single' ? t('Delete this event') : t('Delete') }}
+              {{ editScope === 'single' ? $gettext('Delete this event') : $gettext('Delete') }}
             </button>
             <button
               v-if="isEditing"
@@ -721,8 +738,8 @@ function handleExport() {
               class="ext:flex ext:items-center ext:gap-1.5 ext:px-3 ext:py-2 ext:text-sm ext:text-gray-600 ext:rounded ext:border ext:border-gray-300 hover:ext:bg-gray-100"
               :title="
                 editScope === 'single'
-                  ? t('Download this occurrence as .ics')
-                  : t('Download as .ics')
+                  ? $gettext('Download this occurrence as .ics')
+                  : $gettext('Download as .ics')
               "
               @click="handleExport"
             >
@@ -744,7 +761,7 @@ function handleExport() {
               :disabled="saving"
               @click="handleClose"
             >
-              {{ t('Cancel') }}
+              {{ $gettext('Cancel') }}
             </button>
             <button
               type="button"
@@ -757,7 +774,7 @@ function handleExport() {
               :disabled="saving || !formData.summary || !formData.summary.trim()"
               @click="handleSave"
             >
-              {{ saving ? t('Saving...') : t('Save') }}
+              {{ saving ? $gettext('Saving...') : $gettext('Save') }}
             </button>
           </div>
         </div>

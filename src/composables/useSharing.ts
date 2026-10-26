@@ -1,9 +1,12 @@
 import { ref, computed } from 'vue'
+import { useGettext } from 'vue3-gettext'
 import { getCalDAVClient, type Share } from '../caldav/client'
 import { useUserProfiles } from './useUserProfiles'
 import { stripCalDAVBasePath } from '../config'
+import { translateError } from '../utils/error-message'
 
 export function useSharing(calendarHref: string) {
+  const { $gettext } = useGettext()
   const client = getCalDAVClient()
   const shares = ref<Share[]>([])
   const loading = ref(false)
@@ -29,7 +32,7 @@ export function useSharing(calendarHref: string) {
         }
       }
     } catch (e: any) {
-      error.value = e.message
+      error.value = translateError(e, $gettext)
     } finally {
       loading.value = false
     }
@@ -56,7 +59,7 @@ export function useSharing(calendarHref: string) {
       })
       await fetchShares()
     } catch (e: any) {
-      error.value = e.message
+      error.value = translateError(e, $gettext)
       throw e
     } finally {
       loading.value = false
@@ -77,7 +80,7 @@ export function useSharing(calendarHref: string) {
       await fetchShares()
       return result
     } catch (e: any) {
-      error.value = e.message
+      error.value = translateError(e, $gettext)
       throw e
     } finally {
       loading.value = false
@@ -92,7 +95,7 @@ export function useSharing(calendarHref: string) {
       await client.deleteShare(type, share.PathOrToken)
       await fetchShares()
     } catch (e: any) {
-      error.value = e.message
+      error.value = translateError(e, $gettext)
       throw e
     } finally {
       loading.value = false
@@ -110,7 +113,7 @@ export function useSharing(calendarHref: string) {
       })
       await fetchShares()
     } catch (e: any) {
-      error.value = e.message
+      error.value = translateError(e, $gettext)
       throw e
     } finally {
       loading.value = false

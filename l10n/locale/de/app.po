@@ -1,0 +1,617 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/components/CalendarDialog.vue:50
+msgid "New Calendar"
+msgstr "Neuer Kalender"
+
+#: src/components/CalendarDialog.vue:76 src/components/ICSImportDialog.vue:202
+msgid "Calendar Name"
+msgstr "Kalendername"
+
+#: src/components/CalendarDialog.vue:84
+msgid "My Calendar"
+msgstr "Mein Kalender"
+
+#: src/components/CalendarDialog.vue:94
+msgid "Description (optional)"
+msgstr "Beschreibung (optional)"
+
+#: src/components/CalendarDialog.vue:101
+msgid "Calendar description"
+msgstr "Kalenderbeschreibung"
+
+#: src/components/CalendarDialog.vue:108
+msgid "Color"
+msgstr "Farbe"
+
+#: src/components/CalendarDialog.vue:143 src/components/ConfirmDialog.vue:47
+#: src/components/EventDialog.vue:300 src/components/EventDialog.vue:764
+#: src/components/ICSImportDialog.vue:387
+#: src/components/InviteJoinDialog.vue:120
+msgid "Cancel"
+msgstr "Abbrechen"
+
+#: src/components/CalendarDialog.vue:156
+msgid "Creating..."
+msgstr "Erstellen..."
+
+#: src/components/CalendarDialog.vue:156
+msgid "Create"
+msgstr "Erstellen"
+
+#: src/components/CalendarSharingDialog.vue:105
+msgid "Share calendar: %{name}"
+msgstr "Kalender teilen: %{name}"
+
+#: src/components/CalendarSharingDialog.vue:134
+msgid "Share with users"
+msgstr "Mit Benutzern teilen"
+
+#: src/components/CalendarSharingDialog.vue:140
+msgid "User ID or Email"
+msgstr "Benutzer ID oder E-Mail"
+
+#: src/components/CalendarSharingDialog.vue:148
+#: src/components/CalendarSharingDialog.vue:211
+#: src/components/CalendarSharingDialog.vue:249
+#: src/components/CalendarSharingDialog.vue:288
+msgid "Read"
+msgstr "Lesen"
+
+#: src/components/CalendarSharingDialog.vue:149
+#: src/components/CalendarSharingDialog.vue:200
+#: src/components/CalendarSharingDialog.vue:212
+#: src/components/CalendarSharingDialog.vue:250
+#: src/components/CalendarSharingDialog.vue:280
+#: src/components/CalendarSharingDialog.vue:289
+#: src/components/InviteJoinDialog.vue:105
+msgid "Read & Write"
+msgstr "Lesen & Schreiben"
+
+#: src/components/CalendarSharingDialog.vue:157
+msgid "Invite"
+msgstr "Einladen"
+
+#: src/components/CalendarSharingDialog.vue:183
+msgid "Accepted"
+msgstr "Angenommen"
+
+#: src/components/CalendarSharingDialog.vue:189
+msgid "Invited"
+msgstr "Eingeladen"
+
+#: src/components/CalendarSharingDialog.vue:195
+msgid "Left"
+msgstr "Verlassen"
+
+#: src/components/CalendarSharingDialog.vue:200
+#: src/components/CalendarSharingDialog.vue:280
+#: src/components/CalendarSidebar.vue:236
+#: src/components/CalendarSidebar.vue:240
+#: src/components/InviteJoinDialog.vue:105
+msgid "Read only"
+msgstr "Nur lesen"
+
+#: src/components/CalendarSharingDialog.vue:217
+msgid "Remove share"
+msgstr "Freigabe entfernen"
+
+#: src/components/CalendarSharingDialog.vue:242
+msgid "Invite & Public links"
+msgstr "Einladungs- & öffentliche Links"
+
+#: src/components/CalendarSharingDialog.vue:258
+msgid "Create invite link"
+msgstr "Einladungslink erstellen"
+
+#: src/components/CalendarSharingDialog.vue:295
+msgid "Revoke link"
+msgstr "Link widerrufen"
+
+#: src/components/CalendarSharingDialog.vue:332
+msgid "Web Invite Link"
+msgstr "Web-Einladungslink"
+
+#: src/components/CalendarSharingDialog.vue:353
+#: src/components/CalendarSharingDialog.vue:399
+msgid "Copied!"
+msgstr "Kopiert!"
+
+#: src/components/CalendarSharingDialog.vue:354
+msgid "Copy Web Invite"
+msgstr "Web-Einladung kopieren"
+
+#: src/components/CalendarSharingDialog.vue:378
+msgid "CalDAV Link"
+msgstr "CalDAV-Link"
+
+#: src/components/CalendarSharingDialog.vue:400
+msgid "Copy CalDAV URL"
+msgstr "CalDAV-URL kopieren"
+
+#: src/components/CalendarSharingDialog.vue:408
+msgid "No public links created yet"
+msgstr "Noch keine Links erstellt"
+
+#: src/components/CalendarSharingDialog.vue:419
+#: src/components/ICSImportDialog.vue:410
+msgid "Close"
+msgstr "Schließen"
+
+#: src/components/CalendarSidebar.vue:40
+msgid "Pending Invitations"
+msgstr "Ausstehende Einladungen"
+
+#: src/components/CalendarSidebar.vue:51 src/components/EventDialog.vue:407
+msgid "Calendar"
+msgstr "Kalender"
+
+#: src/components/CalendarSidebar.vue:55
+msgid "From:"
+msgstr "Von:"
+
+#: src/components/CalendarSidebar.vue:63
+msgid "Accept"
+msgstr "Annehmen"
+
+#: src/components/CalendarSidebar.vue:70
+msgid "Decline"
+msgstr "Ablehnen"
+
+#: src/components/CalendarSidebar.vue:79
+msgid "Calendars"
+msgstr "Kalender"
+
+#: src/components/CalendarSidebar.vue:85
+msgid "Refresh"
+msgstr "Aktualisieren"
+
+#: src/components/CalendarSidebar.vue:107
+msgid "Import calendar"
+msgstr "Kalender importieren"
+
+#: src/components/CalendarSidebar.vue:122
+#: src/components/ICSImportDialog.vue:153
+msgid "Create new calendar"
+msgstr "Neuen Kalender erstellen"
+
+#: src/components/CalendarSidebar.vue:138
+msgid "Loading calendars..."
+msgstr "Kalender werden geladen..."
+
+#: src/components/CalendarSidebar.vue:142
+msgid "No calendars found"
+msgstr "Keine Kalender gefunden"
+
+#: src/components/CalendarSidebar.vue:175
+msgid "Share calendar"
+msgstr "Kalender teilen"
+
+#: src/components/CalendarSidebar.vue:191
+msgid "Leave calendar"
+msgstr "Kalender verlassen"
+
+#: src/components/CalendarSidebar.vue:191
+msgid "Delete calendar"
+msgstr "Kalender löschen"
+
+#: src/components/CalendarSidebar.vue:231
+#: src/components/InviteJoinDialog.vue:93
+msgid "Shared by:"
+msgstr "Geteilt von:"
+
+#: src/components/CalendarSidebar.vue:234
+msgid "Shared via link"
+msgstr "Über Link geteilt"
+
+#: src/components/CalendarToolbar.vue:56
+msgid "Toggle sidebar"
+msgstr "Seitenleiste ein-/ausblenden"
+
+#: src/components/CalendarToolbar.vue:74
+msgid "Today"
+msgstr "Heute"
+
+#: src/components/CalendarToolbar.vue:135
+msgid "Month"
+msgstr "Monat"
+
+#: src/components/CalendarToolbar.vue:147
+msgid "Week"
+msgstr "Woche"
+
+#: src/components/CalendarToolbar.vue:159
+msgid "Day"
+msgstr "Tag"
+
+#: src/components/ConfirmDialog.vue:59
+msgid "Confirm"
+msgstr "Bestätigen"
+
+#: src/components/EventDialog.vue:66
+msgid "Mon"
+msgstr "Mo"
+
+#: src/components/EventDialog.vue:67
+msgid "Tue"
+msgstr "Di"
+
+#: src/components/EventDialog.vue:68
+msgid "Wed"
+msgstr "Mi"
+
+#: src/components/EventDialog.vue:69
+msgid "Thu"
+msgstr "Do"
+
+#: src/components/EventDialog.vue:70
+msgid "Fri"
+msgstr "Fr"
+
+#: src/components/EventDialog.vue:71
+msgid "Sat"
+msgstr "Sa"
+
+#: src/components/EventDialog.vue:72
+msgid "Sun"
+msgstr "So"
+
+#: src/components/EventDialog.vue:272
+msgid "Edit Recurring Event"
+msgstr "Wiederkehrenden Termin bearbeiten"
+
+#: src/components/EventDialog.vue:277
+msgid "This is a recurring event. What would you like to edit?"
+msgstr "Dies ist ein wiederkehrender Termin. Was möchten Sie bearbeiten?"
+
+#: src/components/EventDialog.vue:284
+msgid "This event only"
+msgstr "Nur diesen Termin"
+
+#: src/components/EventDialog.vue:291
+msgid "All events in series"
+msgstr "Alle Termine der Serie"
+
+#: src/components/EventDialog.vue:322
+msgid "Edit Event"
+msgstr "Termin bearbeiten"
+
+#: src/components/EventDialog.vue:322
+msgid "New Event"
+msgstr "Neuer Termin"
+
+#: src/components/EventDialog.vue:327
+msgid "this occurrence"
+msgstr "dieses Vorkommen"
+
+#: src/components/EventDialog.vue:333
+msgid "entire series"
+msgstr "gesamte Serie"
+
+#: src/components/EventDialog.vue:358
+msgid "This event was modified by another client. Choose how to resolve:"
+msgstr ""
+"Dieser Termin wurde von einem anderen Client geändert. Wie möchten Sie "
+"fortfahren?"
+
+#: src/components/EventDialog.vue:366
+msgid "Keep my changes"
+msgstr "Meine Änderungen behalten"
+
+#: src/components/EventDialog.vue:373
+msgid "Use server version"
+msgstr "Server-Version verwenden"
+
+#: src/components/EventDialog.vue:389
+msgid "Title"
+msgstr "Titel"
+
+#: src/components/EventDialog.vue:397
+msgid "Event title"
+msgstr "Terminname"
+
+#: src/components/EventDialog.vue:429
+msgid "All day event"
+msgstr "Ganztägig"
+
+#: src/components/EventDialog.vue:444
+msgid "Start Date"
+msgstr "Startdatum"
+
+#: src/components/EventDialog.vue:459
+msgid "Start Time"
+msgstr "Startzeit"
+
+#: src/components/EventDialog.vue:482
+msgid "End Date"
+msgstr "Enddatum"
+
+#: src/components/EventDialog.vue:497
+msgid "End Time"
+msgstr "Endzeit"
+
+#: src/components/EventDialog.vue:519
+msgid "Repeat"
+msgstr "Wiederholen"
+
+#: src/components/EventDialog.vue:529
+msgid "Every"
+msgstr "Alle"
+
+#: src/components/EventDialog.vue:542
+msgid "day"
+msgid_plural "days"
+msgstr[0] "Tag"
+msgstr[1] "Tage"
+
+#: src/components/EventDialog.vue:545
+msgid "week"
+msgid_plural "weeks"
+msgstr[0] "Woche"
+msgstr[1] "Wochen"
+
+#: src/components/EventDialog.vue:548
+msgid "month"
+msgid_plural "months"
+msgstr[0] "Monat"
+msgstr[1] "Monate"
+
+#: src/components/EventDialog.vue:551
+msgid "year"
+msgid_plural "years"
+msgstr[0] "Jahr"
+msgstr[1] "Jahre"
+
+#: src/components/EventDialog.vue:577
+msgid "Ends"
+msgstr "Endet"
+
+#: src/components/EventDialog.vue:589
+msgid "Never"
+msgstr "Nie"
+
+#: src/components/EventDialog.vue:602
+msgid "After"
+msgstr "Nach"
+
+#: src/components/EventDialog.vue:613
+msgid "occurrence"
+msgid_plural "occurrences"
+msgstr[0] "Wiederholung"
+msgstr[1] "Wiederholungen"
+
+#: src/components/EventDialog.vue:626
+msgid "On"
+msgstr "Am"
+
+#: src/components/EventDialog.vue:645
+msgid "Location"
+msgstr "Ort"
+
+#: src/components/EventDialog.vue:653
+msgid "Add location"
+msgstr "Ort hinzufügen"
+
+#: src/components/EventDialog.vue:704
+msgid "Description"
+msgstr "Beschreibung"
+
+#: src/components/EventDialog.vue:711
+msgid "Add description"
+msgstr "Beschreibung hinzufügen"
+
+#: src/components/EventDialog.vue:733
+msgid "Delete this event"
+msgstr "Diesen Termin löschen"
+
+#: src/components/EventDialog.vue:733 src/views/Calendar.vue:475
+msgid "Delete"
+msgstr "Löschen"
+
+#: src/components/EventDialog.vue:741
+msgid "Download this occurrence as .ics"
+msgstr "Dieses Vorkommen als .ics herunterladen"
+
+#: src/components/EventDialog.vue:742
+msgid "Download as .ics"
+msgstr "Als .ics herunterladen"
+
+#: src/components/EventDialog.vue:777 src/components/InviteJoinDialog.vue:128
+msgid "Saving..."
+msgstr "Speichern..."
+
+#: src/components/EventDialog.vue:777
+msgid "Save"
+msgstr "Speichern"
+
+#: src/components/ICSImportDialog.vue:100
+msgid "Import Calendar"
+msgstr "Kalender importieren"
+
+#: src/components/ICSImportDialog.vue:125
+msgid "ICS File"
+msgstr "ICS-Datei"
+
+#: src/components/ICSImportDialog.vue:142
+msgid "Import mode"
+msgstr "Importmodus"
+
+#: src/components/ICSImportDialog.vue:166
+msgid "Merge into existing calendar"
+msgstr "In bestehenden Kalender zusammenführen"
+
+#: src/components/ICSImportDialog.vue:177
+msgid "Target calendar"
+msgstr "Zielkalender"
+
+#: src/components/ICSImportDialog.vue:189
+msgid "Select calendar"
+msgstr "Kalender auswählen"
+
+#: src/components/ICSImportDialog.vue:210
+msgid "Enter calendar name"
+msgstr "Kalendername eingeben"
+
+#: src/components/ICSImportDialog.vue:234
+msgid "Reading file..."
+msgstr "Datei wird gelesen..."
+
+#: src/components/ICSImportDialog.vue:236
+msgid "Parsing events..."
+msgstr "Termine werden analysiert..."
+
+#: src/components/ICSImportDialog.vue:239
+msgid "Analyzing for duplicates..."
+msgstr "Duplikate werden geprüft..."
+
+#: src/components/ICSImportDialog.vue:242
+msgid "Importing events..."
+msgstr "Termine werden importiert..."
+
+#: src/components/ICSImportDialog.vue:266
+msgid "Created"
+msgstr "Erstellt"
+
+#: src/components/ICSImportDialog.vue:275
+msgid "Updated"
+msgstr "Aktualisiert"
+
+#: src/components/ICSImportDialog.vue:284
+msgid "Skipped"
+msgstr "Übersprungen"
+
+#: src/components/ICSImportDialog.vue:291
+msgid "Failed"
+msgstr "Fehlgeschlagen"
+
+#: src/components/ICSImportDialog.vue:297
+msgid "Imported %{count} event into \"%{name}\""
+msgid_plural "Imported %{count} events into \"%{name}\""
+msgstr[0] "%{count} Termin in „%{name}“ importiert"
+msgstr[1] "%{count} Termine in „%{name}“ importiert"
+
+#: src/components/ICSImportDialog.vue:315
+msgid "Parse warnings"
+msgstr "Hinweise beim Einlesen"
+
+#: src/components/ICSImportDialog.vue:329
+msgid "Hide details"
+msgstr "Details ausblenden"
+
+#: src/components/ICSImportDialog.vue:329
+msgid "Show details"
+msgstr "Details anzeigen"
+
+#: src/components/ICSImportDialog.vue:400
+msgid "Import"
+msgstr "Importieren"
+
+#: src/components/InviteJoinDialog.vue:50
+msgid "Join Shared Calendar"
+msgstr "Geteiltem Kalender beitreten"
+
+#: src/components/InviteJoinDialog.vue:73
+msgid "You have been invited to join the calendar \"%{name}\"."
+msgstr "Sie wurden eingeladen, dem Kalender „%{name}“ beizutreten."
+
+#: src/components/InviteJoinDialog.vue:128
+msgid "Join Calendar"
+msgstr "Kalender beitreten"
+
+#: src/composables/useICSImport.ts:75
+msgid "No valid events found in file"
+msgstr "Keine gültigen Termine in der Datei gefunden"
+
+#: src/composables/useICSImport.ts:89
+msgid "Calendar \"%{name}\" already exists. Please choose a different name."
+msgstr ""
+"Der Kalender „%{name}“ existiert bereits. Bitte wählen Sie einen anderen "
+"Namen."
+
+#: src/composables/useICSImport.ts:106
+msgid "No target calendar selected"
+msgstr "Kein Zielkalender ausgewählt"
+
+#: src/index.ts:19 src/index.ts:31 src/index.ts:43
+msgid "Web Calendar"
+msgstr "Web-Kalender"
+
+#: src/utils/error-message.ts:22
+msgid "Authentication failed. Please reload the page and sign in again."
+msgstr ""
+"Authentifizierung fehlgeschlagen. Bitte laden Sie die Seite neu und melden "
+"Sie sich erneut an."
+
+#: src/utils/error-message.ts:25
+msgid "The requested item could not be found. It may have been deleted."
+msgstr ""
+"Das angeforderte Element wurde nicht gefunden. Möglicherweise wurde es "
+"gelöscht."
+
+#: src/utils/error-message.ts:28
+msgid "This item was modified by another client. Please reload and try again."
+msgstr ""
+"Dieses Element wurde von einem anderen Client geändert. Bitte laden Sie neu "
+"und versuchen Sie es erneut."
+
+#: src/utils/error-message.ts:31
+msgid "Network error. Please check your connection and try again."
+msgstr ""
+"Netzwerkfehler. Bitte prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+
+#: src/utils/error-message.ts:34
+msgid "You do not have permission to perform this action."
+msgstr "Sie haben keine Berechtigung für diese Aktion."
+
+#: src/utils/error-message.ts:42
+msgid "An unexpected error occurred."
+msgstr "Ein unerwarteter Fehler ist aufgetreten."
+
+#: src/views/Calendar.vue:84
+msgid ""
+"Are you sure you want to leave '%{name}'? You will no longer have access to "
+"this calendar."
+msgstr ""
+"Möchten Sie '%{name}' wirklich verlassen? Sie haben danach keinen Zugriff "
+"mehr auf diesen Kalender."
+
+#: src/views/Calendar.vue:88
+msgid ""
+"Are you sure you want to delete '%{name}'? All events in this calendar will "
+"be permanently deleted."
+msgstr ""
+"Möchten Sie '%{name}' wirklich löschen? Alle Termine in diesem Kalender "
+"werden unwiderruflich gelöscht."
+
+#: src/views/Calendar.vue:142
+msgid "You are already subscribed to this calendar."
+msgstr "Sie haben diesen Kalender bereits abonniert."
+
+#: src/views/Calendar.vue:150
+msgid "Shared Calendar"
+msgstr "Geteilter Kalender"
+
+#: src/views/Calendar.vue:173
+msgid "Joined calendar successfully"
+msgstr "Kalender erfolgreich beigetreten"
+
+#: src/views/Calendar.vue:472
+msgid "Leave Calendar"
+msgstr "Kalender verlassen"
+
+#: src/views/Calendar.vue:472
+msgid "Delete Calendar"
+msgstr "Kalender löschen"
+
+#: src/views/Calendar.vue:475
+msgid "Leave"
+msgstr "Verlassen"

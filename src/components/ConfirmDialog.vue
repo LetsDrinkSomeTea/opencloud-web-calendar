@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { t } from '../composables/useLanguage'
-
 defineProps<{
   isOpen: boolean
   title: string
@@ -46,7 +44,7 @@ const emit = defineEmits<{
             class="ext:px-4 ext:py-2 ext:text-sm ext:text-gray-700 ext:bg-gray-200 ext:rounded hover:ext:bg-gray-300"
             @click="emit('cancel')"
           >
-            {{ t('Cancel') }}
+            {{ $gettext('Cancel') }}
           </button>
           <button
             type="button"
@@ -58,7 +56,7 @@ const emit = defineEmits<{
             "
             @click="emit('confirm')"
           >
-            {{ confirmText || t('Confirm') }}
+            {{ confirmText || $gettext('Confirm') }}
           </button>
         </div>
       </div>

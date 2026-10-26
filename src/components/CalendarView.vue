@@ -14,7 +14,7 @@ import type {
 } from '@fullcalendar/core'
 import type { EventResizeDoneArg } from '@fullcalendar/interaction'
 import type { CalendarEvent, Calendar } from '../types/calendar'
-import { getFullCalendarLocale } from '../composables/useLanguage'
+import { useFullCalendarLocale } from '../composables/useFullCalendarLocale'
 import { useCalendarConfig } from '../config'
 
 const props = defineProps<{
@@ -33,6 +33,8 @@ const emit = defineEmits<{
 }>()
 
 const { firstDayOfWeek } = useCalendarConfig()
+// Follows the OpenCloud language (button texts, "all-day", "+n more", first day of the week)
+const locale = useFullCalendarLocale()
 
 const calendarRef = ref<InstanceType<typeof FullCalendar> | null>(null)
 const lastEmittedDate = ref<number>(0)
@@ -72,7 +74,7 @@ const calendarOptions = computed<CalendarOptions>(() => ({
   initialView: props.viewType,
   initialDate: props.currentDate,
   headerToolbar: false,
-  locale: getFullCalendarLocale(),
+  locale: locale.value,
   // Without a configured value the first day of the week is derived from the locale
   ...(firstDayOfWeek !== null && { firstDay: firstDayOfWeek }),
   events: fullCalendarEvents.value,

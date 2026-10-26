@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { Calendar } from '../types/calendar'
 import type { Share } from '../caldav/client'
-import { t } from '../composables/useLanguage'
 
 defineProps<{
   calendars: readonly Calendar[]
@@ -38,7 +37,7 @@ const emit = defineEmits<{
         <h3
           class="ext:text-xs ext:font-semibold ext:text-gray-500 ext:uppercase ext:tracking-wider ext:mb-2"
         >
-          {{ t('Pending Invitations') }}
+          {{ $gettext('Pending Invitations') }}
         </h3>
         <ul class="ext:space-y-2">
           <li
@@ -49,11 +48,11 @@ const emit = defineEmits<{
             <div class="ext:text-sm font-medium ext:text-gray-900 ext:truncate ext:mb-1">
               {{
                 share.PathOrToken.split('/').filter(Boolean).pop()?.replace('-shared', '') ||
-                t('Calendar')
+                $gettext('Calendar')
               }}
             </div>
             <div class="ext:text-xs ext:text-gray-500 ext:truncate ext:mb-2">
-              {{ t('From:') }} {{ userProfiles?.[share.Owner] || share.Owner }}
+              {{ $gettext('From:') }} {{ userProfiles?.[share.Owner] || share.Owner }}
             </div>
             <div class="ext:flex ext:gap-2">
               <button
@@ -61,14 +60,14 @@ const emit = defineEmits<{
                 class="ext:flex-1 ext:px-2 ext:py-1 ext:bg-blue-600 ext:text-white ext:text-xs ext:font-medium ext:rounded hover:ext:bg-blue-700"
                 @click="emit('acceptShare', share)"
               >
-                {{ t('Accept') }}
+                {{ $gettext('Accept') }}
               </button>
               <button
                 type="button"
                 class="ext:flex-1 ext:px-2 ext:py-1 ext:bg-gray-100 ext:text-gray-700 ext:text-xs ext:font-medium ext:rounded hover:ext:bg-gray-200"
                 @click="emit('declineShare', share)"
               >
-                {{ t('Decline') }}
+                {{ $gettext('Decline') }}
               </button>
             </div>
           </li>
@@ -77,13 +76,13 @@ const emit = defineEmits<{
 
       <div class="ext:flex ext:items-center ext:justify-between ext:mb-3">
         <h3 class="ext:text-sm ext:font-semibold ext:text-gray-600 ext:uppercase ext:tracking-wide">
-          {{ t('Calendars') }}
+          {{ $gettext('Calendars') }}
         </h3>
         <div class="ext:flex ext:items-center ext:gap-1">
           <button
             type="button"
             class="ext:p-1 ext:text-blue-600 hover:ext:bg-blue-50 ext:rounded"
-            :title="t('Refresh')"
+            :title="$gettext('Refresh')"
             :disabled="loading"
             @click="emit('refresh')"
           >
@@ -105,7 +104,7 @@ const emit = defineEmits<{
           <button
             type="button"
             class="ext:p-1 ext:text-blue-600 hover:ext:bg-blue-50 ext:rounded"
-            :title="t('Import calendar')"
+            :title="$gettext('Import calendar')"
             @click="emit('import')"
           >
             <svg class="ext:w-5 ext:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,7 +119,7 @@ const emit = defineEmits<{
           <button
             type="button"
             class="ext:p-1 ext:text-blue-600 hover:ext:bg-blue-50 ext:rounded"
-            :title="t('Create new calendar')"
+            :title="$gettext('Create new calendar')"
             @click="emit('create')"
           >
             <svg class="ext:w-5 ext:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,11 +135,11 @@ const emit = defineEmits<{
       </div>
 
       <div v-if="loading && calendars.length === 0" class="ext:text-sm ext:text-gray-500">
-        {{ t('Loading calendars...') }}
+        {{ $gettext('Loading calendars...') }}
       </div>
 
       <div v-else-if="calendars.length === 0" class="ext:text-sm ext:text-gray-500">
-        {{ t('No calendars found') }}
+        {{ $gettext('No calendars found') }}
       </div>
 
       <ul v-else class="ext:space-y-2">
@@ -173,7 +172,7 @@ const emit = defineEmits<{
                 v-if="!calendar.readOnly && !calendar.isShared"
                 type="button"
                 class="ext:p-1 ext:text-gray-400 hover:ext:text-blue-600 ext:transition-colors ext:flex-shrink-0"
-                :title="t('Share calendar')"
+                :title="$gettext('Share calendar')"
                 @click.stop="emit('share', calendar.href)"
               >
                 <svg class="ext:w-4 ext:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +187,9 @@ const emit = defineEmits<{
               <button
                 type="button"
                 class="ext:p-1 ext:text-gray-400 hover:ext:text-red-600 ext:transition-colors ext:flex-shrink-0"
-                :title="calendar.isShared ? t('Leave calendar') : t('Delete calendar')"
+                :title="
+                  calendar.isShared ? $gettext('Leave calendar') : $gettext('Delete calendar')
+                "
                 @click.stop="emit('delete', calendar.href)"
               >
                 <svg
@@ -227,13 +228,16 @@ const emit = defineEmits<{
             class="ext:pl-9 ext:text-[10px] ext:text-gray-500 ext:truncate"
           >
             <span v-if="calendar.owner"
-              >{{ t('Shared by:') }} {{ userProfiles?.[calendar.owner] || calendar.owner }}</span
+              >{{ $gettext('Shared by:') }}
+              {{ userProfiles?.[calendar.owner] || calendar.owner }}</span
             >
-            <span v-else>{{ t('Shared via link') }}</span>
-            <span v-if="calendar.readOnly" class="ext:text-gray-400"> ({{ t('Read only') }})</span>
+            <span v-else>{{ $gettext('Shared via link') }}</span>
+            <span v-if="calendar.readOnly" class="ext:text-gray-400">
+              ({{ $gettext('Read only') }})</span
+            >
           </div>
           <div v-else-if="calendar.readOnly" class="ext:pl-9 ext:text-[10px] ext:text-gray-400">
-            {{ t('Read only') }}
+            {{ $gettext('Read only') }}
           </div>
         </li>
       </ul>

@@ -14,6 +14,8 @@
     "lint": "eslint 'src/**/*.{js,ts,vue}' --color",
     "format:check": "prettier . --check",
     "format:write": "prettier . --write",
+    "l10n:extract": "vue-gettext-extract --config gettext.config.cjs",
+    "l10n:compile": "vue-gettext-compile --config gettext.config.cjs",
     "test:unit": "NODE_OPTIONS=--unhandled-rejections=throw vitest"
   },
   "devDependencies": {
