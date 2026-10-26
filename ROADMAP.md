@@ -91,4 +91,4 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
 - [x] Resolve the remaining eslint warnings
 - [x] README: release asset is `web-calendar.zip` (not `web-app-calendar.zip`) and already contains a `web-calendar/` folder, so it must be extracted into `apps/`, not `apps/web-calendar/`
 - [x] Location search: drop the `User-Agent` header (browsers don't allow setting it) and send the user's language in `Accept-Language` instead of `en`
-- [ ] Update `homepage` and `author` in `package.json`
+- [x] Update `homepage` and `author` in `package.json`

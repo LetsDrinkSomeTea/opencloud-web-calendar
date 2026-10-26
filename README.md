@@ -20,7 +20,7 @@ A CalDAV calendar application integrated as a native [OpenCloud](https://openclo
 
 ### 1. Copy the Extension Files
 
-Download `web-calendar.zip` from the [Releases](https://github.com/LordGuenni/opencloud-web-calendar/releases) page. The archive already contains a top-level `web-calendar/` folder, so extract it directly into the OpenCloud web apps directory:
+Download `web-calendar.zip` from the [Releases](https://github.com/LetsDrinkSomeTea/opencloud-web-calendar/releases) page. The archive already contains a top-level `web-calendar/` folder, so extract it directly into the OpenCloud web apps directory:
 
 ```bash
 unzip web-calendar.zip -d /var/lib/opencloud/web/assets/apps/
