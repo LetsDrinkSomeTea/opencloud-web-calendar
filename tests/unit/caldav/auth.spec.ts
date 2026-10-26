@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { authenticatedFetch } from '../../../src/caldav/auth'
-import { CalDAVError } from '../../../src/caldav/errors'
+import { CalDAVError, NetworkError } from '../../../src/caldav/errors'
 import { mockFetch, fetchCall, respond } from './fetch-mock'
 
 vi.mock('@opencloud-eu/web-pkg', () => ({
@@ -12,9 +12,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-// authenticatedFetch currently throws synchronously for rejected URLs; wrapping it keeps the
-// tests independent of whether it throws or returns a rejected promise.
-const request = async (url: string, init?: RequestInit) => authenticatedFetch(url, init)
+const request = (url: string, init?: RequestInit) => authenticatedFetch(url, init)
 
 describe('authenticatedFetch URL safety', () => {
   it.each([
@@ -91,8 +89,27 @@ describe('authenticatedFetch URL safety', () => {
     expect(new Headers(init.headers).get('Depth')).toBe('1')
   })
 
-  it('propagates network errors', async () => {
-    mockFetch(new TypeError('Failed to fetch'))
-    await expect(request('/caldav/')).rejects.toThrow('Failed to fetch')
+  it('returns a rejected promise instead of throwing for refused URLs', async () => {
+    let result: Promise<Response> | undefined
+    expect(() => {
+      result = authenticatedFetch('https://evil.example.com/caldav/')
+    }).not.toThrow()
+    await expect(result).rejects.toBeInstanceOf(CalDAVError)
+  })
+
+  it('wraps network failures in a NetworkError', async () => {
+    const cause = new TypeError('Failed to fetch')
+    mockFetch(cause)
+    const err = await request('/caldav/').catch((e: unknown) => e)
+    expect(err).toBeInstanceOf(NetworkError)
+    expect((err as NetworkError).message).toBe('Failed to fetch')
+    expect((err as Error & { cause?: unknown }).cause).toBe(cause)
+  })
+
+  it('keeps aborted requests as AbortError', async () => {
+    mockFetch(new DOMException('The operation was aborted.', 'AbortError'))
+    const err = await request('/caldav/').catch((e: unknown) => e)
+    expect(err).not.toBeInstanceOf(NetworkError)
+    expect((err as DOMException).name).toBe('AbortError')
   })
 })
