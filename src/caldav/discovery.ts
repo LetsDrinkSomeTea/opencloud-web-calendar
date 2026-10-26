@@ -59,6 +59,7 @@ export async function listCalendars(calendarHomeUrl: string): Promise<Calendar[]
     displayName: data.displayName || 'Calendar',
     color: normalizeColor(data.color) || '#3788d8',
     ctag: data.ctag || '',
+    syncToken: data.syncToken,
     description: data.description,
     visible: true,
     readOnly: data.readOnly

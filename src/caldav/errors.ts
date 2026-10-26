@@ -39,3 +39,14 @@ export class NetworkError extends CalDAVError {
     this.name = 'NetworkError'
   }
 }
+
+/**
+ * The sync token sent with a `sync-collection` REPORT is no longer valid (RFC 6578 3.2,
+ * `DAV:valid-sync-token` precondition). The client has to do a full resync.
+ */
+export class InvalidSyncTokenError extends CalDAVError {
+  constructor(message = 'Invalid sync token', status?: number) {
+    super(message, status)
+    this.name = 'InvalidSyncTokenError'
+  }
+}

@@ -1,6 +1,11 @@
 import { discoverCalendars, listCalendars } from './discovery'
 import {
   fetchEvents as fetchEventsFromCalendar,
+  fetchEventResources,
+  multigetEventResources,
+  fetchCollectionState,
+  syncCollection,
+  type EventResource,
   createEvent,
   updateEvent,
   deleteEvent,
@@ -14,16 +19,21 @@ import {
   deleteCalendar as deleteCalendarRequest,
   type CreateCalendarData
 } from './calendar-management'
+import { queryFreeBusy, type BusyPeriod } from './freebusy'
 import * as sharing from './sharing'
 import type { Calendar, CalendarEvent, EventFormData, DateRange } from '../types/calendar'
+import type { CollectionState, SyncCollectionResult } from '../types/caldav'
 
 export {
   CalDAVError,
   AuthenticationError,
   NotFoundError,
   ConflictError,
-  NetworkError
+  NetworkError,
+  InvalidSyncTokenError
 } from './errors'
+export type { EventResource } from './events'
+export type { BusyPeriod, BusyType } from './freebusy'
 export type { CreateCalendarData } from './calendar-management'
 export type { Share, ShareInfo, ShareType } from './sharing'
 
@@ -32,6 +42,15 @@ export interface CalDAVClient {
   refreshCalendars(calendarHomeUrl: string): Promise<Calendar[]>
   fetchEvents(calendarHref: string, range: DateRange): Promise<CalendarEvent[]>
   fetchAllEvents(calendars: Calendar[], range: DateRange): Promise<CalendarEvent[]>
+  fetchEventResources(calendarHref: string, range: DateRange): Promise<EventResource[]>
+  multigetEventResources(
+    calendarHref: string,
+    hrefs: string[],
+    range: DateRange
+  ): Promise<EventResource[]>
+  fetchCollectionState(calendarHref: string): Promise<CollectionState>
+  syncCollection(calendarHref: string, syncToken: string): Promise<SyncCollectionResult>
+  queryFreeBusy(calendarHrefs: string[], range: DateRange): Promise<BusyPeriod[]>
   createEvent(formData: EventFormData): Promise<CalendarEvent>
   updateEvent(event: CalendarEvent, formData: EventFormData): Promise<CalendarEvent>
   deleteEvent(event: CalendarEvent): Promise<void>
@@ -76,6 +95,12 @@ export function createCalDAVClient(): CalDAVClient {
       )
       return results.flat()
     },
+
+    fetchEventResources,
+    multigetEventResources,
+    fetchCollectionState,
+    syncCollection,
+    queryFreeBusy,
 
     createEvent,
     updateEvent,

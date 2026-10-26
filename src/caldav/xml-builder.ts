@@ -31,8 +31,56 @@ export function buildPropfindCalendars(): string {
     <c:calendar-description/>
     <ic:calendar-color/>
     <cs:getctag/>
+    <d:sync-token/>
   </d:prop>
 </d:propfind>`
+}
+
+/** Depth 0 PROPFIND for the change markers of a single calendar collection. */
+export function buildPropfindCollectionState(): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<d:propfind xmlns:d="${DAV_NS}" xmlns:cs="${CALSERVER_NS}">
+  <d:prop>
+    <cs:getctag/>
+    <d:sync-token/>
+  </d:prop>
+</d:propfind>`
+}
+
+/**
+ * `sync-collection` REPORT (RFC 6578 3.2). Only ETags are requested: changed resources are
+ * fetched afterwards with a `calendar-multiget` if they are not cached already.
+ */
+export function buildSyncCollection(syncToken: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<d:sync-collection xmlns:d="${DAV_NS}">
+  <d:sync-token>${escapeXml(syncToken)}</d:sync-token>
+  <d:sync-level>1</d:sync-level>
+  <d:prop>
+    <d:getetag/>
+  </d:prop>
+</d:sync-collection>`
+}
+
+/** `calendar-multiget` REPORT (RFC 4791 7.9) for the given resource hrefs. */
+export function buildCalendarMultiget(hrefs: string[]): string {
+  const hrefElements = hrefs.map((href) => `  <d:href>${escapeXml(href)}</d:href>`).join('\n')
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<c:calendar-multiget xmlns:d="${DAV_NS}" xmlns:c="${CALDAV_NS}">
+  <d:prop>
+    <d:getetag/>
+    <c:calendar-data/>
+  </d:prop>
+${hrefElements}
+</c:calendar-multiget>`
+}
+
+/** `free-busy-query` REPORT (RFC 4791 7.10) on a calendar collection. */
+export function buildFreeBusyQuery(start: Date, end: Date): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<c:free-busy-query xmlns:c="${CALDAV_NS}">
+  <c:time-range start="${formatDateTimeUTC(start)}" end="${formatDateTimeUTC(end)}"/>
+</c:free-busy-query>`
 }
 
 export function buildCalendarQuery(start: Date, end: Date): string {
