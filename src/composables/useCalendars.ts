@@ -18,6 +18,14 @@ export interface JoinedCalendarRecord {
   joinedAt: number
 }
 
+/**
+ * Whether a collection can hold events. Collections that don't advertise a
+ * `supported-calendar-component-set` accept all component types (RFC 4791 5.2.3).
+ */
+export function isEventCalendar(calendar: Pick<Calendar, 'components'>): boolean {
+  return !calendar.components || calendar.components.includes('VEVENT')
+}
+
 const calendars = ref<Calendar[]>([])
 const pendingShares = ref<Share[]>([])
 const loading = ref(false)
@@ -491,8 +499,9 @@ export function useCalendars() {
     return calendars.value.find((c) => c.href === href)
   }
 
+  /** The first calendar new events can be created in: it holds events and is writable */
   function getDefaultCalendar(): Calendar | undefined {
-    return calendars.value[0]
+    return calendars.value.find((c) => isEventCalendar(c) && !c.readOnly)
   }
 
   async function deleteCalendarByHref(calendarHref: string): Promise<boolean> {

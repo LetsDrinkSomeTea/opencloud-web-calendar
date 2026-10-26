@@ -12,7 +12,7 @@ import CalendarDialog from '../components/CalendarDialog.vue'
 import ICSImportDialog from '../components/ICSImportDialog.vue'
 import CalendarSharingDialog from '../components/CalendarSharingDialog.vue'
 import InviteJoinDialog, { type InviteData } from '../components/InviteJoinDialog.vue'
-import { useCalendars } from '../composables/useCalendars'
+import { isEventCalendar, useCalendars } from '../composables/useCalendars'
 import { useEvents } from '../composables/useEvents'
 import { useEventEditor } from '../composables/useEventEditor'
 import { useCalendarEditor } from '../composables/useCalendarEditor'
@@ -54,7 +54,7 @@ const modals = useModals()
 const { dispatchModal } = modals
 
 const {
-  calendars,
+  calendars: allCalendars,
   loading: calendarsLoading,
   calendarHomeUrl,
   calendarsVersion,
@@ -70,6 +70,8 @@ const {
   declineShare,
   userProfiles
 } = useCalendars()
+// Collections that only hold tasks (VTODO) are shown in the tasks view, not in the calendar
+const calendars = computed(() => allCalendars.value.filter(isEventCalendar))
 
 const { fetchEvents, refreshEvents, getVisibleEvents, updateEventInCache, currentRange } =
   useEvents()
