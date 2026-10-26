@@ -1,4 +1,6 @@
 import { ref } from 'vue'
+import { useClientService } from '@opencloud-eu/web-pkg'
+import { useCalendarConfig } from '../config'
 
 export interface LocationResult {
   display_name: string
@@ -6,18 +8,45 @@ export interface LocationResult {
   lon: string
 }
 
+/**
+ * Builds the request URL for a Nominatim compatible search endpoint.
+ * Relative URLs (e.g. a same-origin proxy) are resolved against the current origin.
+ */
+export function buildLocationSearchUrl(baseUrl: string, query: string): string {
+  const origin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'http://localhost'
+  const url = new URL(baseUrl, origin)
+  url.searchParams.set('format', 'json')
+  url.searchParams.set('q', query)
+  url.searchParams.set('limit', '5')
+  return url.toString()
+}
+
 export function useLocationSearch() {
+  const { locationSearch } = useCalendarConfig()
+  const clientService = useClientService()
+  const enabled = locationSearch.enabled
   const results = ref<LocationResult[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
   let timeoutId: ReturnType<typeof setTimeout> | null = null
+
+  function getLanguage(): string {
+    return (
+      clientService?.currentLanguage ||
+      (typeof navigator !== 'undefined' ? navigator.language : '') ||
+      'en'
+    )
+  }
 
   function search(query: string) {
     if (timeoutId) {
       clearTimeout(timeoutId)
     }
 
-    if (!query || query.length < 3) {
+    if (!enabled || !query || query.length < 3) {
       results.value = []
       return
     }
@@ -27,15 +56,12 @@ export function useLocationSearch() {
 
     timeoutId = setTimeout(async () => {
       try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`,
-          {
-            headers: {
-              'Accept-Language': 'en',
-              'User-Agent': 'OpenCloud-Calendar/1.0'
-            }
+        const response = await fetch(buildLocationSearchUrl(locationSearch.url, query), {
+          headers: {
+            Accept: 'application/json',
+            'Accept-Language': getLanguage()
           }
-        )
+        })
 
         if (!response.ok) {
           throw new Error('Search failed')
@@ -64,6 +90,7 @@ export function useLocationSearch() {
   }
 
   return {
+    enabled,
     results,
     loading,
     error,

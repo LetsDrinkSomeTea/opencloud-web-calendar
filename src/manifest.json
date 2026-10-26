@@ -1,0 +1,10 @@
+{
+  "config": {
+    "caldavBasePath": "/caldav",
+    "locationSearch": {
+      "enabled": true,
+      "url": "https://nominatim.openstreetmap.org/search"
+    },
+    "defaultView": "dayGridMonth"
+  }
+}

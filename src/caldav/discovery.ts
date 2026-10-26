@@ -6,9 +6,8 @@ import {
 } from './xml-builder'
 import { parseCurrentUserPrincipal, parseCalendarHomeSet, parseCalendars } from './xml-parser'
 import { authenticatedFetch } from './auth'
+import { getCalDAVBasePath } from '../config'
 import type { Calendar } from '../types/calendar'
-
-const CALDAV_BASE = '/caldav/'
 
 async function propfind(url: string, body: string, depth: '0' | '1' = '0'): Promise<string> {
   const response = await authenticatedFetch(url, {
@@ -34,7 +33,7 @@ async function propfind(url: string, body: string, depth: '0' | '1' = '0'): Prom
 }
 
 export async function discoverUserPrincipal(): Promise<string> {
-  const xml = await propfind(CALDAV_BASE, buildPropfindCurrentUserPrincipal())
+  const xml = await propfind(`${getCalDAVBasePath()}/`, buildPropfindCurrentUserPrincipal())
   const principal = parseCurrentUserPrincipal(xml)
   if (!principal) {
     throw new CalDAVError('Could not discover user principal')

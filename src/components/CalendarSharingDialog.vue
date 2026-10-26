@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, unref } from 'vue'
+import { useRoute, useRouter } from '@opencloud-eu/web-pkg'
 import { t } from '../composables/useLanguage'
 import { useSharing } from '../composables/useSharing'
+import { withCalDAVBasePath } from '../config'
 import type { Calendar } from '../types/calendar'
 
 const props = defineProps<{
@@ -25,6 +27,9 @@ const {
   removeShare,
   updatePermissions
 } = useSharing(props.calendar.href)
+
+const route = useRoute()
+const router = useRouter()
 
 const newUserEmail = ref('')
 const newSharePermission = ref('r')
@@ -66,21 +71,22 @@ function copyToClipboard(text: string, key?: string) {
 }
 
 function getWebInviteUrl(token: string, perm: string) {
-  const origin = window.location.origin
-  const pathname = window.location.pathname
-  const tokenParam = encodeURIComponent(token)
-  const pathParam = encodeURIComponent(props.calendar.href)
-  const nameParam = encodeURIComponent(props.calendar.displayName)
-  const colorParam = encodeURIComponent(props.calendar.color || '#3788d8')
-  return `${origin}${pathname}#/?join_token=${tokenParam}&path=${pathParam}&name=${nameParam}&color=${colorParam}&perm=${perm}`
+  // Same parameters as before, now as a regular route query so the router can read them
+  const { href } = router.resolve({
+    path: unref(route).path,
+    query: {
+      join_token: token,
+      path: props.calendar.href,
+      name: props.calendar.displayName,
+      color: props.calendar.color || '#3788d8',
+      perm
+    }
+  })
+  return new URL(href, window.location.origin).toString()
 }
 
 function getCalDAVUrl(token: string) {
-  const origin = window.location.origin
-  const caldavPath = token.startsWith('/caldav/')
-    ? token
-    : `/caldav${token.startsWith('/') ? '' : '/'}${token}`
-  return `${origin}${caldavPath}`
+  return `${window.location.origin}${withCalDAVBasePath(token)}`
 }
 </script>
 

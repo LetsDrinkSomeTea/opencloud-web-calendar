@@ -57,19 +57,19 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
 
 ### HTTP and authentication
 
-- [ ] Use `useClientService().graphAuthenticated` instead of raw `fetch` calls to `/graph/v1.0/users` (`src/composables/useUserProfiles.ts`)
-- [ ] Read the access token and user from the stores through their typed API instead of casts and polling (`src/caldav/auth.ts`)
-- [ ] Stop sending `X-Remote-User` from the client; the proxy sets it
+- [x] Use `useClientService().graphAuthenticated` instead of raw `fetch` calls to `/graph/v1.0/users` (`src/composables/useUserProfiles.ts`)
+- [x] Read the access token and user from the stores through their typed API instead of casts and polling (`src/caldav/auth.ts`)
+- [x] Stop sending `X-Remote-User` from the client; the proxy sets it
 
 ### Configuration
 
-- [ ] Add `config` defaults to `src/manifest.json` and read them via `applicationConfig`
-- [ ] Make configurable: CalDAV base path, location search on/off and its URL, default view, first day of the week
+- [x] Add `config` defaults to `src/manifest.json` and read them via `applicationConfig`
+- [x] Make configurable: CalDAV base path, location search on/off and its URL, default view, first day of the week
 
 ### Routing
 
-- [ ] Read join links via `useRoute()` / `router.replace` instead of `window.location` and `hashchange`/`popstate` listeners
-- [ ] Keep the current view and date in the URL so a reload restores them
+- [x] Read join links via `useRoute()` / `router.replace` instead of `window.location` and `hashchange`/`popstate` listeners
+- [x] Keep the current view and date in the URL so a reload restores them
 
 ## 4. Features
 
@@ -90,5 +90,5 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
 - [ ] Add unit tests for the CalDAV client, XML parsing/building and ICS handling (XML/discovery/calendar management/sharing done; ICS and events pending)
 - [x] Resolve the remaining eslint warnings
 - [x] README: release asset is `web-calendar.zip` (not `web-app-calendar.zip`) and already contains a `web-calendar/` folder, so it must be extracted into `apps/`, not `apps/web-calendar/`
-- [ ] Location search: drop the `User-Agent` header (browsers don't allow setting it) and send the user's language in `Accept-Language` instead of `en`
+- [x] Location search: drop the `User-Agent` header (browsers don't allow setting it) and send the user's language in `Accept-Language` instead of `en`
 - [ ] Update `homepage` and `author` in `package.json`

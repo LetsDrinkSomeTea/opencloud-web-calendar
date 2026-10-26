@@ -1,6 +1,7 @@
 import { ref, readonly, onMounted, onUnmounted } from 'vue'
 import { getCalDAVClient } from '../caldav/client'
-import { waitForUserId } from '../caldav/auth'
+import { getUserId } from '../caldav/auth'
+import { stripCalDAVBasePath, withCalDAVBasePath } from '../config'
 import { discoverUserPrincipal, discoverCalendarHome } from '../caldav/discovery'
 import { useUserProfiles } from './useUserProfiles'
 import type { Calendar } from '../types/calendar'
@@ -47,7 +48,7 @@ export function saveJoinedTokenCalendars(userId: string, records: JoinedCalendar
 export function addJoinedTokenCalendar(userId: string, record: JoinedCalendarRecord): void {
   const existing = getJoinedTokenCalendars(userId)
   const normalize = (t: string) => {
-    const p = t.startsWith('/caldav/') ? t.slice(7) : t
+    const p = stripCalDAVBasePath(t)
     return p.startsWith('/') ? p : `/${p}`
   }
   const target = normalize(record.token)
@@ -59,7 +60,7 @@ export function addJoinedTokenCalendar(userId: string, record: JoinedCalendarRec
 export function removeJoinedTokenCalendar(userId: string, token: string): void {
   const existing = getJoinedTokenCalendars(userId)
   const normalize = (t: string) => {
-    const p = t.startsWith('/caldav/') ? t.slice(7) : t
+    const p = stripCalDAVBasePath(t)
     return p.startsWith('/') ? p : `/${p}`
   }
   const target = normalize(token)
@@ -76,7 +77,7 @@ export function useCalendars() {
     error.value = null
 
     try {
-      const currentUserId = await waitForUserId()
+      const currentUserId = getUserId()
       if (!currentUserId) throw new Error('User not authenticated')
       const normalizedCurrentUserId = currentUserId.toLowerCase().trim()
 
@@ -90,7 +91,7 @@ export function useCalendars() {
 
       // Process discovered calendars and identify shared ones
       const normalize = (path: string) => {
-        const p = path.startsWith('/caldav/') ? path.slice(7) : path
+        const p = stripCalDAVBasePath(path)
         return p.endsWith('/') ? p : p + '/'
       }
 
@@ -146,7 +147,7 @@ export function useCalendars() {
             // This is an enabled share that discovery missed
             loadUserProfile(ownerId)
             calendars.value.push({
-              href: `/caldav/${sharePath}`,
+              href: withCalDAVBasePath(sharePath),
               displayName:
                 share.PathOrToken.split('/').filter(Boolean).pop()?.replace('-shared', '') ||
                 'Shared Calendar',
@@ -167,7 +168,7 @@ export function useCalendars() {
       const joinedTokenCals = getJoinedTokenCalendars(normalizedCurrentUserId)
       for (const joined of joinedTokenCals) {
         const tokenPath = joined.token.startsWith('/') ? joined.token : `/${joined.token}`
-        const fullHref = tokenPath.startsWith('/caldav/') ? tokenPath : `/caldav${tokenPath}`
+        const fullHref = withCalDAVBasePath(tokenPath)
         const normalizedHref = normalize(fullHref)
 
         if (!discoveredHrefs.has(normalizedHref)) {
@@ -304,11 +305,9 @@ export function useCalendars() {
 
     loading.value = true
     try {
-      const currentUserId = await waitForUserId()
+      const currentUserId = getUserId()
       const normalizedCurrentUserId = (currentUserId || '').toLowerCase().trim()
-      const path =
-        calendar.sharePathOrToken ||
-        (calendar.href.startsWith('/caldav/') ? calendar.href.slice(7) : calendar.href)
+      const path = calendar.sharePathOrToken || stripCalDAVBasePath(calendar.href)
 
       // If it's a token share or joined via link, remove from local storage
       if (path.includes('.token') || path.startsWith('/.token') || path.startsWith('.token')) {
@@ -338,15 +337,11 @@ export function useCalendars() {
     owner?: string
   }): Promise<boolean> {
     try {
-      const currentUserId = await waitForUserId()
+      const currentUserId = getUserId()
       if (!currentUserId) throw new Error('User not authenticated')
       const normalizedCurrentUserId = currentUserId.toLowerCase().trim()
 
-      const internalPath = record.calendarPath
-        ? record.calendarPath.startsWith('/caldav/')
-          ? record.calendarPath.slice(7)
-          : record.calendarPath
-        : ''
+      const internalPath = record.calendarPath ? stripCalDAVBasePath(record.calendarPath) : ''
 
       let mappedSuccess = false
 
@@ -398,7 +393,7 @@ export function useCalendars() {
   function isCalendarAlreadyJoined(tokenOrPath: string, currentUserId?: string): boolean {
     if (!tokenOrPath) return false
     const normalize = (t: string) => {
-      let p = t.startsWith('/caldav/') ? t.slice(7) : t
+      let p = stripCalDAVBasePath(t)
       p = p.startsWith('/') ? p : `/${p}`
       return p.endsWith('/') ? p : `${p}/`
     }

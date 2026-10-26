@@ -1,17 +1,13 @@
 import { useAuthStore, useUserStore } from '@opencloud-eu/web-pkg'
-import { isRef } from 'vue'
 import { CalDAVError } from './errors'
+import { getCalDAVBasePath } from '../config'
 
-let authStore: ReturnType<typeof useAuthStore> | null = null
-
-export function initAuthStore(store: ReturnType<typeof useAuthStore>): void {
-  authStore = store
-}
-
+/**
+ * Access token of the logged in user. The auth store is a pinia store that is shared with the
+ * OpenCloud runtime, so it always holds the current (renewed) token.
+ */
 export function getAccessToken(): string | null {
-  if (!authStore) return null
-  const store = authStore as unknown as Record<string, unknown>
-  return readStringMaybeRef(store.accessToken)
+  return useAuthStore().accessToken || null
 }
 
 export function getAuthHeaders(): Record<string, string> {
@@ -22,59 +18,25 @@ export function getAuthHeaders(): Record<string, string> {
   return {}
 }
 
+/**
+ * Id of the logged in user.
+ *
+ * The app's routes require the `user` auth context. The OpenCloud runtime only resolves such a
+ * route after the user has been loaded into the user store (`userStore.setUser` runs before
+ * `authStore.userContextReady` is set), so no waiting is necessary here.
+ */
 export function getUserId(): string | null {
-  if (!authStore) return null
-  const store = authStore as unknown as Record<string, unknown>
-  const userInfo = unwrapMaybeRef(store.userInfo)
-  if (!userInfo || typeof userInfo !== 'object') {
-    // Try userStore as fallback
-    try {
-      const userStore = useUserStore()
-      if (userStore.user) {
-        return (
-          userStore.user.id ||
-          userStore.user.onPremisesSamAccountName ||
-          userStore.user.mail ||
-          null
-        )
-      }
-    } catch {
-      // Ignore
-    }
-    return null
-  }
-
-  const info = userInfo as Record<string, unknown>
-  return (
-    readStringMaybeRef(info.id) ||
-    readStringMaybeRef(info.mail) ||
-    readStringMaybeRef(info.username) ||
-    readStringMaybeRef(info.email)
-  )
-}
-
-export async function waitForUserId(timeoutMs = 5000): Promise<string | null> {
-  const start = Date.now()
-  while (Date.now() - start < timeoutMs) {
-    const id = getUserId()
-    if (id) return id
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-  return null
+  const user = useUserStore().user
+  if (!user) return null
+  return user.id || user.onPremisesSamAccountName || user.mail || null
 }
 
 export function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const normalizedUrl = normalizeCalDAVUrl(url)
   const headers = new Headers(options.headers)
 
-  // For CalDAV through OpenCloud proxy, we need X-Remote-User instead of Bearer token
-  const userId = getUserId()
-  if (userId) {
-    assertSafeHeaderValue('X-Remote-User', userId)
-    headers.set('X-Remote-User', userId)
-  }
-
-  // Also include Bearer token for OpenCloud proxy authentication
+  // The OpenCloud proxy authenticates the bearer token and sets the remote user header for
+  // the CalDAV backend itself (`remote_user_header` in proxy.yaml).
   const token = getAccessToken()
   if (token) {
     assertSafeHeaderValue('Authorization', token)
@@ -88,7 +50,16 @@ export function authenticatedFetch(url: string, options: RequestInit = {}): Prom
   })
 }
 
-function normalizeCalDAVUrl(url: string): string {
+export function isAllowedCalDAVPath(pathname: string, basePath = getCalDAVBasePath()): boolean {
+  return (
+    pathname === basePath ||
+    pathname.startsWith(`${basePath}/`) ||
+    pathname.startsWith('/.sharing/') ||
+    pathname.startsWith('/.token/')
+  )
+}
+
+export function normalizeCalDAVUrl(url: string): string {
   if (!url || !url.trim()) {
     throw new CalDAVError('Invalid CalDAV URL')
   }
@@ -104,14 +75,7 @@ function normalizeCalDAVUrl(url: string): string {
     throw new CalDAVError('Refusing cross-origin CalDAV request')
   }
 
-  if (
-    !(
-      parsed.pathname === '/caldav' ||
-      parsed.pathname.startsWith('/caldav/') ||
-      parsed.pathname.startsWith('/.sharing/') ||
-      parsed.pathname.startsWith('/.token/')
-    )
-  ) {
+  if (!isAllowedCalDAVPath(parsed.pathname)) {
     throw new CalDAVError('Refusing request outside CalDAV endpoint')
   }
 
@@ -129,13 +93,4 @@ function assertSafeHeaderValue(headerName: string, value: string): void {
   if (/[\r\n]/.test(value)) {
     throw new CalDAVError(`Invalid ${headerName} header value`)
   }
-}
-
-function unwrapMaybeRef(value: unknown): unknown {
-  return isRef(value) ? value.value : value
-}
-
-function readStringMaybeRef(value: unknown): string | null {
-  const unwrapped = unwrapMaybeRef(value)
-  return typeof unwrapped === 'string' && unwrapped.length > 0 ? unwrapped : null
 }

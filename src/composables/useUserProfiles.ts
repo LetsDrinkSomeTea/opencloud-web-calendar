@@ -1,78 +1,82 @@
 import { reactive } from 'vue'
-import { getAccessToken } from '../caldav/auth'
+import { useClientService } from '@opencloud-eu/web-pkg'
+import type { User } from '@opencloud-eu/web-client/graph/generated'
+import { getCalDAVBasePath } from '../config'
 
 const userProfiles = reactive<Record<string, string>>({})
 
-export function useUserProfiles() {
-  function cleanUserId(id: string): string {
-    if (!id) return id
-    // If it's a URL or path, get the last segment
-    if (id.includes('/')) {
-      const segments = id.split('/').filter(Boolean)
-      // For principal URLs like /caldav/user/, segments are ['caldav', 'user']
-      // We want the last one, unless it's 'caldav'
-      if (segments.length > 1 && segments[0] === 'caldav') {
-        return segments[1]
-      }
-      return segments.pop() || id
+const USER_SELECT: Array<'id' | 'displayName' | 'mail' | 'onPremisesSamAccountName'> = [
+  'id',
+  'displayName',
+  'mail',
+  'onPremisesSamAccountName'
+]
+
+function getDisplayName(user: User, fallback: string): string {
+  return user.displayName || user.onPremisesSamAccountName || fallback
+}
+
+// Graph `$search` expects the term to be quoted
+function quoteSearchTerm(term: string): string {
+  return `"${term.replace(/"/g, '')}"`
+}
+
+export function cleanUserId(id: string): string {
+  if (!id) return id
+  // If it's a URL or path, get the last segment
+  if (id.includes('/')) {
+    // For principal URLs like /caldav/user/ we want the segment after the CalDAV base path
+    const base = getCalDAVBasePath()
+    if (id.startsWith(`${base}/`)) {
+      const [first] = id.slice(base.length).split('/').filter(Boolean)
+      if (first) return first
     }
-    return id
+    const segments = id.split('/').filter(Boolean)
+    return segments.pop() || id
   }
+  return id
+}
+
+export function useUserProfiles() {
+  const clientService = useClientService()
 
   async function loadUserProfile(userId: string): Promise<string> {
     const cleanedId = cleanUserId(userId)
     if (userProfiles[cleanedId]) return userProfiles[cleanedId]
     if (userProfiles[userId]) return userProfiles[userId]
 
+    const graph = clientService.graphAuthenticated
+
     try {
-      const token = getAccessToken()
-      if (!token) return cleanedId
-
-      const origin =
-        typeof window !== 'undefined' && window.location?.origin ? window.location.origin : ''
-
       // Try direct ID lookup first
-      const url = `${origin}/graph/v1.0/users/${cleanedId}`
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json'
-        }
-      })
+      const user = await graph.users.getUser(cleanedId)
+      const name = getDisplayName(user, cleanedId)
+      userProfiles[cleanedId] = name
+      userProfiles[userId] = name
+      return name
+    } catch {
+      // Not a user id, fall back to search below
+    }
 
-      if (response.ok) {
-        const user = await response.json()
-        const name = user.displayName || user.onPremisesSamAccountName || cleanedId
+    try {
+      // Fallback: search by ID/username
+      const users = await graph.users.listUsers({
+        search: quoteSearchTerm(cleanedId),
+        select: USER_SELECT
+      })
+      const user =
+        users.find(
+          (u) =>
+            u.id === cleanedId || u.onPremisesSamAccountName === cleanedId || u.mail === cleanedId
+        ) || users[0]
+      if (user) {
+        const name = getDisplayName(user, cleanedId)
         userProfiles[cleanedId] = name
         userProfiles[userId] = name
         return name
       }
-
-      // Fallback: search by ID/username
-      const searchUrl = `${origin}/graph/v1.0/users?$search=${encodeURIComponent('"' + cleanedId + '"')}`
-      const searchResponse = await fetch(searchUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json'
-        }
-      })
-
-      if (searchResponse.ok) {
-        const data = await searchResponse.json()
-        const user =
-          data.value?.find(
-            (u: any) =>
-              u.id === cleanedId || u.onPremisesSamAccountName === cleanedId || u.mail === cleanedId
-          ) || data.value?.[0]
-        if (user) {
-          const name = user.displayName || user.onPremisesSamAccountName || cleanedId
-          userProfiles[cleanedId] = name
-          userProfiles[userId] = name
-          return name
-        }
-      }
     } catch {
-      // Silently fail and use UUID
+      // Silently fail and use the id
     }
     return cleanedId
   }
@@ -83,45 +87,28 @@ export function useUserProfiles() {
       return userIdOrEmail
     }
 
-    const token = getAccessToken()
-    if (!token) throw new Error('Not authenticated')
-
-    const origin =
-      typeof window !== 'undefined' && window.location?.origin ? window.location.origin : ''
-    const url = `${origin}/graph/v1.0/users?$search=${encodeURIComponent('"' + userIdOrEmail + '"')}`
-
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json'
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to lookup user: ${response.statusText}`)
+    let users: User[]
+    try {
+      users = await clientService.graphAuthenticated.users.listUsers({
+        search: quoteSearchTerm(userIdOrEmail),
+        select: USER_SELECT
+      })
+    } catch (e) {
+      throw new Error(`Failed to lookup user: ${e instanceof Error ? e.message : String(e)}`)
     }
-
-    const data = await response.json()
-    const users = data.value || []
 
     // Try to find exact match on username or mail
     const exactMatch = users.find(
-      (u: any) =>
+      (u) =>
         u.onPremisesSamAccountName === userIdOrEmail ||
         u.mail === userIdOrEmail ||
         u.displayName === userIdOrEmail
     )
 
-    if (exactMatch && exactMatch.id) {
-      userProfiles[exactMatch.id] =
-        exactMatch.displayName || exactMatch.onPremisesSamAccountName || exactMatch.id
-      return exactMatch.id
-    }
-
-    if (users.length > 0 && users[0].id) {
-      userProfiles[users[0].id] =
-        users[0].displayName || users[0].onPremisesSamAccountName || users[0].id
-      return users[0].id
+    const match = exactMatch?.id ? exactMatch : users[0]
+    if (match?.id) {
+      userProfiles[match.id] = getDisplayName(match, match.id)
+      return match.id
     }
 
     throw new Error(`User not found: ${userIdOrEmail}`)
