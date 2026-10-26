@@ -1,162 +1,119 @@
 <script setup lang="ts">
+import { computed, useId, watch } from 'vue'
+import { useGettext } from 'vue3-gettext'
+import type { Modal } from '@opencloud-eu/web-pkg'
 import { useCalendarEditor } from '../composables/useCalendarEditor'
 import { translateError } from '../utils/error-message'
 
+/**
+ * Content of the "New Calendar" modal (dispatched via `useModals`). The modal's own confirm
+ * button creates the calendar through `onConfirm`.
+ */
 const props = defineProps<{
+  modal: Modal
   calendarHomeUrl: string
 }>()
 
 const emit = defineEmits<{
   saved: []
+  confirm: []
+  'update:confirmDisabled': [value: boolean]
 }>()
 
-const { isOpen, formData, saving, error, close, save } = useCalendarEditor()
+const { $gettext } = useGettext()
+const { formData, error, save } = useCalendarEditor()
+
+const formId = `web-calendar-calendar-form-${useId()}`
 
 // Preset colors matching common calendar apps
-const presetColors = [
-  '#3788d8', // Blue (default)
-  '#22c55e', // Green
-  '#ef4444', // Red
-  '#f59e0b', // Orange
-  '#8b5cf6', // Purple
-  '#ec4899', // Pink
-  '#06b6d4', // Cyan
-  '#84cc16' // Lime
-]
+const presetColors = computed(() => [
+  { value: '#3788d8', label: $gettext('Blue') }, // default
+  { value: '#22c55e', label: $gettext('Green') },
+  { value: '#ef4444', label: $gettext('Red') },
+  { value: '#f59e0b', label: $gettext('Orange') },
+  { value: '#8b5cf6', label: $gettext('Purple') },
+  { value: '#ec4899', label: $gettext('Pink') },
+  { value: '#06b6d4', label: $gettext('Cyan') },
+  { value: '#84cc16', label: $gettext('Lime') }
+])
 
-async function handleSave() {
+const isValid = computed(() => !!formData.value.displayName?.trim())
+
+watch(isValid, (valid) => emit('update:confirmDisabled', !valid), { immediate: true })
+
+function handleSubmit() {
+  if (!isValid.value || props.modal.isLoading) return
+  emit('confirm')
+}
+
+/** Called by the modal wrapper on confirm; rejecting keeps the modal open (the error is shown inline) */
+async function onConfirm() {
   const success = await save(props.calendarHomeUrl)
-  if (success) {
-    emit('saved')
+  if (!success) {
+    return Promise.reject()
   }
+  emit('saved')
 }
 
-function handleClose() {
-  close()
-}
+defineExpose({ onConfirm })
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      v-if="isOpen"
-      class="ext:fixed ext:inset-0 ext:z-50 ext:flex ext:items-center ext:justify-center ext:bg-black/50"
-      @click.self="handleClose"
-    >
-      <div class="ext:bg-white ext:rounded-lg ext:shadow-xl ext:w-full ext:max-w-md ext:mx-4">
-        <!-- Header -->
-        <div class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-b">
-          <h2 class="ext:text-lg ext:font-semibold ext:text-gray-900">
-            {{ $gettext('New Calendar') }}
-          </h2>
-          <button
-            type="button"
-            class="ext:text-gray-500 hover:ext:text-gray-700"
-            @click="handleClose"
-          >
-            <svg class="ext:w-6 ext:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
+  <form
+    :id="formId"
+    class="ext:space-y-4 ext:text-role-on-surface"
+    autocomplete="off"
+    @submit.prevent="handleSubmit"
+  >
+    <oc-text-input
+      id="calendar-name"
+      v-model="formData.displayName"
+      :label="$gettext('Calendar Name')"
+      :placeholder="$gettext('My Calendar')"
+      required-mark
+    />
 
-        <!-- Form -->
-        <form class="ext:px-6 ext:py-4 ext:space-y-4" @submit.prevent="handleSave">
-          <!-- Display Name -->
-          <div>
-            <label
-              for="calendar-name"
-              class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-            >
-              {{ $gettext('Calendar Name') }}
-            </label>
-            <input
-              id="calendar-name"
-              v-model="formData.displayName"
-              type="text"
-              required
-              class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500 ext:focus:border-blue-500"
-              :placeholder="$gettext('My Calendar')"
-            />
-          </div>
+    <oc-textarea
+      id="calendar-description"
+      v-model="formData.description"
+      class="ext:w-full"
+      :label="$gettext('Description (optional)')"
+      :placeholder="$gettext('Calendar description')"
+      rows="2"
+    />
 
-          <!-- Description -->
-          <div>
-            <label
-              for="calendar-description"
-              class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-            >
-              {{ $gettext('Description (optional)') }}
-            </label>
-            <textarea
-              id="calendar-description"
-              v-model="formData.description"
-              rows="2"
-              class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-              :placeholder="$gettext('Calendar description')"
-            />
-          </div>
-
-          <!-- Color -->
-          <div>
-            <label class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-2">
-              {{ $gettext('Color') }}
-            </label>
-            <div class="ext:grid ext:grid-cols-4 sm:ext:grid-cols-8 ext:gap-2">
-              <button
-                v-for="color in presetColors"
-                :key="color"
-                type="button"
-                class="ext:w-8 ext:h-8 ext:rounded-full ext:border-2 ext:transition-all"
-                :class="
-                  formData.color === color
-                    ? 'ext:border-gray-900 ext:scale-110'
-                    : 'ext:border-gray-300'
-                "
-                :style="{ backgroundColor: color }"
-                @click="formData.color = color"
-              />
-            </div>
-          </div>
-
-          <!-- Error -->
-          <div v-if="error" class="ext:text-sm ext:text-red-600">
-            {{ translateError(error, $gettext) }}
-          </div>
-        </form>
-
-        <!-- Footer -->
-        <div
-          class="ext:flex ext:items-center ext:justify-end ext:gap-3 ext:px-6 ext:py-4 ext:border-t ext:bg-gray-50"
-        >
-          <button
-            type="button"
-            class="ext:px-4 ext:py-2 ext:text-sm ext:text-gray-700 ext:bg-gray-200 ext:rounded hover:ext:bg-gray-300"
-            :disabled="saving"
-            @click="handleClose"
-          >
-            {{ $gettext('Cancel') }}
-          </button>
-          <button
-            type="button"
-            class="ext:px-4 ext:py-2 ext:text-sm ext:rounded"
-            :class="
-              saving || !formData.displayName
-                ? 'ext:bg-gray-300 ext:text-gray-500 ext:cursor-not-allowed'
-                : 'ext:bg-blue-600 ext:text-white hover:ext:bg-blue-700'
-            "
-            :disabled="saving || !formData.displayName"
-            @click="handleSave"
-          >
-            {{ saving ? $gettext('Creating...') : $gettext('Create') }}
-          </button>
-        </div>
+    <fieldset class="ext:m-0 ext:p-0 ext:border-0">
+      <legend class="ext:p-0 ext:mb-2">{{ $gettext('Color') }}</legend>
+      <div class="ext:grid ext:grid-cols-4 sm:ext:grid-cols-8 ext:gap-2">
+        <!-- Calendar colors are user data, so the swatches keep their fixed colors -->
+        <oc-button
+          v-for="color in presetColors"
+          :key="color.value"
+          appearance="raw"
+          no-hover
+          class="ext:w-8 ext:h-8 ext:p-0 ext:rounded-full ext:border-2 ext:transition-all"
+          :class="
+            formData.color === color.value
+              ? 'ext:border-role-on-surface ext:scale-110'
+              : 'ext:border-role-outline-variant'
+          "
+          :style="{ backgroundColor: color.value }"
+          :aria-label="color.label"
+          :title="color.label"
+          :aria-pressed="formData.color === color.value ? 'true' : 'false'"
+          @click="formData.color = color.value"
+        />
       </div>
-    </div>
-  </Teleport>
+    </fieldset>
+
+    <oc-color-input
+      v-model="formData.color"
+      :label="$gettext('Custom color')"
+      :clear-button-enabled="false"
+    />
+
+    <p v-if="error" class="ext:m-0 ext:text-sm ext:text-role-error" role="alert">
+      {{ translateError(error, $gettext) }}
+    </p>
+  </form>
 </template>

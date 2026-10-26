@@ -42,9 +42,9 @@ and German and does not follow language changes made in OpenCloud.
 There are no design system components; dialogs, buttons, inputs and the toast are custom
 built and lack focus handling, keyboard support and ARIA attributes.
 
-- [ ] Replace custom buttons and inputs with `OcButton`, `OcTextInput`, `OcSelect` etc.
-- [ ] Use `useModals` instead of the custom `Teleport` dialogs
-- [ ] Use `useMessages` (`showMessage` / `showErrorMessage`) instead of the custom toast and `console.error`
+- [x] Replace custom buttons and inputs with `OcButton`, `OcTextInput`, `OcSelect` etc.
+- [x] Use `useModals` instead of the custom `Teleport` dialogs
+- [x] Use `useMessages` (`showMessage` / `showErrorMessage`) instead of the custom toast and `console.error`
 
 ### Theming
 
@@ -52,8 +52,8 @@ Dark mode is detected by comparing `--oc-role-background` against a hard-coded c
 (`src/composables/useTheme.ts`), and fixed Tailwind colors are overridden by a global,
 unscoped `!important` stylesheet in `src/views/Calendar.vue`.
 
-- [ ] Replace fixed colors (`ext:bg-white`, `ext:text-gray-*`, …) with role classes (`ext:bg-role-surface`, `ext:text-role-on-surface`, …)
-- [ ] Remove `useTheme` and the global dark mode overrides
+- [x] Replace fixed colors (`ext:bg-white`, `ext:text-gray-*`, …) with role classes (`ext:bg-role-surface`, `ext:text-role-on-surface`, …)
+- [x] Remove `useTheme` and the global dark mode overrides
 
 ### HTTP and authentication
 

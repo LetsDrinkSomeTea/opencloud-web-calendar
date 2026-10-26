@@ -2,14 +2,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, unref } from 'vue'
 import { useGettext } from 'vue3-gettext'
-import { useRoute, useRouter } from '@opencloud-eu/web-pkg'
+import { useMessages, useModals, useRoute, useRouter } from '@opencloud-eu/web-pkg'
 import type { LocationQuery } from 'vue-router'
 import CalendarToolbar from '../components/CalendarToolbar.vue'
 import CalendarSidebar from '../components/CalendarSidebar.vue'
 import CalendarView from '../components/CalendarView.vue'
-import EventDialog from '../components/EventDialog.vue'
 import CalendarDialog from '../components/CalendarDialog.vue'
-import ConfirmDialog from '../components/ConfirmDialog.vue'
 import ICSImportDialog from '../components/ICSImportDialog.vue'
 import CalendarSharingDialog from '../components/CalendarSharingDialog.vue'
 import InviteJoinDialog, { type InviteData } from '../components/InviteJoinDialog.vue'
@@ -17,7 +15,10 @@ import { useCalendars } from '../composables/useCalendars'
 import { useEvents } from '../composables/useEvents'
 import { useEventEditor } from '../composables/useEventEditor'
 import { useCalendarEditor } from '../composables/useCalendarEditor'
-import { useTheme } from '../composables/useTheme'
+import { useICSImport } from '../composables/useICSImport'
+import { useEventDialogs } from '../composables/useEventDialogs'
+import { useModalBinding } from '../composables/useModalBinding'
+import { useErrorMessage } from '../composables/useErrorMessage'
 import { getExtendedRange } from '../utils/date'
 import { getCalDAVClient } from '../caldav/client'
 import { useCalendarConfig, type CalendarViewType } from '../config'
@@ -36,6 +37,9 @@ const router = useRouter()
 const config = useCalendarConfig()
 
 const { $gettext } = useGettext()
+const { showMessage } = useMessages()
+const { showError } = useErrorMessage()
+const { dispatchModal } = useModals()
 
 const {
   calendars,
@@ -57,10 +61,12 @@ const {
 const { fetchEvents, getVisibleEvents, updateEventInCache } = useEvents()
 
 const { openCreate, openEdit } = useEventEditor()
-const { open: openCalendarEditor } = useCalendarEditor()
-const importDialogRef = ref<InstanceType<typeof ICSImportDialog> | null>(null)
-// Called for its side effect: keeps the data-calendar-theme attribute in sync
-useTheme()
+const {
+  isOpen: calendarEditorOpen,
+  open: openCalendarEditor,
+  close: closeCalendarEditor
+} = useCalendarEditor()
+const { isOpen: importOpen, open: openImport, close: closeImport } = useICSImport()
 
 const sidebarOpen = ref(false)
 
@@ -68,45 +74,11 @@ function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value
 }
 
-// Confirmation dialog state
-const confirmAction = ref<{
-  type: 'delete' | 'leave'
-  isOpen: boolean
-  calendarHref: string
-  calendarName: string
-  calendar?: Calendar
-} | null>(null)
-
-// Built in the script: the messages contain quotes that cannot be nested in a template attribute
-const confirmMessage = computed(() => {
-  const name = confirmAction.value?.calendarName || ''
-  return confirmAction.value?.type === 'leave'
-    ? $gettext(
-        "Are you sure you want to leave '%{name}'? You will no longer have access to this calendar.",
-        { name }
-      )
-    : $gettext(
-        "Are you sure you want to delete '%{name}'? All events in this calendar will be permanently deleted.",
-        { name }
-      )
-})
-
 // Sharing dialog state
 const sharingCalendar = ref<Calendar | null>(null)
 
 // Invite Join dialog state
 const pendingJoinInvite = ref<InviteData | null>(null)
-const joinLoading = ref(false)
-const toastMessage = ref<string | null>(null)
-let toastTimeout: ReturnType<typeof setTimeout> | null = null
-
-function showToast(message: string) {
-  toastMessage.value = message
-  if (toastTimeout) clearTimeout(toastTimeout)
-  toastTimeout = setTimeout(() => {
-    toastMessage.value = null
-  }, 3500)
-}
 
 // Route updates are serialized so concurrent changes (view, date, invite params) don't overwrite
 // each other. `router.replace` keeps the browser history clean.
@@ -139,7 +111,7 @@ function checkJoinInvite() {
   const checkKey = params.token || params.calendarPath || ''
   if (checkKey === handledJoinKey) return
   if (isCalendarAlreadyJoined(checkKey)) {
-    showToast($gettext('You are already subscribed to this calendar.'))
+    showMessage({ title: $gettext('You are already subscribed to this calendar.') })
     clearJoinUrlParams()
     return
   }
@@ -166,17 +138,14 @@ function clearJoinUrlParams() {
 
 async function handleJoinCalendar() {
   if (!pendingJoinInvite.value) return
-  joinLoading.value = true
   try {
+    // Failures are reported by `joinCalendarViaInvite`
     const success = await joinCalendarViaInvite(pendingJoinInvite.value)
     if (success) {
-      showToast($gettext('Joined calendar successfully'))
+      showMessage({ title: $gettext('Joined calendar successfully') })
       await loadEventsForCurrentRange()
     }
-  } catch (e) {
-    console.error('Failed to join calendar:', e)
   } finally {
-    joinLoading.value = false
     pendingJoinInvite.value = null
     clearJoinUrlParams()
   }
@@ -327,6 +296,7 @@ async function handleEventDrop(event: CalendarEvent, start: Date, end: Date) {
     }
   } catch (err) {
     console.error('Failed to update event:', err)
+    showError($gettext('Failed to move event'), err)
     await loadEventsForCurrentRange()
   }
 }
@@ -345,15 +315,31 @@ function handleCreateCalendar() {
 
 function handleDeleteCalendar(calendarHref: string) {
   const calendar = calendars.value.find((c) => c.href === calendarHref)
-  if (calendar) {
-    confirmAction.value = {
-      type: calendar.isShared ? 'leave' : 'delete',
-      isOpen: true,
-      calendarHref,
-      calendarName: calendar.displayName,
-      calendar
+  if (!calendar) return
+
+  const leave = !!calendar.isShared
+  const name = calendar.displayName
+  dispatchModal({
+    title: leave ? $gettext('Leave Calendar') : $gettext('Delete Calendar'),
+    message: leave
+      ? $gettext(
+          "Are you sure you want to leave '%{name}'? You will no longer have access to this calendar.",
+          { name }
+        )
+      : $gettext(
+          "Are you sure you want to delete '%{name}'? All events in this calendar will be permanently deleted.",
+          { name }
+        ),
+    confirmText: leave ? $gettext('Leave') : $gettext('Delete'),
+    onConfirm: async () => {
+      // Failures are reported by `leaveCalendar` / `deleteCalendar`
+      const success = leave ? await leaveCalendar(calendar) : await deleteCalendar(calendarHref)
+      if (success) {
+        // Reload events to remove events from deleted/left calendar
+        await loadEventsForCurrentRange()
+      }
     }
-  }
+  })
 }
 
 function handleShareCalendar(calendarHref: string) {
@@ -363,46 +349,99 @@ function handleShareCalendar(calendarHref: string) {
   }
 }
 
-async function confirmCalendarAction() {
-  if (!confirmAction.value) return
-
-  let success = false
-  if (confirmAction.value.type === 'leave' && confirmAction.value.calendar) {
-    success = await leaveCalendar(confirmAction.value.calendar)
-  } else {
-    success = await deleteCalendar(confirmAction.value.calendarHref)
-  }
-
-  if (success) {
-    // Reload events to remove events from deleted/left calendar
-    await loadEventsForCurrentRange()
-  }
-  confirmAction.value = null
-}
-
-function cancelCalendarAction() {
-  confirmAction.value = null
-}
-
 async function handleCalendarSaved() {
   await loadCalendars()
 }
 
 function handleImportCalendar() {
-  importDialogRef.value?.open()
+  openImport()
 }
 
 async function handleImported() {
   await loadCalendars()
   await loadEventsForCurrentRange()
 }
+
+// Dialogs, shown as OpenCloud modals (`useModals`)
+useEventDialogs({
+  calendars: () => calendars.value,
+  onSaved: handleEventSaved,
+  onDeleted: handleEventDeleted
+})
+
+useModalBinding({
+  open: () => calendarEditorOpen.value,
+  title: () => $gettext('New Calendar'),
+  modal: () => ({
+    customComponent: CalendarDialog,
+    customComponentAttrs: () => ({
+      calendarHomeUrl: calendarHomeUrl.value,
+      onSaved: handleCalendarSaved
+    }),
+    confirmText: $gettext('Create'),
+    confirmDisabled: true,
+    focusTrapInitial: '#calendar-name',
+    onCancel: closeCalendarEditor
+  })
+})
+
+useModalBinding({
+  open: () => importOpen.value,
+  title: () => $gettext('Import Calendar'),
+  modal: () => ({
+    customComponent: ICSImportDialog,
+    customComponentAttrs: () => ({
+      calendars: calendars.value,
+      calendarHomeUrl: calendarHomeUrl.value,
+      defaultCalendar: getDefaultCalendar() || null,
+      onImported: handleImported
+    }),
+    // The footer buttons are rendered by the component, the import keeps the modal open
+    hideConfirmButton: true,
+    onCancel: closeImport
+  })
+})
+
+useModalBinding({
+  open: () => !!sharingCalendar.value,
+  title: () =>
+    $gettext('Share calendar: %{name}', { name: sharingCalendar.value?.displayName ?? '' }),
+  modal: () => {
+    const calendar = sharingCalendar.value
+    return {
+      customComponent: CalendarSharingDialog,
+      customComponentAttrs: () => ({ calendar }),
+      hideConfirmButton: true,
+      elementClass: 'ext:max-w-2xl!',
+      onCancel: () => {
+        sharingCalendar.value = null
+      }
+    }
+  }
+})
+
+useModalBinding({
+  open: () => !!pendingJoinInvite.value,
+  title: () => $gettext('Join Shared Calendar'),
+  modal: () => {
+    const inviteData = pendingJoinInvite.value
+    return {
+      customComponent: InviteJoinDialog,
+      customComponentAttrs: () => ({ inviteData }),
+      confirmText: $gettext('Join Calendar'),
+      onConfirm: handleJoinCalendar,
+      onCancel: handleCancelJoin
+    }
+  }
+})
 </script>
 
 <template>
-  <div class="ext:flex ext:flex-col ext:h-full ext:bg-white">
+  <div class="ext:flex ext:flex-col ext:h-full ext:bg-role-surface ext:text-role-on-surface">
     <CalendarToolbar
       :current-date="currentDate"
       :view-type="viewType"
+      :sidebar-open="sidebarOpen"
       @prev="handlePrev"
       @next="handleNext"
       @today="handleToday"
@@ -414,7 +453,8 @@ async function handleImported() {
       <!-- Mobile sidebar backdrop -->
       <div
         v-if="sidebarOpen"
-        class="sm:ext:hidden ext:absolute ext:inset-0 ext:z-10 ext:bg-black/30"
+        class="sm:ext:hidden ext:absolute ext:inset-0 ext:z-10 ext:bg-role-scrim/30"
+        aria-hidden="true"
         @click="sidebarOpen = false"
       />
 
@@ -446,233 +486,16 @@ async function handleImported() {
         @event-drop="handleEventDrop"
       />
     </div>
-
-    <EventDialog :calendars="calendars" @saved="handleEventSaved" @deleted="handleEventDeleted" />
-
-    <CalendarDialog :calendar-home-url="calendarHomeUrl" @saved="handleCalendarSaved" />
-
-    <ICSImportDialog
-      ref="importDialogRef"
-      :calendars="calendars"
-      :calendar-home-url="calendarHomeUrl"
-      :default-calendar="getDefaultCalendar() || null"
-      @imported="handleImported"
-    />
-
-    <CalendarSharingDialog
-      v-if="sharingCalendar"
-      :calendar="sharingCalendar"
-      :is-open="!!sharingCalendar"
-      @close="sharingCalendar = null"
-    />
-
-    <ConfirmDialog
-      :is-open="confirmAction?.isOpen || false"
-      :title="
-        confirmAction?.type === 'leave' ? $gettext('Leave Calendar') : $gettext('Delete Calendar')
-      "
-      :message="confirmMessage"
-      :confirm-text="confirmAction?.type === 'leave' ? $gettext('Leave') : $gettext('Delete')"
-      :confirm-danger="true"
-      @confirm="confirmCalendarAction"
-      @cancel="cancelCalendarAction"
-    />
-
-    <InviteJoinDialog
-      :is-open="!!pendingJoinInvite"
-      :invite-data="pendingJoinInvite"
-      :loading="joinLoading"
-      @join="handleJoinCalendar"
-      @close="handleCancelJoin"
-    />
-
-    <!-- Toast Notification -->
-    <div
-      v-if="toastMessage"
-      class="ext:fixed ext:bottom-6 ext:right-6 ext:z-50 ext:bg-gray-900/90 ext:text-white ext:px-4 ext:py-2.5 ext:rounded-lg ext:shadow-lg ext:text-sm ext:flex ext:items-center ext:gap-2 ext:backdrop-blur-sm"
-    >
-      <svg
-        class="ext:w-4 ext:h-4 ext:text-green-400"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-      </svg>
-      <span>{{ toastMessage }}</span>
-    </div>
   </div>
 </template>
 
 <style>
-/* ============================================================
-   Dark mode overrides
-   Uses OpenCloud's --oc-role-* CSS variables that are set on
-   document.documentElement and switch automatically with theme.
-   ============================================================ */
-
-/* --- Backgrounds --- */
-[data-calendar-theme='dark'] .ext\:bg-white {
-  background-color: var(--oc-role-surface) !important;
-}
-[data-calendar-theme='dark'] .ext\:bg-gray-50 {
-  background-color: var(--oc-role-surface-container) !important;
-}
-[data-calendar-theme='dark'] .ext\:bg-gray-100 {
-  background-color: var(--oc-role-surface-container-high) !important;
-}
-[data-calendar-theme='dark'] .ext\:bg-gray-200 {
-  background-color: var(--oc-role-surface-container-high) !important;
-}
-[data-calendar-theme='dark'] .hover\:ext\:bg-gray-50:hover {
-  background-color: var(--oc-role-surface-container-high) !important;
-}
-[data-calendar-theme='dark'] .hover\:ext\:bg-gray-100:hover {
-  background-color: var(--oc-role-surface-container-highest) !important;
-}
-[data-calendar-theme='dark'] .hover\:ext\:bg-gray-200:hover {
-  background-color: var(--oc-role-surface-container-highest) !important;
-}
-[data-calendar-theme='dark'] .hover\:ext\:bg-gray-300:hover {
-  background-color: var(--oc-role-surface-container-highest) !important;
-}
-
-/* --- Text colors --- */
-[data-calendar-theme='dark'] .ext\:text-gray-900 {
-  color: var(--oc-role-on-surface) !important;
-}
-[data-calendar-theme='dark'] .ext\:text-gray-700 {
-  color: var(--oc-role-on-surface-variant) !important;
-}
-[data-calendar-theme='dark'] .ext\:text-gray-600 {
-  color: var(--oc-role-outline) !important;
-}
-[data-calendar-theme='dark'] .ext\:text-gray-500 {
-  color: var(--oc-role-outline) !important;
-}
-[data-calendar-theme='dark'] .ext\:text-gray-400 {
-  color: var(--oc-role-outline) !important;
-}
-[data-calendar-theme='dark'] .hover\:ext\:text-gray-700:hover {
-  color: var(--oc-role-on-surface) !important;
-}
-
-/* --- Borders --- */
-[data-calendar-theme='dark'] .ext\:border-gray-200 {
-  border-color: var(--oc-role-outline-variant) !important;
-}
-[data-calendar-theme='dark'] .ext\:border-gray-300 {
-  border-color: var(--oc-role-outline-variant) !important;
-}
-[data-calendar-theme='dark'] .ext\:border-gray-900 {
-  border-color: var(--oc-role-on-surface) !important;
-}
-[data-calendar-theme='dark'] .ext\:border-b {
-  border-color: var(--oc-role-outline-variant);
-}
-[data-calendar-theme='dark'] .ext\:border-t {
-  border-color: var(--oc-role-outline-variant);
-}
-[data-calendar-theme='dark'] .ext\:border-r {
-  border-color: var(--oc-role-outline-variant);
-}
-
-/* --- Primary / Blue --- */
-[data-calendar-theme='dark'] .ext\:bg-blue-500 {
-  background-color: var(--oc-role-primary) !important;
-}
-[data-calendar-theme='dark'] .ext\:bg-blue-600 {
-  background-color: var(--oc-role-primary) !important;
-}
-[data-calendar-theme='dark'] .hover\:ext\:bg-blue-700:hover {
-  background-color: var(--oc-role-primary-container) !important;
-  color: var(--oc-role-on-primary-container) !important;
-}
-[data-calendar-theme='dark'] .ext\:text-blue-600 {
-  color: var(--oc-role-primary) !important;
-}
-[data-calendar-theme='dark'] .hover\:ext\:bg-blue-50:hover {
-  background-color: var(--oc-role-primary-container) !important;
-}
-[data-calendar-theme='dark'] .ext\:border-blue-200 {
-  border-color: var(--oc-role-primary-container) !important;
-}
-[data-calendar-theme='dark'] .ext\:border-blue-600 {
-  border-color: var(--oc-role-primary) !important;
-}
-[data-calendar-theme='dark'] .ext\:bg-blue-600.ext\:text-white {
-  background-color: var(--oc-role-primary) !important;
-  color: var(--oc-role-on-primary) !important;
-}
-
-/* --- Focus rings --- */
-[data-calendar-theme='dark'] .ext\:focus\:ring-blue-500:focus {
-  --tw-ring-color: var(--oc-role-primary) !important;
-}
-[data-calendar-theme='dark'] .ext\:focus\:border-blue-500:focus {
-  border-color: var(--oc-role-primary) !important;
-}
-
-/* --- Error / Red --- */
-[data-calendar-theme='dark'] .ext\:text-red-600 {
-  color: var(--oc-role-error) !important;
-}
-[data-calendar-theme='dark'] .hover\:ext\:text-red-600:hover {
-  color: var(--oc-role-error) !important;
-}
-[data-calendar-theme='dark'] .hover\:ext\:text-red-800:hover {
-  color: var(--oc-role-error) !important;
-}
-[data-calendar-theme='dark'] .ext\:bg-red-600 {
-  background-color: var(--oc-role-error-container) !important;
-  color: var(--oc-role-on-error-container) !important;
-}
-[data-calendar-theme='dark'] .hover\:ext\:bg-red-700:hover {
-  background-color: var(--oc-role-error) !important;
-}
-
-/* --- Warning / Yellow (conflict resolution) --- */
-[data-calendar-theme='dark'] .ext\:bg-yellow-50 {
-  background-color: var(--oc-role-surface-container-high) !important;
-}
-[data-calendar-theme='dark'] .ext\:border-yellow-200 {
-  border-color: var(--oc-role-outline-variant) !important;
-}
-[data-calendar-theme='dark'] .ext\:text-yellow-800 {
-  color: var(--oc-role-on-surface) !important;
-}
-[data-calendar-theme='dark'] .ext\:bg-yellow-600 {
-  background-color: var(--oc-role-primary) !important;
-}
-[data-calendar-theme='dark'] .hover\:ext\:bg-yellow-700:hover {
-  background-color: var(--oc-role-primary-container) !important;
-}
-
-/* --- Inputs (inside dark theme) --- */
-[data-calendar-theme='dark'] input,
-[data-calendar-theme='dark'] select,
-[data-calendar-theme='dark'] textarea {
-  background-color: var(--oc-role-surface-container-low) !important;
-  color: var(--oc-role-on-surface) !important;
-  border-color: var(--oc-role-outline-variant) !important;
-}
-[data-calendar-theme='dark'] input[type='checkbox'],
-[data-calendar-theme='dark'] input[type='radio'] {
-  background-color: var(--oc-role-surface-container-low) !important;
-  accent-color: var(--oc-role-primary) !important;
-}
-[data-calendar-theme='dark'] input::placeholder,
-[data-calendar-theme='dark'] textarea::placeholder {
-  color: var(--oc-role-outline) !important;
-}
-[data-calendar-theme='dark'] option {
-  background-color: var(--oc-role-surface-container) !important;
-  color: var(--oc-role-on-surface) !important;
-}
-
-/* --- Dialog shadows --- */
-[data-calendar-theme='dark'] .ext\:shadow-xl,
-[data-calendar-theme='dark'] .ext\:shadow-lg {
-  --tw-shadow-color: rgba(0, 0, 0, 0.5) !important;
+/*
+ * Destructive actions (delete, remove, revoke). The design system has no error color role for
+ * buttons, so the role is mapped onto the button's color variable. Used inside the modals, which
+ * are rendered outside of this view, hence not scoped.
+ */
+.web-calendar-danger-button.oc-button {
+  --oc-button-color: var(--oc-role-error);
 }
 </style>

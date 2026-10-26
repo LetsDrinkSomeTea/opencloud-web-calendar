@@ -1,14 +1,20 @@
 import { ref, computed, readonly } from 'vue'
+import { useGettext } from 'vue3-gettext'
 import { getCalDAVClient } from '../caldav/client'
 import type { Calendar, CalendarEvent, DateRange } from '../types/calendar'
+import { useErrorMessage } from './useErrorMessage'
 
 const events = ref<CalendarEvent[]>([])
 const loading = ref(false)
 const error = ref<Error | null>(null)
 const currentRange = ref<DateRange | null>(null)
+// Events are re-fetched often, so a failure is reported once until fetching succeeds again
+let fetchErrorReported = false
 
 export function useEvents() {
   const client = getCalDAVClient()
+  const { $gettext } = useGettext()
+  const { showError } = useErrorMessage()
 
   async function fetchEvents(calendars: Calendar[], range: DateRange): Promise<void> {
     loading.value = true
@@ -17,9 +23,14 @@ export function useEvents() {
 
     try {
       events.value = await client.fetchAllEvents(calendars, range)
+      fetchErrorReported = false
     } catch (err) {
       error.value = err instanceof Error ? err : new Error('Failed to fetch events')
       console.error('Failed to fetch events:', err)
+      if (!fetchErrorReported) {
+        fetchErrorReported = true
+        showError($gettext('Failed to load events'), err)
+      }
     } finally {
       loading.value = false
     }

@@ -3,21 +3,31 @@ import { computed } from 'vue'
 import { useGettext } from 'vue3-gettext'
 import { toLanguageTag } from '../utils/locale'
 
+type ViewType = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'
+
 const props = defineProps<{
   currentDate: Date
-  viewType: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'
+  viewType: ViewType
+  sidebarOpen?: boolean
 }>()
 
 const emit = defineEmits<{
   prev: []
   next: []
   today: []
-  'change-view': [view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay']
+  'change-view': [view: ViewType]
   'toggle-sidebar': []
 }>()
 
 const language = useGettext()
+const { $gettext } = language
 const locale = computed(() => toLanguageTag(language.current))
+
+const views = computed<{ value: ViewType; label: string }[]>(() => [
+  { value: 'dayGridMonth', label: $gettext('Month') },
+  { value: 'timeGridWeek', label: $gettext('Week') },
+  { value: 'timeGridDay', label: $gettext('Day') }
+])
 
 const title = computed(() => {
   const date = props.currentDate
@@ -29,12 +39,6 @@ const title = computed(() => {
       day: 'numeric'
     })
   }
-  if (props.viewType === 'timeGridWeek') {
-    return date.toLocaleDateString(locale.value, {
-      year: 'numeric',
-      month: 'long'
-    })
-  }
   return date.toLocaleDateString(locale.value, {
     year: 'numeric',
     month: 'long'
@@ -44,126 +48,59 @@ const title = computed(() => {
 
 <template>
   <div
-    class="ext:border-b ext:border-gray-200 ext:bg-white ext:px-3 sm:ext:px-4 ext:py-2 sm:ext:py-3"
+    class="ext:border-b ext:border-role-outline-variant ext:bg-role-surface ext:px-3 sm:ext:px-4 ext:py-2 sm:ext:py-3"
   >
     <!-- Controls row: nav buttons + (desktop) title on left, view switcher on right -->
-    <div class="ext:flex ext:items-center ext:justify-between">
-      <div class="ext:flex ext:items-center ext:gap-1.5 sm:ext:gap-2">
+    <div class="ext:flex ext:items-center ext:justify-between ext:gap-2">
+      <div class="ext:flex ext:items-center ext:gap-1.5 sm:ext:gap-2 ext:min-w-0">
         <!-- Sidebar toggle: mobile only -->
-        <button
-          type="button"
-          class="sm:ext:hidden ext:p-1.5 ext:text-gray-700 ext:rounded ext:border ext:border-gray-300 ext:bg-white hover:ext:bg-gray-50"
-          :title="$gettext('Toggle sidebar')"
+        <oc-button
+          class="sm:ext:hidden"
+          appearance="raw"
+          :aria-label="$gettext('Toggle sidebar')"
+          :aria-expanded="sidebarOpen ? 'true' : 'false'"
+          aria-controls="web-calendar-sidebar"
           @click="emit('toggle-sidebar')"
         >
-          <svg class="ext:w-5 ext:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 6h16M4 12h16M4 18h7"
-            />
-          </svg>
-        </button>
+          <oc-icon name="menu" fill-type="line" />
+        </oc-button>
 
-        <button
-          type="button"
-          class="ext:px-2.5 sm:ext:px-3 ext:py-1.5 ext:text-sm ext:font-medium ext:text-gray-700 ext:rounded ext:border ext:border-gray-300 ext:bg-white hover:ext:bg-gray-50"
-          @click="emit('today')"
-        >
+        <oc-button @click="emit('today')">
           {{ $gettext('Today') }}
-        </button>
-        <button
-          type="button"
-          class="ext:p-1.5 ext:text-gray-700 ext:rounded ext:border ext:border-gray-300 ext:bg-white hover:ext:bg-gray-50"
-          @click="emit('prev')"
-        >
-          <svg
-            class="ext:w-4 ext:h-4 sm:ext:w-5 sm:ext:h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-        </button>
-        <button
-          type="button"
-          class="ext:p-1.5 ext:text-gray-700 ext:rounded ext:border ext:border-gray-300 ext:bg-white hover:ext:bg-gray-50"
-          @click="emit('next')"
-        >
-          <svg
-            class="ext:w-4 ext:h-4 sm:ext:w-5 sm:ext:h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </button>
+        </oc-button>
+        <oc-button appearance="raw" :aria-label="$gettext('Previous')" @click="emit('prev')">
+          <oc-icon name="arrow-left-s" fill-type="line" />
+        </oc-button>
+        <oc-button appearance="raw" :aria-label="$gettext('Next')" @click="emit('next')">
+          <oc-icon name="arrow-right-s" fill-type="line" />
+        </oc-button>
 
         <!-- Title: only visible on sm+ in this row -->
         <h2
-          class="ext:hidden sm:ext:block ext:text-xl ext:font-semibold ext:text-gray-900 ext:ml-2 sm:ext:ml-4 ext:truncate"
+          class="ext:hidden sm:ext:block ext:m-0 ext:text-xl ext:font-semibold ext:text-role-on-surface ext:ml-2 sm:ext:ml-4 ext:truncate"
+          aria-live="polite"
         >
           {{ title }}
         </h2>
       </div>
 
       <!-- View switcher -->
-      <div class="ext:flex ext:rounded ext:border ext:border-gray-300 ext:overflow-hidden">
-        <button
-          type="button"
-          :class="[
-            'ext:px-2.5 sm:ext:px-3 ext:py-1.5 ext:text-sm ext:font-medium',
-            viewType === 'dayGridMonth'
-              ? 'ext:bg-blue-500 ext:text-white'
-              : 'ext:bg-white ext:text-gray-700 hover:ext:bg-gray-50'
-          ]"
-          @click="emit('change-view', 'dayGridMonth')"
+      <div class="oc-button-group ext:shrink-0" role="group" :aria-label="$gettext('View')">
+        <oc-button
+          v-for="view in views"
+          :key="view.value"
+          :appearance="viewType === view.value ? 'filled' : 'outline'"
+          :aria-pressed="viewType === view.value ? 'true' : 'false'"
+          @click="emit('change-view', view.value)"
         >
-          {{ $gettext('Month') }}
-        </button>
-        <button
-          type="button"
-          :class="[
-            'ext:px-2.5 sm:ext:px-3 ext:py-1.5 ext:text-sm ext:font-medium ext:border-l ext:border-gray-300',
-            viewType === 'timeGridWeek'
-              ? 'ext:bg-blue-500 ext:text-white'
-              : 'ext:bg-white ext:text-gray-700 hover:ext:bg-gray-50'
-          ]"
-          @click="emit('change-view', 'timeGridWeek')"
-        >
-          {{ $gettext('Week') }}
-        </button>
-        <button
-          type="button"
-          :class="[
-            'ext:px-2.5 sm:ext:px-3 ext:py-1.5 ext:text-sm ext:font-medium ext:border-l ext:border-gray-300',
-            viewType === 'timeGridDay'
-              ? 'ext:bg-blue-500 ext:text-white'
-              : 'ext:bg-white ext:text-gray-700 hover:ext:bg-gray-50'
-          ]"
-          @click="emit('change-view', 'timeGridDay')"
-        >
-          {{ $gettext('Day') }}
-        </button>
+          {{ view.label }}
+        </oc-button>
       </div>
     </div>
 
     <!-- Title row: mobile only (below controls) -->
     <h2
-      class="sm:ext:hidden ext:text-base ext:font-semibold ext:text-gray-900 ext:mt-1.5 ext:truncate"
+      class="sm:ext:hidden ext:m-0 ext:text-base ext:font-semibold ext:text-role-on-surface ext:mt-1.5 ext:truncate"
     >
       {{ title }}
     </h2>

@@ -1,9 +1,11 @@
 import { ref, readonly, onMounted, onUnmounted } from 'vue'
+import { useGettext } from 'vue3-gettext'
 import { getCalDAVClient } from '../caldav/client'
 import { getUserId } from '../caldav/auth'
 import { stripCalDAVBasePath, withCalDAVBasePath } from '../config'
 import { discoverUserPrincipal, discoverCalendarHome } from '../caldav/discovery'
 import { useUserProfiles } from './useUserProfiles'
+import { useErrorMessage } from './useErrorMessage'
 import type { Calendar } from '../types/calendar'
 import type { Share } from '../caldav/client'
 
@@ -22,6 +24,8 @@ const loading = ref(false)
 const error = ref<Error | null>(null)
 const calendarHomeUrl = ref<string>('')
 let pollInterval: ReturnType<typeof setInterval> | null = null
+// Loading is polled, so a failure is reported once until loading succeeds again
+let loadErrorReported = false
 
 function getStorageKey(userId: string): string {
   return `opencloud_web_cal_joined_tokens_${userId}`
@@ -71,6 +75,8 @@ export function removeJoinedTokenCalendar(userId: string, token: string): void {
 export function useCalendars() {
   const client = getCalDAVClient()
   const { userProfiles, loadUserProfile, cleanUserId } = useUserProfiles()
+  const { $gettext } = useGettext()
+  const { showError } = useErrorMessage()
 
   async function loadCalendars(): Promise<void> {
     loading.value = true
@@ -219,9 +225,14 @@ export function useCalendars() {
           loadUserProfile(cleanUserId(share.Owner))
         }
       }
+      loadErrorReported = false
     } catch (err) {
       error.value = err instanceof Error ? err : new Error('Failed to load calendars')
       console.error('Failed to load calendars:', err)
+      if (!loadErrorReported) {
+        loadErrorReported = true
+        showError($gettext('Failed to load calendars'), err)
+      }
     } finally {
       loading.value = false
     }
@@ -267,6 +278,7 @@ export function useCalendars() {
     } catch (err) {
       console.error('Failed to accept share:', err)
       error.value = err instanceof Error ? err : new Error('Failed to accept share')
+      showError($gettext('Failed to accept the invitation'), err)
     } finally {
       loading.value = false
     }
@@ -295,6 +307,7 @@ export function useCalendars() {
     } catch (err) {
       console.error('Failed to decline share:', err)
       error.value = err instanceof Error ? err : new Error('Failed to decline share')
+      showError($gettext('Failed to decline the invitation'), err)
     } finally {
       loading.value = false
     }
@@ -322,6 +335,7 @@ export function useCalendars() {
     } catch (err) {
       console.error('Failed to leave calendar:', err)
       error.value = err instanceof Error ? err : new Error('Failed to leave calendar')
+      showError($gettext('Failed to leave the calendar'), err)
       return false
     } finally {
       loading.value = false
@@ -386,6 +400,7 @@ export function useCalendars() {
     } catch (err) {
       console.error('Failed to join calendar:', err)
       error.value = err instanceof Error ? err : new Error('Failed to join calendar')
+      showError($gettext('Failed to join the calendar'), err)
       return false
     }
   }
@@ -449,6 +464,7 @@ export function useCalendars() {
     } catch (err) {
       error.value = err instanceof Error ? err : new Error('Failed to delete calendar')
       console.error('Failed to delete calendar:', err)
+      showError($gettext('Failed to delete the calendar'), err)
       return false
     } finally {
       loading.value = false
