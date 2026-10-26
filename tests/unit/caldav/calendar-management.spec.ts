@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { createCalendar, deleteCalendar } from '../../../src/caldav/calendar-management'
+import {
+  createCalendar,
+  deleteCalendar,
+  updateCalendar
+} from '../../../src/caldav/calendar-management'
 import { AuthenticationError, CalDAVError, ConflictError } from '../../../src/caldav/errors'
-import { mockFetch, fetchCall, respond } from './fetch-mock'
+import { mockFetch, fetchCall, respond, multistatus } from './fetch-mock'
 
 vi.mock('@opencloud-eu/web-pkg', () => ({
   useAuthStore: () => ({ accessToken: 'test-token' }),
@@ -138,6 +142,88 @@ describe('deleteCalendar', () => {
   it('refuses to delete outside the CalDAV endpoint', async () => {
     const fetchMock = mockFetch(respond({ status: 204 }))
     await expect(deleteCalendar('/graph/v1.0/drives/x')).rejects.toBeInstanceOf(CalDAVError)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('updateCalendar', () => {
+  const okResponse = `<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:ic="http://apple.com/ns/ical/">
+  <d:response>
+    <d:href>/caldav/alice/work/</d:href>
+    <d:propstat>
+      <d:prop><d:displayname/><c:calendar-description/><ic:calendar-color/></d:prop>
+      <d:status>HTTP/1.1 200 OK</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>`
+
+  it('sends PROPPATCH with the new properties', async () => {
+    const fetchMock = mockFetch(multistatus(okResponse))
+    await updateCalendar('/caldav/alice/work/', {
+      displayName: 'Büro',
+      description: 'Office',
+      color: '#22c55e'
+    })
+
+    const { url, init } = fetchCall(fetchMock)
+    expect(url).toBe('/caldav/alice/work/')
+    expect(init.method).toBe('PROPPATCH')
+    expect(new Headers(init.headers).get('Content-Type')).toContain('application/xml')
+    expect(new Headers(init.headers).get('Authorization')).toBe('Bearer test-token')
+    expect(init.body).toContain('<d:propertyupdate')
+    expect(init.body).toContain('<d:displayname>Büro</d:displayname>')
+    expect(init.body).toContain('<ic:calendar-color>#22c55e</ic:calendar-color>')
+  })
+
+  it('accepts a plain 200 response', async () => {
+    mockFetch(respond({ status: 200 }))
+    await expect(updateCalendar('/caldav/alice/work/', { color: '#000000' })).resolves.toBe(
+      undefined
+    )
+  })
+
+  it('fails if the server rejects a property in the multistatus', async () => {
+    mockFetch(
+      multistatus(`<?xml version="1.0"?>
+<d:multistatus xmlns:d="DAV:" xmlns:ic="http://apple.com/ns/ical/">
+  <d:response>
+    <d:href>/caldav/alice/work/</d:href>
+    <d:propstat>
+      <d:prop><ic:calendar-color/></d:prop>
+      <d:status>HTTP/1.1 403 Forbidden</d:status>
+    </d:propstat>
+    <d:propstat>
+      <d:prop><d:displayname/></d:prop>
+      <d:status>HTTP/1.1 424 Failed Dependency</d:status>
+    </d:propstat>
+  </d:response>
+</d:multistatus>`)
+    )
+    await expect(
+      updateCalendar('/caldav/alice/work/', { displayName: 'Work', color: '#000000' })
+    ).rejects.toMatchObject({
+      name: 'CalDAVError',
+      message: 'Failed to update calendar properties: calendar-color, displayname'
+    })
+  })
+
+  it('maps 401, 403 and 404', async () => {
+    mockFetch(respond({ status: 401 }))
+    await expect(updateCalendar('/caldav/alice/work/', {})).rejects.toBeInstanceOf(
+      AuthenticationError
+    )
+    mockFetch(respond({ status: 403, statusText: 'Forbidden' }))
+    await expect(updateCalendar('/caldav/alice/work/', {})).rejects.toMatchObject({ status: 403 })
+    mockFetch(respond({ status: 404 }))
+    await expect(updateCalendar('/caldav/alice/work/', {})).rejects.toMatchObject({
+      name: 'NotFoundError'
+    })
+  })
+
+  it('refuses to send requests outside the CalDAV endpoint', async () => {
+    const fetchMock = mockFetch(respond({ status: 207 }))
+    await expect(updateCalendar('/graph/v1.0/me', {})).rejects.toBeInstanceOf(CalDAVError)
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })

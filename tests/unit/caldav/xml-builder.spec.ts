@@ -5,7 +5,9 @@ import {
   buildPropfindCalendarHome,
   buildPropfindCalendars,
   buildCalendarQuery,
-  buildMkCalendar
+  buildMkCalendar,
+  buildProppatchCalendar,
+  buildCalendarQueryAll
 } from '../../../src/caldav/xml-builder'
 
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' })
@@ -85,5 +87,53 @@ describe('buildMkCalendar', () => {
     const prop = parse(xml)['d:mkcalendar']['d:set']['d:prop']
     expect(prop['d:displayname']).toBe(`Tom & Jerry's <"Cartoons">`)
     expect(prop['c:calendar-description']).toBe('</d:prop><evil/>')
+  })
+})
+
+describe('buildProppatchCalendar', () => {
+  it('sets display name, description and color with the proper namespaces', () => {
+    const doc = parse(
+      buildProppatchCalendar({ displayName: 'Work', description: 'Office', color: '#ff0000' })
+    )
+    const update = doc['d:propertyupdate']
+    expect(update['@_xmlns:d']).toBe('DAV:')
+    expect(update['@_xmlns:c']).toBe('urn:ietf:params:xml:ns:caldav')
+    expect(update['@_xmlns:ic']).toBe('http://apple.com/ns/ical/')
+    expect(update['d:set']['d:prop']).toEqual({
+      'd:displayname': 'Work',
+      'c:calendar-description': 'Office',
+      'ic:calendar-color': '#ff0000'
+    })
+    expect(update).not.toHaveProperty('d:remove')
+  })
+
+  it('removes an empty description', () => {
+    const update = parse(buildProppatchCalendar({ displayName: 'Work', description: ' ' }))[
+      'd:propertyupdate'
+    ]
+    expect(update['d:set']['d:prop']).toEqual({ 'd:displayname': 'Work' })
+    expect(update['d:remove']['d:prop']).toHaveProperty('c:calendar-description')
+  })
+
+  it('leaves out undefined properties', () => {
+    const update = parse(buildProppatchCalendar({ color: '#00ff00' }))['d:propertyupdate']
+    expect(update['d:set']['d:prop']).toEqual({ 'ic:calendar-color': '#00ff00' })
+  })
+
+  it('escapes user input', () => {
+    const update = parse(buildProppatchCalendar({ displayName: '</d:prop><evil/> & co' }))[
+      'd:propertyupdate'
+    ]
+    expect(update['d:set']['d:prop']['d:displayname']).toBe('</d:prop><evil/> & co')
+  })
+})
+
+describe('buildCalendarQueryAll', () => {
+  it('requests all calendar objects without a time range', () => {
+    const xml = buildCalendarQueryAll()
+    const query = parse(xml)['c:calendar-query']
+    expect(query['d:prop']).toHaveProperty('c:calendar-data')
+    expect(query['c:filter']['c:comp-filter']['@_name']).toBe('VCALENDAR')
+    expect(xml).not.toContain('time-range')
   })
 })

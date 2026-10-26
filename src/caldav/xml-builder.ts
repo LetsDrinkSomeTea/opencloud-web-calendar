@@ -72,6 +72,68 @@ ${descriptionProp}${colorProp}    </d:prop>
 </d:mkcalendar>`
 }
 
+export interface CalendarPropertiesUpdate {
+  displayName?: string
+  /** An empty string removes the description */
+  description?: string
+  color?: string
+}
+
+/**
+ * PROPPATCH body (RFC 4918 9.2) that updates the display name, description (RFC 4791 5.2.1) and
+ * color (Apple `calendar-color`, understood by Radicale, Apple and most clients) of a calendar.
+ * Properties that are `undefined` are left untouched, an empty description is removed.
+ */
+export function buildProppatchCalendar(update: CalendarPropertiesUpdate): string {
+  const set: string[] = []
+  const remove: string[] = []
+
+  if (update.displayName !== undefined) {
+    set.push(`<d:displayname>${escapeXml(update.displayName)}</d:displayname>`)
+  }
+  if (update.description !== undefined) {
+    if (update.description.trim()) {
+      set.push(`<c:calendar-description>${escapeXml(update.description)}</c:calendar-description>`)
+    } else {
+      remove.push('<c:calendar-description/>')
+    }
+  }
+  if (update.color !== undefined) {
+    set.push(`<ic:calendar-color>${escapeXml(update.color)}</ic:calendar-color>`)
+  }
+
+  const block = (name: 'set' | 'remove', props: string[]) =>
+    props.length
+      ? `  <d:${name}>
+    <d:prop>
+${props.map((prop) => `      ${prop}`).join('\n')}
+    </d:prop>
+  </d:${name}>
+`
+      : ''
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<d:propertyupdate xmlns:d="${DAV_NS}" xmlns:c="${CALDAV_NS}" xmlns:ic="${ICAL_NS}">
+${block('set', set)}${block('remove', remove)}</d:propertyupdate>`
+}
+
+/**
+ * calendar-query REPORT body without a time range or component filter: returns every calendar
+ * object resource (events, tasks, journals) of the collection, used for exporting a calendar.
+ */
+export function buildCalendarQueryAll(): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<c:calendar-query xmlns:d="${DAV_NS}" xmlns:c="${CALDAV_NS}">
+  <d:prop>
+    <d:getetag/>
+    <c:calendar-data/>
+  </d:prop>
+  <c:filter>
+    <c:comp-filter name="VCALENDAR"/>
+  </c:filter>
+</c:calendar-query>`
+}
+
 function escapeXml(str: string): string {
   return str
     .replace(/&/g, '&amp;')

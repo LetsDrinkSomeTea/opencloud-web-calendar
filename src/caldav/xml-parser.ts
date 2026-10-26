@@ -161,6 +161,26 @@ export function parseEvents(xml: string): EventData[] {
   return events
 }
 
+/**
+ * Names of the properties a PROPPATCH could not change: every propstat of the multistatus
+ * response whose status is not 2xx (e.g. 403, 409, or 424 for the properties that failed because
+ * another one did, as PROPPATCH is atomic).
+ */
+export function parseFailedProperties(xml: string): string[] {
+  const failed: string[] = []
+  for (const response of parseMultistatus(xml)) {
+    const propstats = Array.isArray(response.propstat) ? response.propstat : [response.propstat]
+    for (const propstat of propstats) {
+      if (!propstat?.prop || !propstat.status) continue
+      const code = /\s(\d{3})(\s|$)/.exec(propstat.status)?.[1]
+      if (code && !code.startsWith('2')) {
+        failed.push(...Object.keys(propstat.prop))
+      }
+    }
+  }
+  return failed
+}
+
 function extractString(value: unknown): string | undefined {
   if (typeof value === 'string') return value
   if (typeof value === 'object' && value !== null && '#text' in value) {

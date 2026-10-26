@@ -1,5 +1,10 @@
-import { CalDAVError, AuthenticationError, ConflictError } from './errors'
-import { buildMkCalendar } from './xml-builder'
+import { CalDAVError, AuthenticationError, ConflictError, NotFoundError } from './errors'
+import {
+  buildMkCalendar,
+  buildProppatchCalendar,
+  type CalendarPropertiesUpdate
+} from './xml-builder'
+import { parseFailedProperties } from './xml-parser'
 import { authenticatedFetch } from './auth'
 import type { Calendar } from '../types/calendar'
 
@@ -47,6 +52,45 @@ export async function createCalendar(
     ctag: '',
     description: data.description,
     visible: true
+  }
+}
+
+export type UpdateCalendarData = CalendarPropertiesUpdate
+
+/**
+ * Renames / recolors a calendar collection via PROPPATCH. Servers answer with a 207 multistatus
+ * that lists the status per property; any failed property makes the whole update fail.
+ */
+export async function updateCalendar(
+  calendarHref: string,
+  data: UpdateCalendarData
+): Promise<void> {
+  const response = await authenticatedFetch(calendarHref, {
+    method: 'PROPPATCH',
+    headers: {
+      'Content-Type': 'application/xml; charset=utf-8'
+    },
+    body: buildProppatchCalendar(data)
+  })
+
+  if (response.status === 401) {
+    throw new AuthenticationError()
+  }
+  if (response.status === 404) {
+    throw new NotFoundError('Calendar not found')
+  }
+  if (response.status === 403) {
+    throw new CalDAVError('Not allowed to change this calendar', 403)
+  }
+  if (!response.ok) {
+    throw new CalDAVError(`Failed to update calendar: ${response.statusText}`, response.status)
+  }
+
+  if (response.status === 207) {
+    const failed = parseFailedProperties(await response.text())
+    if (failed.length > 0) {
+      throw new CalDAVError(`Failed to update calendar properties: ${failed.join(', ')}`, 207)
+    }
   }
 }
 
