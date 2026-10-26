@@ -19,6 +19,8 @@ A CalDAV calendar application integrated as a native [OpenCloud](https://openclo
 - Subscription URL for external CalDAV clients (Thunderbird, DAVx⁵, Apple Calendar, …)
 - All-day and timed events
 - Event conflict detection and resolution
+- Incremental sync (`sync-collection`, RFC 6578) every 30 seconds and on window focus, paused while the tab is hidden
+- Busy hint in the event editor when the chosen time overlaps busy time in your visible calendars (`free-busy-query`)
 - Auto-save with optimistic updates
 - Reminders (`VALARM`) shown as OpenCloud and browser notifications while the app is open
 - Attendees (`ATTENDEE`/`ORGANIZER`) with participation status, accept/tentative/decline

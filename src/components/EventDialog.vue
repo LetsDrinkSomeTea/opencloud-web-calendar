@@ -12,6 +12,7 @@ import EventAttendees from './EventAttendees.vue'
 import { useLocationSearch } from '../composables/useLocationSearch'
 import { translateError } from '../utils/error-message'
 import { downloadICS, safeFileName } from '../utils/download'
+import FreeBusyHint from './FreeBusyHint.vue'
 
 /**
  * Content of the event modal (dispatched via `useModals`, see `useEventDialogs`).
@@ -407,6 +408,14 @@ defineExpose({ onConfirm })
           />
         </div>
       </div>
+
+      <FreeBusyHint
+        :calendars="calendars"
+        :start="formData.start"
+        :end="formData.end"
+        :all-day="formData.allDay"
+        :ignore="editingEvent"
+      />
 
       <!-- Recurrence (hidden when editing single occurrence) -->
       <div v-if="editScope !== 'single'" class="ext:space-y-3">

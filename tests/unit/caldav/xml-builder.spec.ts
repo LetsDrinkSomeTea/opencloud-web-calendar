@@ -43,6 +43,7 @@ describe('PROPFIND bodies', () => {
       'd:current-user-privilege-set',
       'd:displayname',
       'd:resourcetype',
+      'd:sync-token',
       'ic:calendar-color'
     ])
   })

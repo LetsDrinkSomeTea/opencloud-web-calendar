@@ -1,5 +1,10 @@
 import { XMLParser } from 'fast-xml-parser'
-import type { CalendarData, EventData } from '../types/caldav'
+import type {
+  CalendarData,
+  CollectionState,
+  EventData,
+  SyncCollectionResult
+} from '../types/caldav'
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -13,6 +18,7 @@ const parser = new XMLParser({
 interface ParsedMultistatus {
   multistatus?: {
     response?: ParsedResponse | ParsedResponse[]
+    'sync-token'?: unknown
   }
 }
 
@@ -23,6 +29,7 @@ interface ParsedPropstat {
 
 interface ParsedResponse {
   href?: string
+  status?: string
   propstat?: ParsedPropstat | ParsedPropstat[]
 }
 
@@ -79,6 +86,7 @@ export function parseCalendars(xml: string): CalendarData[] {
     let displayname: unknown
     let color: unknown
     let ctag: unknown
+    let syncToken: unknown
     let description: unknown
     let privileges: any
     let componentSet: unknown
@@ -104,6 +112,7 @@ export function parseCalendars(xml: string): CalendarData[] {
       if (prop['displayname'] !== undefined) displayname = prop['displayname']
       if (prop['calendar-color'] !== undefined) color = prop['calendar-color']
       if (prop['getctag'] !== undefined) ctag = prop['getctag']
+      if (prop['sync-token'] !== undefined) syncToken = prop['sync-token']
       if (prop['calendar-description'] !== undefined) description = prop['calendar-description']
       if (prop['current-user-privilege-set'] !== undefined)
         privileges = prop['current-user-privilege-set']
@@ -129,6 +138,7 @@ export function parseCalendars(xml: string): CalendarData[] {
       displayName: extractString(displayname),
       color: extractString(color),
       ctag: extractString(ctag),
+      syncToken: extractString(syncToken) || undefined,
       description: extractString(description),
       readOnly,
       components: parseComponentSet(componentSet)
@@ -183,6 +193,49 @@ export function parseFailedProperties(xml: string): string[] {
     }
   }
   return failed
+}
+
+/** Parses the `getctag` / `sync-token` properties of a Depth 0 PROPFIND on a collection. */
+export function parseCollectionState(xml: string): CollectionState {
+  const state: CollectionState = {}
+  for (const response of parseMultistatus(xml)) {
+    for (const prop of getSuccessfulProps(response)) {
+      state.ctag ??= extractString(prop['getctag']) || undefined
+      state.syncToken ??= extractString(prop['sync-token']) || undefined
+    }
+  }
+  return state
+}
+
+/**
+ * Parses a `sync-collection` REPORT response (RFC 6578 3.5). Removed members are reported as
+ * a response with a 404 status and no propstat; changed members carry their new ETag.
+ */
+export function parseSyncCollection(xml: string): SyncCollectionResult {
+  const parsed = parser.parse(xml) as ParsedMultistatus
+  const syncToken = extractString(parsed.multistatus?.['sync-token']) ?? ''
+  const result: SyncCollectionResult = { syncToken, changed: [], removed: [] }
+
+  for (const response of parseMultistatus(xml)) {
+    const href = extractString(response.href)
+    if (!href) continue
+
+    if (response.status?.includes('404')) {
+      result.removed.push(href)
+      continue
+    }
+
+    let etag: string | undefined
+    for (const prop of getSuccessfulProps(response)) {
+      etag ??= extractString(prop['getetag'])
+    }
+    // Members without ETag (e.g. a 507 for truncated results) are ignored
+    if (etag) {
+      result.changed.push({ href, etag: etag.replace(/"/g, '') })
+    }
+  }
+
+  return result
 }
 
 function extractString(value: unknown): string | undefined {

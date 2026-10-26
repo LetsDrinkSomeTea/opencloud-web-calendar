@@ -1,5 +1,5 @@
 import { useAuthStore, useUserStore } from '@opencloud-eu/web-pkg'
-import { CalDAVError } from './errors'
+import { CalDAVError, NetworkError } from './errors'
 import { getCalDAVBasePath } from '../config'
 
 /**
@@ -31,7 +31,15 @@ export function getUserId(): string | null {
   return user.id || user.onPremisesSamAccountName || user.mail || null
 }
 
-export function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+/**
+ * `fetch` for CalDAV requests: only same-origin requests below the CalDAV endpoint are allowed
+ * and the access token is added. Always returns a promise: a rejected URL rejects with a
+ * `CalDAVError`, a failed request (offline, DNS, connection reset) with a `NetworkError`.
+ */
+export async function authenticatedFetch(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
   const normalizedUrl = normalizeCalDAVUrl(url)
   const headers = new Headers(options.headers)
 
@@ -43,11 +51,21 @@ export function authenticatedFetch(url: string, options: RequestInit = {}): Prom
     headers.set('Authorization', `Bearer ${token}`)
   }
 
-  return fetch(normalizedUrl, {
-    ...options,
-    headers,
-    credentials: 'include'
-  })
+  try {
+    return await fetch(normalizedUrl, {
+      ...options,
+      headers,
+      credentials: 'include'
+    })
+  } catch (err) {
+    // Aborted requests are intentional and must stay recognizable as such
+    if (err instanceof DOMException && err.name === 'AbortError') throw err
+    const networkError = new NetworkError(
+      err instanceof Error && err.message ? err.message : undefined
+    )
+    Object.defineProperty(networkError, 'cause', { value: err })
+    throw networkError
+  }
 }
 
 export function isAllowedCalDAVPath(pathname: string, basePath = getCalDAVBasePath()): boolean {

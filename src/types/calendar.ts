@@ -3,6 +3,8 @@ export interface Calendar {
   displayName: string
   color: string
   ctag: string
+  /** `DAV:sync-token` (RFC 6578) if the server supports it */
+  syncToken?: string
   description?: string
   visible: boolean
   readOnly?: boolean

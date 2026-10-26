@@ -81,8 +81,10 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
     iMIP. Invitations can be downloaded as `METHOD:REQUEST`; Radicale >= 3.5.5 can email
     attendees via its `email` hook (server configuration, see README)
 - [x] Tasks (`VTODO`)
-- [ ] Incremental sync via `sync-token` / `sync-collection` and periodic refresh
-- [ ] Free/busy lookup
+- [x] Incremental sync via `sync-token` / `sync-collection` and periodic refresh
+- [x] Free/busy lookup (`free-busy-query` on calendars the user can read; Radicale has no
+      scheduling outbox (RFC 6638), so free/busy of other users by attendee address is not
+      possible, only of calendars shared with the user)
 - [x] Calendar export (`.ics`) and subscription URL
 - [x] Search and filter events
 - [x] Agenda / list view
@@ -92,7 +94,7 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
 ## 5. Quality and housekeeping
 
 - [x] Replace the placeholder test in `tests/unit/App.spec.ts`
-- [ ] Add unit tests for the CalDAV client, XML parsing/building and ICS handling (XML/discovery/calendar management/sharing done; ICS and events pending)
+- [x] Add unit tests for the CalDAV client, XML parsing/building and ICS handling
 - [x] Resolve the remaining eslint warnings
 - [x] README: release asset is `web-calendar.zip` (not `web-app-calendar.zip`) and already contains a `web-calendar/` folder, so it must be extracted into `apps/`, not `apps/web-calendar/`
 - [x] Location search: drop the `User-Agent` header (browsers don't allow setting it) and send the user's language in `Accept-Language` instead of `en`

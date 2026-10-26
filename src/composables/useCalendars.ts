@@ -23,9 +23,24 @@ const pendingShares = ref<Share[]>([])
 const loading = ref(false)
 const error = ref<Error | null>(null)
 const calendarHomeUrl = ref<string>('')
+/**
+ * Incremented after every successful load of the calendar list. Views watch it to sync events
+ * incrementally after each poll (unchanged calendars are skipped by their ctag).
+ */
+const calendarsVersion = ref(0)
 let pollInterval: ReturnType<typeof setInterval> | null = null
+let lastLoadStartedAt = 0
+let removeActivityListeners: (() => void) | null = null
 // Loading is polled, so a failure is reported once until loading succeeds again
 let loadErrorReported = false
+
+export const POLL_INTERVAL_MS = 30_000
+/** Minimum time between two loads triggered by focusing the window or showing the tab */
+export const ACTIVITY_REFRESH_MIN_INTERVAL_MS = 5_000
+
+function isDocumentHidden(): boolean {
+  return typeof document !== 'undefined' && document.visibilityState === 'hidden'
+}
 
 function getStorageKey(userId: string): string {
   return `opencloud_web_cal_joined_tokens_${userId}`
@@ -81,6 +96,8 @@ export function useCalendars() {
   async function loadCalendars(): Promise<void> {
     loading.value = true
     error.value = null
+    lastLoadStartedAt = Date.now()
+    const previousVisibility = new Map(calendars.value.map((c) => [c.href, c.visible]))
 
     try {
       const currentUserId = getUserId()
@@ -227,6 +244,14 @@ export function useCalendars() {
           loadUserProfile(cleanUserId(share.Owner))
         }
       }
+
+      // Keep calendars the user has hidden hidden across polls
+      for (const calendar of calendars.value) {
+        const visible = previousVisibility.get(calendar.href)
+        if (visible !== undefined) calendar.visible = visible
+      }
+
+      calendarsVersion.value++
       loadErrorReported = false
     } catch (err) {
       error.value = err instanceof Error ? err : new Error('Failed to load calendars')
@@ -246,10 +271,24 @@ export function useCalendars() {
 
   function startPolling() {
     if (pollInterval) return
-    // Poll for new invitations and calendar updates every 30 seconds
+    // Poll for new invitations and calendar/event changes. Nothing is requested while the
+    // tab is hidden; showing it again or focusing the window refreshes right away.
     pollInterval = setInterval(() => {
+      if (!isDocumentHidden()) loadCalendars()
+    }, POLL_INTERVAL_MS)
+
+    if (typeof window === 'undefined') return
+    const onActivity = () => {
+      if (isDocumentHidden() || loading.value) return
+      if (Date.now() - lastLoadStartedAt < ACTIVITY_REFRESH_MIN_INTERVAL_MS) return
       loadCalendars()
-    }, 30000)
+    }
+    document.addEventListener('visibilitychange', onActivity)
+    window.addEventListener('focus', onActivity)
+    removeActivityListeners = () => {
+      document.removeEventListener('visibilitychange', onActivity)
+      window.removeEventListener('focus', onActivity)
+    }
   }
 
   function stopPolling() {
@@ -257,6 +296,8 @@ export function useCalendars() {
       clearInterval(pollInterval)
       pollInterval = null
     }
+    removeActivityListeners?.()
+    removeActivityListeners = null
   }
 
   onMounted(() => {
@@ -480,6 +521,7 @@ export function useCalendars() {
     loading: readonly(loading),
     error: readonly(error),
     calendarHomeUrl: readonly(calendarHomeUrl),
+    calendarsVersion: readonly(calendarsVersion),
     loadCalendars,
     loadPendingShares,
     acceptShare,

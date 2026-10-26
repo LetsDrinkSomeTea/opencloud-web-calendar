@@ -57,6 +57,7 @@ const {
   calendars,
   loading: calendarsLoading,
   calendarHomeUrl,
+  calendarsVersion,
   loadCalendars,
   toggleCalendarVisibility,
   getDefaultCalendar,
@@ -70,7 +71,8 @@ const {
   userProfiles
 } = useCalendars()
 
-const { fetchEvents, getVisibleEvents, updateEventInCache, currentRange } = useEvents()
+const { fetchEvents, refreshEvents, getVisibleEvents, updateEventInCache, currentRange } =
+  useEvents()
 
 const { openCreate, openEdit } = useEventEditor()
 const {
@@ -291,24 +293,20 @@ onMounted(async () => {
   checkImportFile()
 })
 
-watch(
-  () => calendars.value.map((c) => c.href).join(','),
-  () => {
-    // When the list of calendars changes (e.g. shared calendars loaded), re-fetch events
-    loadEventsForCurrentRange()
-  }
-)
-
-watch(
-  () => calendars.value.map((c) => c.visible).join(','),
-  () => {
-    // Visibility changed, events will be filtered by visibleEvents computed
-  }
-)
+// After every calendar poll (and when calendars are added, removed or shown again), events are
+// synced incrementally: unchanged calendars are skipped by their ctag, new ones fully loaded
+watch([calendarsVersion, () => calendars.value.map((c) => c.visible).join(',')], () => {
+  refreshEvents(calendars.value)
+})
 
 async function loadEventsForCurrentRange() {
   const range = getExtendedRange(currentDate.value)
-  await fetchEvents(calendars.value as any, range)
+  await fetchEvents(calendars.value, range)
+}
+
+/** Sync after own changes; the ctags from the last poll are outdated then */
+async function refreshAfterChange() {
+  await refreshEvents(calendars.value, { force: true })
 }
 
 function handlePrev() {
@@ -397,7 +395,7 @@ async function handleEventDrop(event: CalendarEvent, start: Date, end: Date) {
         description: event.description || '',
         location: event.location || ''
       })
-      await loadEventsForCurrentRange()
+      await refreshAfterChange()
     } else {
       const updated = await client.updateEvent(event, {
         uid: event.uid,
@@ -414,22 +412,16 @@ async function handleEventDrop(event: CalendarEvent, start: Date, end: Date) {
   } catch (err) {
     console.error('Failed to update event:', err)
     showError($gettext('Failed to move event'), err)
-    await loadEventsForCurrentRange()
+    await refreshAfterChange()
   }
 }
 
 async function handleEventSaved() {
-  await Promise.all([
-    loadEventsForCurrentRange(),
-    search.active.value ? search.refresh() : undefined
-  ])
+  await Promise.all([refreshAfterChange(), search.active.value ? search.refresh() : undefined])
 }
 
 async function handleEventDeleted() {
-  await Promise.all([
-    loadEventsForCurrentRange(),
-    search.active.value ? search.refresh() : undefined
-  ])
+  await Promise.all([refreshAfterChange(), search.active.value ? search.refresh() : undefined])
 }
 
 function handleCreateCalendar() {
@@ -536,7 +528,7 @@ function handleImportCalendar() {
 
 async function handleImported() {
   await loadCalendars()
-  await loadEventsForCurrentRange()
+  await refreshAfterChange()
 }
 
 // Dialogs, shown as OpenCloud modals (`useModals`)
