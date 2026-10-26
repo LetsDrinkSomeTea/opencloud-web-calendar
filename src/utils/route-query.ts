@@ -1,0 +1,116 @@
+import type { LocationQuery, LocationQueryValue } from 'vue-router'
+import type { CalendarViewType } from '../config'
+
+/** Short, user friendly names used in the URL (`?view=week`) */
+const VIEW_TO_QUERY: Record<CalendarViewType, string> = {
+  dayGridMonth: 'month',
+  timeGridWeek: 'week',
+  timeGridDay: 'day'
+}
+
+const QUERY_TO_VIEW: Record<string, CalendarViewType> = {
+  month: 'dayGridMonth',
+  week: 'timeGridWeek',
+  day: 'timeGridDay'
+}
+
+/** Query parameters of invite links created in the sharing dialog */
+export const JOIN_QUERY_KEYS = [
+  'join_token',
+  'token',
+  'path',
+  'name',
+  'color',
+  'perm',
+  'owner'
+] as const
+
+export interface JoinInviteParams {
+  token?: string
+  calendarPath?: string
+  displayName?: string
+  color?: string
+  permissions: string
+  owner?: string
+}
+
+type QueryInput = LocationQueryValue | LocationQueryValue[] | undefined
+
+function firstValue(value: QueryInput): string | null {
+  const v = Array.isArray(value) ? value[0] : value
+  return typeof v === 'string' && v !== '' ? v : null
+}
+
+export function viewToQuery(view: CalendarViewType): string {
+  return VIEW_TO_QUERY[view]
+}
+
+export function viewFromQuery(value: QueryInput): CalendarViewType | null {
+  const v = firstValue(value)
+  if (!v) return null
+  if (v in VIEW_TO_QUERY) return v as CalendarViewType
+  return QUERY_TO_VIEW[v.toLowerCase()] ?? null
+}
+
+function pad(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+/** Formats a date as local `YYYY-MM-DD` */
+export function dateToQuery(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/** Parses a local `YYYY-MM-DD` date, returns `null` for anything invalid */
+export function dateFromQuery(value: QueryInput): Date | null {
+  const v = firstValue(value)
+  if (!v) return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v)
+  if (!match) return null
+  const [year, month, day] = match.slice(1).map(Number)
+  const date = new Date(year, month - 1, day)
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null
+  }
+  return date
+}
+
+/**
+ * Reads invite link parameters. Links put them into the route query
+ * (`/web-calendar/?join_token=…`); older links put them behind the hash
+ * (`/web-calendar/#/?join_token=…`), so the hash is checked as a fallback.
+ */
+export function parseJoinParams(query: LocationQuery, hash = ''): JoinInviteParams | null {
+  let get = (key: string): string | null => firstValue(query[key])
+
+  if (!get('join_token') && !get('token') && !get('path') && hash.includes('?')) {
+    const hashParams = new URLSearchParams(hash.substring(hash.indexOf('?')))
+    get = (key: string) => hashParams.get(key) || null
+  }
+
+  const token = get('join_token') || get('token')
+  const path = get('path')
+  if (!token && !path) return null
+
+  return {
+    token: token || undefined,
+    calendarPath: path || undefined,
+    displayName: get('name') || undefined,
+    color: get('color') || undefined,
+    permissions: get('perm') === 'rw' ? 'rw' : 'r',
+    owner: get('owner') || undefined
+  }
+}
+
+export function hasJoinParams(query: LocationQuery, hash = ''): boolean {
+  return parseJoinParams(query, hash) !== null
+}
+
+/** Returns a copy of the query without invite link parameters */
+export function withoutJoinParams(query: LocationQuery): LocationQuery {
+  const result: LocationQuery = { ...query }
+  for (const key of JOIN_QUERY_KEYS) {
+    delete result[key]
+  }
+  return result
+}

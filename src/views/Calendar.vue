@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, unref } from 'vue'
+import { useRoute, useRouter } from '@opencloud-eu/web-pkg'
+import type { LocationQuery } from 'vue-router'
 import CalendarToolbar from '../components/CalendarToolbar.vue'
 import CalendarSidebar from '../components/CalendarSidebar.vue'
 import CalendarView from '../components/CalendarView.vue'
@@ -17,7 +19,20 @@ import { useTheme } from '../composables/useTheme'
 import { getExtendedRange } from '../utils/date'
 import { getCalDAVClient } from '../caldav/client'
 import { initLanguage, t } from '../composables/useLanguage'
+import { useCalendarConfig, type CalendarViewType } from '../config'
+import {
+  dateFromQuery,
+  dateToQuery,
+  parseJoinParams,
+  viewFromQuery,
+  viewToQuery,
+  withoutJoinParams
+} from '../utils/route-query'
 import type { Calendar, CalendarEvent } from '../types/calendar'
+
+const route = useRoute()
+const router = useRouter()
+const config = useCalendarConfig()
 
 // Initialize language from user profile
 initLanguage()
@@ -79,62 +94,60 @@ function showToast(message: string) {
   }, 3500)
 }
 
-function checkJoinInvite() {
-  const hash = window.location.hash
-  const search = window.location.search
+// Route updates are serialized so concurrent changes (view, date, invite params) don't overwrite
+// each other. `router.replace` keeps the browser history clean.
+let routeUpdate: Promise<unknown> = Promise.resolve()
+let pendingRouteUpdates = 0
+function replaceRoute(update: (query: LocationQuery, hash: string) => [LocationQuery, string]) {
+  pendingRouteUpdates++
+  routeUpdate = routeUpdate.then(async () => {
+    const current = unref(route)
+    const [query, hash] = update(current.query, current.hash)
+    try {
+      await router.replace({ path: current.path, query, hash })
+    } catch (e) {
+      console.error('Failed to update route:', e)
+    } finally {
+      pendingRouteUpdates--
+    }
+  })
+  return routeUpdate
+}
 
-  let params = new URLSearchParams(search)
-  if (!params.get('join_token') && !params.get('path') && hash.includes('?')) {
-    params = new URLSearchParams(hash.substring(hash.indexOf('?')))
+// Invite that was already accepted or dismissed but may still be in the URL until the
+// route update has finished
+let handledJoinKey: string | null = null
+
+function checkJoinInvite() {
+  const params = parseJoinParams(unref(route).query, unref(route).hash)
+  if (!params) return
+
+  const checkKey = params.token || params.calendarPath || ''
+  if (checkKey === handledJoinKey) return
+  if (isCalendarAlreadyJoined(checkKey)) {
+    showToast(t('You are already subscribed to this calendar.'))
+    clearJoinUrlParams()
+    return
   }
 
-  const token = params.get('join_token') || params.get('token')
-  const path = params.get('path') ? decodeURIComponent(params.get('path')!) : undefined
-
-  if (token || path) {
-    const decodedToken = token ? decodeURIComponent(token) : undefined
-    const name = params.get('name') ? decodeURIComponent(params.get('name')!) : t('Shared Calendar')
-    const color = params.get('color') ? decodeURIComponent(params.get('color')!) : '#3788d8'
-    const perm = params.get('perm') || 'r'
-    const owner = params.get('owner') ? decodeURIComponent(params.get('owner')!) : undefined
-
-    const checkKey = decodedToken || path || ''
-    if (isCalendarAlreadyJoined(checkKey)) {
-      showToast(t('You are already subscribed to this calendar.'))
-      clearJoinUrlParams()
-      return
-    }
-
-    pendingJoinInvite.value = {
-      token: decodedToken,
-      calendarPath: path,
-      displayName: name,
-      color,
-      permissions: perm,
-      owner
-    }
+  pendingJoinInvite.value = {
+    token: params.token,
+    calendarPath: params.calendarPath,
+    displayName: params.displayName || t('Shared Calendar'),
+    color: params.color || '#3788d8',
+    permissions: params.permissions,
+    owner: params.owner
   }
 }
 
 function clearJoinUrlParams() {
-  try {
-    const url = new URL(window.location.href)
-    url.searchParams.delete('join_token')
-    url.searchParams.delete('token')
-    url.searchParams.delete('path')
-    url.searchParams.delete('name')
-    url.searchParams.delete('color')
-    url.searchParams.delete('perm')
-    url.searchParams.delete('owner')
-
-    if (url.hash.includes('?')) {
-      const hashBase = url.hash.split('?')[0]
-      url.hash = hashBase
-    }
-    window.history.replaceState({}, document.title, url.toString())
-  } catch (e) {
-    // Ignore
-  }
+  const params = parseJoinParams(unref(route).query, unref(route).hash)
+  handledJoinKey = params ? params.token || params.calendarPath || '' : null
+  replaceRoute((query, hash) => [
+    withoutJoinParams(query),
+    // Legacy invite links carry their parameters in the hash (`#/?join_token=…`)
+    hash.includes('?') ? '' : hash
+  ])
 }
 
 async function handleJoinCalendar() {
@@ -161,17 +174,55 @@ function handleCancelJoin() {
 }
 
 const calendarViewRef = ref<InstanceType<typeof CalendarView> | null>(null)
-const currentDate = ref(new Date())
-const viewType = ref<'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'>('dayGridMonth')
+// View and date are restored from the route query (`?view=week&date=2026-10-26`)
+const currentDate = ref(dateFromQuery(unref(route).query.date) || new Date())
+const viewType = ref<CalendarViewType>(viewFromQuery(unref(route).query.view) || config.defaultView)
 
 const visibleEvents = computed(() => getVisibleEvents(calendars.value as any))
 
+function syncRouteQuery() {
+  const view = viewToQuery(viewType.value)
+  const date = dateToQuery(currentDate.value)
+  const { query } = unref(route)
+  if (query.view === view && query.date === date) return
+  replaceRoute((query, hash) => [{ ...query, view, date }, hash])
+}
+
+watch([viewType, currentDate], syncRouteQuery)
+
+// Follow changes of the route made from outside (e.g. an edited URL). Runs synchronously so our
+// own, still pending route updates can be told apart and don't reset newer local state.
+watch(
+  () => [unref(route).query.view, unref(route).query.date] as const,
+  ([view, date]) => {
+    if (pendingRouteUpdates > 0) return
+    const newView = viewFromQuery(view)
+    if (newView && newView !== viewType.value) {
+      viewType.value = newView
+    }
+    const newDate = dateFromQuery(date)
+    if (newDate && dateToQuery(newDate) !== dateToQuery(currentDate.value)) {
+      currentDate.value = newDate
+    }
+  },
+  { flush: 'sync' }
+)
+
+// Invite links opened while the calendar is already shown
+let initialLoadDone = false
+watch(
+  () => [unref(route).query, unref(route).hash] as const,
+  () => {
+    if (initialLoadDone && !pendingJoinInvite.value) checkJoinInvite()
+  }
+)
+
 onMounted(async () => {
+  syncRouteQuery()
   await loadCalendars()
   await loadEventsForCurrentRange()
+  initialLoadDone = true
   checkJoinInvite()
-  window.addEventListener('hashchange', checkJoinInvite)
-  window.addEventListener('popstate', checkJoinInvite)
 })
 
 watch(
@@ -207,7 +258,7 @@ function handleToday() {
   currentDate.value = new Date()
 }
 
-function handleViewChange(view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay') {
+function handleViewChange(view: CalendarViewType) {
   viewType.value = view
 }
 
