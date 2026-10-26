@@ -85,7 +85,7 @@ onBeforeUnmount(() => {
 <template>
   <p
     v-if="!allDay && conflicts.length > 0"
-    class="web-calendar-free-busy-hint ext:flex ext:items-center ext:gap-1 ext:text-sm ext:text-role-on-surface-variant ext:m-0"
+    class="web-calendar-free-busy-hint ext:flex ext:items-center ext:gap-1 ext:text-sm ext:text-role-on-surface-variant ext:m-0 ext:mb-2"
     role="status"
   >
     <oc-icon name="time" fill-type="line" size="small" class="ext:shrink-0" />
