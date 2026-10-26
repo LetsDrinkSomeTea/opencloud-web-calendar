@@ -11,6 +11,8 @@ import {
   toZonedTime,
   type WriteTimezone
 } from './timezone'
+import { parseAlarms, writeAlarms } from './alarms'
+import { parseAttendees, parseOrganizer, writeParticipants } from './attendees'
 
 /**
  * Parse an ICS string and return one or more CalendarEvent objects.
@@ -87,6 +89,7 @@ export function parseICS(
     if (!dtstart) return []
 
     const duration = masterEvent.duration
+    const masterExtras = parseEventExtras(masterVevent)
 
     // Set expansion bounds
     const rangeStart = ICAL.Time.fromJSDate(
@@ -159,7 +162,8 @@ export function parseICS(
         icsData,
         isRecurring: true,
         rrule: rruleStr,
-        recurrenceId: nextStr
+        recurrenceId: nextStr,
+        ...masterExtras
       })
     }
 
@@ -213,7 +217,44 @@ function parseVevent(
     icsData,
     isRecurring: !!rruleProp || !!recIdProp,
     rrule: rruleProp ? rruleProp.toString() : undefined,
-    recurrenceId: recIdProp ? recIdProp.toString() : undefined
+    recurrenceId: recIdProp ? recIdProp.toString() : undefined,
+    ...parseEventExtras(vevent)
+  }
+}
+
+/** Reminders, attendees and organizer of a VEVENT */
+function parseEventExtras(
+  vevent: ICAL.Component
+): Pick<CalendarEvent, 'alarms' | 'attendees' | 'organizer'> {
+  const organizer = parseOrganizer(vevent)
+  return {
+    alarms: parseAlarms(vevent),
+    attendees: parseAttendees(vevent),
+    ...(organizer && { organizer })
+  }
+}
+
+/**
+ * Writes reminders, attendees and organizer of the form. Values the form leaves undefined are
+ * copied from `fallback` (the component being replaced), so callers that only change the time
+ * (e.g. drag and drop) keep them.
+ */
+function writeEventExtras(
+  vevent: ICAL.Component,
+  formData: EventFormData,
+  fallback: ICAL.Component | null
+): void {
+  const alarms = formData.alarms ?? (fallback ? parseAlarms(fallback) : [])
+  writeAlarms(vevent, alarms, formData.summary)
+
+  if (formData.attendees) {
+    writeParticipants(
+      vevent,
+      formData.attendees,
+      formData.attendees.length > 0 ? formData.organizer : undefined
+    )
+  } else if (fallback) {
+    writeParticipants(vevent, parseAttendees(fallback), parseOrganizer(fallback))
   }
 }
 
@@ -243,18 +284,19 @@ export function generateICS(formData: EventFormData, options: GenerateICSOptions
   vevent.addPropertyWithValue('uid', uid)
   vevent.addPropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), true))
 
+  let source: ICAL.Component | null = null
+  if (options.sourceICS) {
+    try {
+      source = new ICAL.Component(ICAL.parse(options.sourceICS))
+    } catch {
+      source = null
+    }
+  }
+
   if (formData.allDay) {
     addTimeProperty(vevent, 'dtstart', toDateValue(formData.start), null)
     addTimeProperty(vevent, 'dtend', toDateValue(formData.end), null)
   } else {
-    let source: ICAL.Component | null = null
-    if (options.sourceICS) {
-      try {
-        source = new ICAL.Component(ICAL.parse(options.sourceICS))
-      } catch {
-        source = null
-      }
-    }
     const preferredTzid = options.timezone ?? (source ? getMasterTzid(source) : null)
     const timezone = resolveEventTimezone(preferredTzid, formData.start, source)
     if (timezone) {
@@ -281,6 +323,12 @@ export function generateICS(formData: EventFormData, options: GenerateICSOptions
   if (formData.location) {
     vevent.addPropertyWithValue('location', formData.location)
   }
+
+  writeEventExtras(
+    vevent,
+    formData,
+    source ? (findMasterVevent(source) ?? source.getFirstSubcomponent('vevent')) : null
+  )
 
   calendar.addSubcomponent(vevent)
 
@@ -442,9 +490,11 @@ export function addExceptionToICS(
     // Adding a modified occurrence: add a new VEVENT with RECURRENCE-ID
     // First, remove any existing exception for this recurrence-id
     const recIdKey = timeKey(recIdTime)
+    let previousException: ICAL.Component | null = null
     for (const exc of comp.getAllSubcomponents('vevent')) {
       const excRecId = exc.getFirstPropertyValue('recurrence-id') as ICAL.Time | null
       if (excRecId && timeKey(excRecId) === recIdKey) {
+        previousException = exc
         comp.removeSubcomponent(exc)
       }
     }
@@ -485,6 +535,8 @@ export function addExceptionToICS(
     if (exceptionFormData.location) {
       excVevent.addPropertyWithValue('location', exceptionFormData.location)
     }
+
+    writeEventExtras(excVevent, exceptionFormData, previousException ?? masterVevent)
 
     comp.addSubcomponent(excVevent)
   } else {
@@ -546,6 +598,9 @@ export function updateSeriesICS(icsData: string, formData: EventFormData): strin
     const rruleStr = buildRRuleString(formData.recurrence, formData.allDay)
     masterVevent.addPropertyWithValue('rrule', ICAL.Recur.fromString(rruleStr))
   }
+
+  // Reminders, attendees and organizer (kept when the form leaves them undefined)
+  writeEventExtras(masterVevent, formData, masterVevent)
 
   // Update DTSTAMP
   masterVevent.updatePropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), true))
