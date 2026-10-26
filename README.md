@@ -20,13 +20,13 @@ A CalDAV calendar application integrated as a native [OpenCloud](https://openclo
 
 ### 1. Copy the Extension Files
 
-Download the latest release archive from the [Releases](https://github.com/LordGuenni/opencloud-web-calendar/releases) page and extract it into your OpenCloud web assets directory:
+Download `web-calendar.zip` from the [Releases](https://github.com/LordGuenni/opencloud-web-calendar/releases) page. The archive already contains a top-level `web-calendar/` folder, so extract it directly into the OpenCloud web apps directory:
 
 ```bash
-unzip web-app-calendar.zip -d /var/lib/opencloud/web/assets/apps/web-calendar/
+unzip web-calendar.zip -d /var/lib/opencloud/web/assets/apps/
 ```
 
-OpenCloud automatically discovers extensions placed in this directory.
+This results in `/var/lib/opencloud/web/assets/apps/web-calendar/manifest.json`. OpenCloud automatically discovers extensions placed in this directory.
 
 ### 2. Configure Content Security Policy (CSP)
 
@@ -112,7 +112,12 @@ additional_policies:
 
 ### 3. Copy Extension Files
 
-Use an init container or ConfigMap to copy the extension files to `/var/lib/opencloud/web/assets/apps/web-calendar/`.
+Use an init container (or a volume prepared otherwise) to extract `web-calendar.zip` into the apps directory. As the archive already contains the `web-calendar/` folder, extract it into `/var/lib/opencloud/web/assets/apps/`, not into `apps/web-calendar/`:
+
+```bash
+unzip web-calendar.zip -d /var/lib/opencloud/web/assets/apps/
+# -> /var/lib/opencloud/web/assets/apps/web-calendar/manifest.json
+```
 
 ## Development
 
@@ -147,8 +152,19 @@ The production build is output to the `dist/` directory.
 
 ### Testing
 
+Run the unit tests (vitest; starts in watch mode, add `--run` for a single run):
+
 ```bash
 pnpm test:unit
+pnpm test:unit --run
+```
+
+CI additionally runs linting, the format check and the type check:
+
+```bash
+pnpm lint
+pnpm format:check
+pnpm check:types
 ```
 
 ## Architecture
