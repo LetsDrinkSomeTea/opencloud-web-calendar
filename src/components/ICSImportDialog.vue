@@ -1,9 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useGettext } from 'vue3-gettext'
+import { modalActionsTarget, type Modal } from '@opencloud-eu/web-pkg'
 import { useICSImport, type ImportMode } from '../composables/useICSImport'
 import type { Calendar } from '../types/calendar'
 
+/**
+ * Content of the "Import Calendar" modal (dispatched via `useModals`). The import keeps the modal
+ * open to show its report, so the footer buttons are teleported into the modal's actions row
+ * instead of using the modal's confirm button (which would close it).
+ */
 const props = defineProps<{
+  modal: Modal
   calendars: readonly Calendar[]
   calendarHomeUrl: string
   defaultCalendar: Calendar | null
@@ -11,24 +19,40 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   imported: []
+  cancel: []
 }>()
 
-const { isOpen, phase, progress, report, error, open, close, importFile } = useICSImport()
+const { $gettext } = useGettext()
+const { phase, progress, report, error, importFile } = useICSImport()
 
-const selectedFile = ref<File | null>(null)
+const selectedFiles = ref<FileList | null>(null)
 const importMode = ref<ImportMode>('new-calendar')
 const newCalendarName = ref('')
-const selectedMergeCalendar = ref<Calendar | null>(null)
+const selectedMergeCalendarHref = ref<string | null>(null)
 const showDetails = ref(false)
 
-const fileInputRef = ref<HTMLInputElement | null>(null)
+const selectedFile = computed(() => selectedFiles.value?.[0] ?? null)
+const selectedMergeCalendar = computed(
+  () => props.calendars.find((c) => c.href === selectedMergeCalendarHref.value) ?? null
+)
 
 // Pre-select default calendar when switching to merge mode
 watch(importMode, (mode) => {
-  if (mode === 'merge' && !selectedMergeCalendar.value && props.defaultCalendar) {
-    selectedMergeCalendar.value = props.defaultCalendar
+  if (mode === 'merge' && !selectedMergeCalendarHref.value && props.defaultCalendar) {
+    selectedMergeCalendarHref.value = props.defaultCalendar.href
   }
 })
+
+// Suggest calendar name from filename
+watch(selectedFile, (file) => {
+  if (file && importMode.value === 'new-calendar' && !newCalendarName.value) {
+    newCalendarName.value = file.name.replace(/\.ics$/i, '')
+  }
+})
+
+const isBusy = computed(() =>
+  ['reading', 'parsing', 'analyzing', 'importing'].includes(phase.value)
+)
 
 const canImport = computed(() => {
   if (!selectedFile.value) return false
@@ -42,19 +66,22 @@ const progressPercent = computed(() => {
   return Math.round((progress.value.current / progress.value.total) * 100)
 })
 
-function handleFileSelect(event: Event) {
-  const input = event.target as HTMLInputElement
-  if (input.files && input.files.length > 0) {
-    selectedFile.value = input.files[0]
-    // Suggest calendar name from filename
-    if (importMode.value === 'new-calendar' && !newCalendarName.value) {
-      newCalendarName.value = input.files[0].name.replace(/\.ics$/i, '')
-    }
-  }
+const resultTypeLabels = computed<Record<string, string>>(() => ({
+  created: $gettext('Created'),
+  updated: $gettext('Updated'),
+  skipped: $gettext('Skipped'),
+  failed: $gettext('Failed')
+}))
+
+const resultTypeClasses: Record<string, string> = {
+  created: 'ext:bg-role-primary ext:text-role-on-primary',
+  updated: 'ext:bg-role-secondary ext:text-role-on-secondary',
+  skipped: 'ext:bg-role-surface-container-highest ext:text-role-on-surface-variant',
+  failed: 'ext:bg-role-error ext:text-role-on-error'
 }
 
 async function handleImport() {
-  if (!selectedFile.value) return
+  if (!selectedFile.value || !canImport.value) return
 
   await importFile(
     selectedFile.value,
@@ -69,349 +96,236 @@ async function handleImport() {
     emit('imported')
   }
 }
-
-function handleClose() {
-  selectedFile.value = null
-  newCalendarName.value = ''
-  selectedMergeCalendar.value = null
-  importMode.value = 'new-calendar'
-  showDetails.value = false
-  close()
-}
-
-defineExpose({ open })
 </script>
 
 <template>
-  <Teleport to="body">
-    <div
-      v-if="isOpen"
-      class="ext:fixed ext:inset-0 ext:z-50 ext:flex ext:items-center ext:justify-center ext:bg-black/50"
-      @click.self="handleClose"
+  <div class="ext:space-y-4 ext:text-role-on-surface">
+    <!-- Phase: idle / error — show form -->
+    <form
+      v-if="phase === 'idle' || phase === 'error'"
+      id="web-calendar-import-form"
+      class="ext:space-y-4"
+      @submit.prevent="handleImport"
     >
-      <div
-        class="ext:bg-white ext:rounded-lg ext:shadow-xl ext:w-full ext:max-w-lg ext:mx-4 ext:max-h-[90vh] ext:flex ext:flex-col"
+      <oc-file-input
+        id="web-calendar-import-file"
+        v-model="selectedFiles"
+        :label="$gettext('ICS File')"
+        file-types=".ics,text/calendar"
+        preview-icon="calendar"
+        preview-icon-fill-type="line"
+        :description-message="
+          selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB` : undefined
+        "
+      />
+
+      <!-- Mode selection -->
+      <fieldset class="ext:m-0 ext:p-0 ext:border-0 ext:space-y-2">
+        <legend class="ext:p-0 ext:mb-2">{{ $gettext('Import mode') }}</legend>
+        <div>
+          <oc-radio
+            id="mode-new"
+            v-model="importMode"
+            option="new-calendar"
+            :label="$gettext('Create new calendar')"
+          />
+        </div>
+        <div>
+          <oc-radio
+            id="mode-merge"
+            v-model="importMode"
+            option="merge"
+            :disabled="calendars.length === 0"
+            :label="$gettext('Merge into existing calendar')"
+          />
+        </div>
+      </fieldset>
+
+      <!-- Calendar selector (merge mode) -->
+      <oc-select
+        v-if="importMode === 'merge'"
+        id="merge-target"
+        v-model="selectedMergeCalendarHref"
+        :label="$gettext('Target calendar')"
+        :placeholder="$gettext('Select calendar')"
+        :options="calendars"
+        option-label="displayName"
+        :reduce="(cal: Calendar) => cal.href"
+        :searchable="false"
+        :clearable="false"
+        position-fixed
+      />
+
+      <!-- Calendar name (new calendar mode) -->
+      <oc-text-input
+        v-if="importMode === 'new-calendar'"
+        id="import-cal-name"
+        v-model="newCalendarName"
+        :label="$gettext('Calendar Name')"
+        :placeholder="$gettext('Enter calendar name')"
+        required-mark
+      />
+
+      <!-- Error display -->
+      <p
+        v-if="error"
+        class="ext:m-0 ext:p-3 ext:bg-role-error-container ext:text-role-on-error-container ext:rounded ext:text-sm ext:whitespace-pre-line"
+        role="alert"
       >
-        <!-- Header -->
+        {{ error }}
+      </p>
+    </form>
+
+    <!-- Phase: reading/parsing/analyzing/importing — show progress -->
+    <div v-if="isBusy" class="ext:space-y-3" aria-live="polite">
+      <p class="ext:m-0 ext:text-sm">
+        <template v-if="phase === 'reading'">{{ $gettext('Reading file...') }}</template>
+        <template v-else-if="phase === 'parsing'">{{ $gettext('Parsing events...') }}</template>
+        <template v-else-if="phase === 'analyzing'">{{
+          $gettext('Analyzing for duplicates...')
+        }}</template>
+        <template v-else-if="phase === 'importing'">
+          {{ $gettext('Importing events...') }} ({{ progress.current }}/{{ progress.total }})
+        </template>
+      </p>
+      <oc-progress
+        :value="progressPercent"
+        :max="100"
+        :indeterminate="phase !== 'importing'"
+        color="var(--oc-role-primary)"
+        size="small"
+      />
+    </div>
+
+    <!-- Phase: done — show report -->
+    <div v-if="phase === 'done' && report" class="ext:space-y-3">
+      <!-- Summary -->
+      <div class="ext:grid ext:grid-cols-2 ext:gap-2">
         <div
-          class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-b ext:shrink-0"
+          class="ext:p-3 ext:bg-role-primary-container ext:text-role-on-primary-container ext:rounded ext:text-center"
         >
-          <h2 class="ext:text-lg ext:font-semibold ext:text-gray-900">
-            {{ $gettext('Import Calendar') }}
-          </h2>
-          <button
-            type="button"
-            class="ext:text-gray-500 hover:ext:text-gray-700"
-            @click="handleClose"
-          >
-            <svg class="ext:w-6 ext:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+          <div class="ext:text-2xl ext:font-bold">{{ report.created }}</div>
+          <div class="ext:text-xs">{{ $gettext('Created') }}</div>
         </div>
-
-        <!-- Content -->
-        <div class="ext:px-6 ext:py-4 ext:space-y-4 ext:overflow-y-auto ext:flex-1">
-          <!-- Phase: idle / error — show form -->
-          <template v-if="phase === 'idle' || phase === 'error'">
-            <!-- File picker -->
-            <div>
-              <label class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
-                {{ $gettext('ICS File') }}
-              </label>
-              <input
-                ref="fileInputRef"
-                type="file"
-                accept=".ics,text/calendar"
-                class="ext:w-full ext:text-sm ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:p-2 file:ext:mr-3 file:ext:py-1 file:ext:px-3 file:ext:rounded file:ext:border-0 file:ext:text-sm file:ext:font-medium file:ext:bg-blue-600 file:ext:text-white file:ext:cursor-pointer hover:file:ext:bg-blue-700"
-                @change="handleFileSelect"
-              />
-              <p v-if="selectedFile" class="ext:mt-1 ext:text-xs ext:text-gray-500">
-                {{ selectedFile.name }} ({{ (selectedFile.size / 1024).toFixed(1) }} KB)
-              </p>
-            </div>
-
-            <!-- Mode selection -->
-            <div class="ext:space-y-2">
-              <label class="ext:block ext:text-sm ext:font-medium ext:text-gray-700">
-                {{ $gettext('Import mode') }}
-              </label>
-              <div class="ext:flex ext:items-center ext:gap-2">
-                <input
-                  id="mode-new"
-                  v-model="importMode"
-                  type="radio"
-                  value="new-calendar"
-                  class="ext:w-4 ext:h-4"
-                />
-                <label for="mode-new" class="ext:text-sm ext:text-gray-900">
-                  {{ $gettext('Create new calendar') }}
-                </label>
-              </div>
-              <div class="ext:flex ext:items-center ext:gap-2">
-                <input
-                  id="mode-merge"
-                  v-model="importMode"
-                  type="radio"
-                  value="merge"
-                  :disabled="calendars.length === 0"
-                  class="ext:w-4 ext:h-4"
-                />
-                <label for="mode-merge" class="ext:text-sm ext:text-gray-900">
-                  {{ $gettext('Merge into existing calendar') }}
-                </label>
-              </div>
-            </div>
-
-            <!-- Calendar selector (merge mode) -->
-            <div v-if="importMode === 'merge'">
-              <label
-                for="merge-target"
-                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-              >
-                {{ $gettext('Target calendar') }}
-              </label>
-              <select
-                id="merge-target"
-                :value="selectedMergeCalendar?.href ?? ''"
-                class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500 ext:focus:border-blue-500 ext:bg-white"
-                @change="
-                  selectedMergeCalendar =
-                    calendars.find((c) => c.href === ($event.target as HTMLSelectElement).value) ??
-                    null
-                "
-              >
-                <option value="" disabled>{{ $gettext('Select calendar') }}</option>
-                <option v-for="cal in calendars" :key="cal.href" :value="cal.href">
-                  {{ cal.displayName }}
-                </option>
-              </select>
-            </div>
-
-            <!-- Calendar name (new calendar mode) -->
-            <div v-if="importMode === 'new-calendar'">
-              <label
-                for="import-cal-name"
-                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-              >
-                {{ $gettext('Calendar Name') }}
-              </label>
-              <input
-                id="import-cal-name"
-                v-model="newCalendarName"
-                type="text"
-                required
-                class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500 ext:focus:border-blue-500"
-                :placeholder="$gettext('Enter calendar name')"
-              />
-            </div>
-
-            <!-- Error display -->
-            <div
-              v-if="error"
-              class="ext:p-3 ext:bg-red-50 ext:border ext:border-red-200 ext:rounded"
-            >
-              <p class="ext:text-sm ext:text-red-600 ext:whitespace-pre-line">{{ error }}</p>
-            </div>
-          </template>
-
-          <!-- Phase: reading/parsing/analyzing/importing — show progress -->
-          <template
-            v-if="
-              phase === 'reading' ||
-              phase === 'parsing' ||
-              phase === 'analyzing' ||
-              phase === 'importing'
-            "
-          >
-            <div class="ext:space-y-3">
-              <p class="ext:text-sm ext:text-gray-700">
-                <template v-if="phase === 'reading'">{{ $gettext('Reading file...') }}</template>
-                <template v-else-if="phase === 'parsing'">{{
-                  $gettext('Parsing events...')
-                }}</template>
-                <template v-else-if="phase === 'analyzing'">{{
-                  $gettext('Analyzing for duplicates...')
-                }}</template>
-                <template v-else-if="phase === 'importing'">
-                  {{ $gettext('Importing events...') }} ({{ progress.current }}/{{
-                    progress.total
-                  }})
-                </template>
-              </p>
-              <div class="ext:w-full ext:bg-gray-200 ext:rounded-full ext:h-2">
-                <div
-                  class="ext:bg-blue-600 ext:h-2 ext:rounded-full ext:transition-all ext:duration-300"
-                  :style="{ width: phase === 'importing' ? progressPercent + '%' : '100%' }"
-                  :class="{ 'ext:animate-pulse': phase !== 'importing' }"
-                />
-              </div>
-            </div>
-          </template>
-
-          <!-- Phase: done — show report -->
-          <template v-if="phase === 'done' && report">
-            <div class="ext:space-y-3">
-              <!-- Summary -->
-              <div class="ext:grid ext:grid-cols-2 ext:gap-2">
-                <div class="ext:p-3 ext:bg-green-50 ext:rounded ext:text-center">
-                  <div class="ext:text-2xl ext:font-bold ext:text-green-700">
-                    {{ report.created }}
-                  </div>
-                  <div class="ext:text-xs ext:text-green-600">{{ $gettext('Created') }}</div>
-                </div>
-                <div
-                  v-if="report.mode === 'merge'"
-                  class="ext:p-3 ext:bg-blue-50 ext:rounded ext:text-center"
-                >
-                  <div class="ext:text-2xl ext:font-bold ext:text-blue-700">
-                    {{ report.updated }}
-                  </div>
-                  <div class="ext:text-xs ext:text-blue-600">{{ $gettext('Updated') }}</div>
-                </div>
-                <div
-                  v-if="report.skipped > 0"
-                  class="ext:p-3 ext:bg-gray-100 ext:rounded ext:text-center"
-                >
-                  <div class="ext:text-2xl ext:font-bold ext:text-gray-700">
-                    {{ report.skipped }}
-                  </div>
-                  <div class="ext:text-xs ext:text-gray-600">{{ $gettext('Skipped') }}</div>
-                </div>
-                <div
-                  v-if="report.failed > 0"
-                  class="ext:p-3 ext:bg-red-50 ext:rounded ext:text-center"
-                >
-                  <div class="ext:text-2xl ext:font-bold ext:text-red-700">{{ report.failed }}</div>
-                  <div class="ext:text-xs ext:text-red-600">{{ $gettext('Failed') }}</div>
-                </div>
-              </div>
-
-              <p class="ext:text-sm ext:text-gray-600">
-                {{
-                  $ngettext(
-                    'Imported %{count} event into "%{name}"',
-                    'Imported %{count} events into "%{name}"',
-                    report.created + report.updated,
-                    {
-                      count: String(report.created + report.updated),
-                      name: report.calendarName
-                    }
-                  )
-                }}
-              </p>
-
-              <!-- Parse errors -->
-              <div
-                v-if="report.errors.length > 0"
-                class="ext:p-3 ext:bg-yellow-50 ext:rounded ext:border ext:border-yellow-200"
-              >
-                <p class="ext:text-sm ext:font-medium ext:text-yellow-800 ext:mb-1">
-                  {{ $gettext('Parse warnings') }}
-                </p>
-                <ul class="ext:text-xs ext:text-yellow-700 ext:space-y-0.5">
-                  <li v-for="(err, i) in report.errors" :key="i">{{ err }}</li>
-                </ul>
-              </div>
-
-              <!-- Details toggle -->
-              <button
-                v-if="report.results.length > 0"
-                type="button"
-                class="ext:text-sm ext:text-blue-600 hover:ext:underline"
-                @click="showDetails = !showDetails"
-              >
-                {{ showDetails ? $gettext('Hide details') : $gettext('Show details') }}
-              </button>
-
-              <!-- Detailed results -->
-              <div
-                v-if="showDetails"
-                class="ext:max-h-48 ext:overflow-y-auto ext:border ext:border-gray-200 ext:rounded"
-              >
-                <table class="ext:w-full ext:text-xs">
-                  <tbody>
-                    <tr
-                      v-for="(result, i) in report.results"
-                      :key="i"
-                      class="ext:border-b ext:border-gray-100"
-                    >
-                      <td class="ext:px-2 ext:py-1">
-                        <span
-                          class="ext:inline-block ext:px-1.5 ext:py-0.5 ext:rounded ext:text-white ext:text-[10px] ext:font-medium"
-                          :class="{
-                            'ext:bg-green-600': result.type === 'created',
-                            'ext:bg-blue-600': result.type === 'updated',
-                            'ext:bg-gray-500': result.type === 'skipped',
-                            'ext:bg-red-600': result.type === 'failed'
-                          }"
-                        >
-                          {{ result.type }}
-                        </span>
-                      </td>
-                      <td
-                        class="ext:px-2 ext:py-1 ext:text-gray-900 ext:truncate ext:max-w-[200px]"
-                      >
-                        {{ result.summary }}
-                      </td>
-                      <td
-                        v-if="'reason' in result || 'error' in result"
-                        class="ext:px-2 ext:py-1 ext:text-gray-500"
-                      >
-                        {{ 'reason' in result ? result.reason : '' }}
-                        {{ 'error' in result ? result.error : '' }}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </template>
-        </div>
-
-        <!-- Footer -->
         <div
-          class="ext:flex ext:items-center ext:justify-end ext:gap-3 ext:px-6 ext:py-4 ext:border-t ext:bg-gray-50 ext:shrink-0"
+          v-if="report.mode === 'merge'"
+          class="ext:p-3 ext:bg-role-secondary-container ext:text-role-on-secondary-container ext:rounded ext:text-center"
         >
-          <template v-if="phase === 'idle' || phase === 'error'">
-            <button
-              type="button"
-              class="ext:px-4 ext:py-2 ext:text-sm ext:text-gray-700 ext:bg-gray-200 ext:rounded hover:ext:bg-gray-300"
-              @click="handleClose"
-            >
-              {{ $gettext('Cancel') }}
-            </button>
-            <button
-              type="button"
-              class="ext:px-4 ext:py-2 ext:text-sm ext:rounded"
-              :class="
-                !canImport
-                  ? 'ext:bg-gray-300 ext:text-gray-500 ext:cursor-not-allowed'
-                  : 'ext:bg-blue-600 ext:text-white hover:ext:bg-blue-700'
-              "
-              :disabled="!canImport"
-              @click="handleImport"
-            >
-              {{ $gettext('Import') }}
-            </button>
-          </template>
-
-          <template v-else-if="phase === 'done'">
-            <button
-              type="button"
-              class="ext:px-4 ext:py-2 ext:text-sm ext:text-gray-700 ext:bg-gray-200 ext:rounded hover:ext:bg-gray-300"
-              @click="handleClose"
-            >
-              {{ $gettext('Close') }}
-            </button>
-          </template>
+          <div class="ext:text-2xl ext:font-bold">{{ report.updated }}</div>
+          <div class="ext:text-xs">{{ $gettext('Updated') }}</div>
+        </div>
+        <div
+          v-if="report.skipped > 0"
+          class="ext:p-3 ext:bg-role-surface-container-high ext:text-role-on-surface ext:rounded ext:text-center"
+        >
+          <div class="ext:text-2xl ext:font-bold">{{ report.skipped }}</div>
+          <div class="ext:text-xs">{{ $gettext('Skipped') }}</div>
+        </div>
+        <div
+          v-if="report.failed > 0"
+          class="ext:p-3 ext:bg-role-error-container ext:text-role-on-error-container ext:rounded ext:text-center"
+        >
+          <div class="ext:text-2xl ext:font-bold">{{ report.failed }}</div>
+          <div class="ext:text-xs">{{ $gettext('Failed') }}</div>
         </div>
       </div>
+
+      <p class="ext:m-0 ext:text-sm ext:text-role-on-surface-variant">
+        {{
+          $ngettext(
+            'Imported %{count} event into "%{name}"',
+            'Imported %{count} events into "%{name}"',
+            report.created + report.updated,
+            {
+              count: String(report.created + report.updated),
+              name: report.calendarName
+            }
+          )
+        }}
+      </p>
+
+      <!-- Parse errors -->
+      <div
+        v-if="report.errors.length > 0"
+        class="ext:p-3 ext:bg-role-tertiary-container ext:text-role-on-tertiary-container ext:rounded"
+      >
+        <p class="ext:m-0 ext:text-sm ext:font-medium ext:mb-1">
+          {{ $gettext('Parse warnings') }}
+        </p>
+        <ul class="ext:m-0 ext:pl-4 ext:text-xs ext:space-y-0.5">
+          <li v-for="(err, i) in report.errors" :key="i">{{ err }}</li>
+        </ul>
+      </div>
+
+      <!-- Details toggle -->
+      <oc-button
+        v-if="report.results.length > 0"
+        appearance="raw"
+        color-role="primary"
+        size="small"
+        :aria-expanded="showDetails ? 'true' : 'false'"
+        aria-controls="web-calendar-import-details"
+        @click="showDetails = !showDetails"
+      >
+        {{ showDetails ? $gettext('Hide details') : $gettext('Show details') }}
+      </oc-button>
+
+      <!-- Detailed results -->
+      <div
+        v-if="showDetails"
+        id="web-calendar-import-details"
+        class="ext:max-h-48 ext:overflow-y-auto ext:border ext:border-role-outline-variant ext:rounded"
+      >
+        <table class="ext:w-full ext:text-xs">
+          <tbody>
+            <tr
+              v-for="(result, i) in report.results"
+              :key="i"
+              class="ext:border-b ext:border-role-outline-variant"
+            >
+              <td class="ext:px-2 ext:py-1">
+                <span
+                  class="ext:inline-block ext:px-1.5 ext:py-0.5 ext:rounded ext:text-[10px] ext:font-medium"
+                  :class="resultTypeClasses[result.type]"
+                >
+                  {{ resultTypeLabels[result.type] ?? result.type }}
+                </span>
+              </td>
+              <td class="ext:px-2 ext:py-1 ext:truncate ext:max-w-[200px]">
+                {{ result.summary }}
+              </td>
+              <td
+                v-if="'reason' in result || 'error' in result"
+                class="ext:px-2 ext:py-1 ext:text-role-on-surface-variant"
+              >
+                {{ 'reason' in result ? result.reason : '' }}
+                {{ 'error' in result ? result.error : '' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-  </Teleport>
+
+    <teleport defer :to="`#${modalActionsTarget(modal)}`">
+      <template v-if="phase === 'idle' || phase === 'error'">
+        <oc-button class="ext:ml-2" @click="emit('cancel')">
+          {{ $gettext('Cancel') }}
+        </oc-button>
+        <oc-button
+          class="ext:ml-2"
+          appearance="filled"
+          color-role="primary"
+          submit="submit"
+          form="web-calendar-import-form"
+          :disabled="!canImport"
+        >
+          {{ $gettext('Import') }}
+        </oc-button>
+      </template>
+      <oc-button v-else-if="phase === 'done'" class="ext:ml-2" @click="emit('cancel')">
+        {{ $gettext('Close') }}
+      </oc-button>
+    </teleport>
+  </div>
 </template>

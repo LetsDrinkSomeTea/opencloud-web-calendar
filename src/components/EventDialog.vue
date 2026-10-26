@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, useId, watch } from 'vue'
 import { useGettext } from 'vue3-gettext'
+import { modalActionsTarget, type Modal } from '@opencloud-eu/web-pkg'
 import { useEventEditor } from '../composables/useEventEditor'
 import type { Calendar, RecurrenceFormData } from '../types/calendar'
 import { formatDateForInput, formatTimeForInput } from '../utils/date'
@@ -8,17 +9,23 @@ import { generateICS } from '../caldav/ics-utils'
 import { useLocationSearch } from '../composables/useLocationSearch'
 import { translateError } from '../utils/error-message'
 
+/**
+ * Content of the event modal (dispatched via `useModals`, see `useEventDialogs`).
+ * The footer buttons are teleported into the modal's actions row.
+ */
 const props = defineProps<{
+  modal: Modal
   calendars: readonly Calendar[]
 }>()
 
 const emit = defineEmits<{
   saved: []
   deleted: []
+  confirm: []
+  cancel: []
 }>()
 
 const {
-  isOpen,
   isEditing,
   editingEvent,
   formData,
@@ -26,12 +33,8 @@ const {
   error,
   conflictData,
   editScope,
-  showScopeDialog,
-  close,
   save,
   deleteEvent,
-  selectEditScope,
-  cancelScopeDialog,
   resolveConflictKeepLocal,
   resolveConflictUseServer
 } = useEventEditor()
@@ -43,9 +46,13 @@ const {
   clearResults: clearLocationResults
 } = useLocationSearch()
 
-function handleLocationInput(e: Event) {
-  const query = (e.target as HTMLInputElement).value
-  searchLocation(query)
+const { $gettext, $ngettext } = useGettext()
+
+const formId = `web-calendar-event-form-${useId()}`
+const locationListId = `web-calendar-location-results-${useId()}`
+
+function handleLocationInput(value: string) {
+  searchLocation(value)
 }
 
 function selectLocation(displayName: string) {
@@ -59,8 +66,6 @@ function handleLocationBlur() {
     clearLocationResults()
   }, 200)
 }
-
-const { $gettext, $ngettext } = useGettext()
 
 const weekdays = computed(() => [
   { value: 'MO', label: $gettext('Mon') },
@@ -105,6 +110,15 @@ const recurrenceInterval = computed({
   }
 })
 
+const frequencyOptions = computed<{ value: RecurrenceFormData['frequency']; label: string }[]>(
+  () => [
+    { value: 'DAILY', label: $ngettext('day', 'days', recurrenceInterval.value) },
+    { value: 'WEEKLY', label: $ngettext('week', 'weeks', recurrenceInterval.value) },
+    { value: 'MONTHLY', label: $ngettext('month', 'months', recurrenceInterval.value) },
+    { value: 'YEARLY', label: $ngettext('year', 'years', recurrenceInterval.value) }
+  ]
+)
+
 const recurrenceEndType = computed({
   get: () => formData.value.recurrence?.endType || 'never',
   set: (val: RecurrenceFormData['endType']) => {
@@ -137,6 +151,14 @@ const recurrenceUntil = computed({
     }
   }
 })
+
+/** Number inputs report strings; incomplete input (e.g. an empty field) keeps the last value */
+function parseNumber(value: string, apply: (n: number) => void) {
+  const n = parseInt(value, 10)
+  if (!Number.isNaN(n)) {
+    apply(n)
+  }
+}
 
 function isWeekdaySelected(day: string): boolean {
   return formData.value.recurrence?.byDay?.includes(day) || false
@@ -208,12 +230,26 @@ const isReadOnly = computed(() => {
   return calendar?.readOnly || false
 })
 
-async function handleSave() {
-  if (isReadOnly.value) return
-  const result = await save()
-  if (result) {
-    emit('saved')
+const busy = computed(() => saving.value || !!props.modal.isLoading)
+
+const canSave = computed(() => !busy.value && !isReadOnly.value && !!formData.value.summary?.trim())
+
+/** Routed through the modal wrapper, which shows the loading state and closes the modal */
+function handleSubmit() {
+  if (!canSave.value) return
+  emit('confirm')
+}
+
+/** Called by the modal wrapper on confirm; rejecting keeps the modal open (the error is shown inline) */
+async function onConfirm() {
+  if (isReadOnly.value) {
+    return Promise.reject()
   }
+  const result = await save()
+  if (!result) {
+    return Promise.reject()
+  }
+  emit('saved')
 }
 
 async function handleDelete() {
@@ -222,10 +258,6 @@ async function handleDelete() {
   if (success) {
     emit('deleted')
   }
-}
-
-function handleClose() {
-  close()
 }
 
 function handleExport() {
@@ -256,529 +288,333 @@ function handleExport() {
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
+
+defineExpose({ onConfirm })
 </script>
 
 <template>
-  <!-- Edit Scope Dialog for recurring events -->
-  <Teleport to="body">
+  <div class="web-calendar-event-dialog ext:text-role-on-surface">
+    <!-- Conflict Warning -->
     <div
-      v-if="showScopeDialog"
-      class="ext:fixed ext:inset-0 ext:z-50 ext:flex ext:items-center ext:justify-center ext:bg-black/50"
-      @click.self="cancelScopeDialog"
+      v-if="conflictData"
+      class="ext:mb-4 ext:p-3 ext:rounded ext:bg-role-tertiary-container ext:text-role-on-tertiary-container"
+      role="alert"
     >
-      <div class="ext:bg-white ext:rounded-lg ext:shadow-xl ext:w-full ext:max-w-sm ext:mx-4">
-        <div class="ext:px-6 ext:py-4 ext:border-b">
-          <h2 class="ext:text-lg ext:font-semibold ext:text-gray-900">
-            {{ $gettext('Edit Recurring Event') }}
-          </h2>
-        </div>
-        <div class="ext:px-6 ext:py-4 ext:space-y-3">
-          <p class="ext:text-sm ext:text-gray-600">
-            {{ $gettext('This is a recurring event. What would you like to edit?') }}
-          </p>
-          <button
-            type="button"
-            class="ext:w-full ext:px-4 ext:py-2 ext:text-sm ext:text-left ext:text-gray-900 ext:bg-gray-100 ext:rounded hover:ext:bg-gray-200"
-            @click="selectEditScope('single')"
-          >
-            {{ $gettext('This event only') }}
-          </button>
-          <button
-            type="button"
-            class="ext:w-full ext:px-4 ext:py-2 ext:text-sm ext:text-left ext:text-gray-900 ext:bg-gray-100 ext:rounded hover:ext:bg-gray-200"
-            @click="selectEditScope('series')"
-          >
-            {{ $gettext('All events in series') }}
-          </button>
-        </div>
-        <div class="ext:px-6 ext:py-4 ext:border-t ext:bg-gray-50 ext:flex ext:justify-end">
-          <button
-            type="button"
-            class="ext:px-4 ext:py-2 ext:text-sm ext:text-gray-700 ext:bg-gray-200 ext:rounded hover:ext:bg-gray-300"
-            @click="cancelScopeDialog"
-          >
-            {{ $gettext('Cancel') }}
-          </button>
-        </div>
+      <p class="ext:m-0 ext:mb-3 ext:text-sm ext:flex ext:items-start ext:gap-2">
+        <oc-icon name="error-warning" fill-type="line" size="small" class="ext:shrink-0" />
+        <span>
+          {{ $gettext('This event was modified by another client. Choose how to resolve:') }}
+        </span>
+      </p>
+      <div class="ext:flex ext:flex-wrap ext:gap-2">
+        <oc-button
+          appearance="filled"
+          color-role="primary"
+          size="small"
+          @click="resolveConflictKeepLocal"
+        >
+          {{ $gettext('Keep my changes') }}
+        </oc-button>
+        <oc-button size="small" @click="resolveConflictUseServer">
+          {{ $gettext('Use server version') }}
+        </oc-button>
       </div>
     </div>
-  </Teleport>
 
-  <!-- Main Event Dialog -->
-  <Teleport to="body">
-    <div
-      v-if="isOpen"
-      class="ext:fixed ext:inset-0 ext:z-50 ext:flex ext:items-center ext:justify-center ext:bg-black/50"
-      @click.self="handleClose"
-    >
+    <form :id="formId" class="ext:space-y-4" autocomplete="off" @submit.prevent="handleSubmit">
+      <!-- Title -->
+      <oc-text-input
+        id="event-title"
+        v-model="formData.summary"
+        :label="$gettext('Title')"
+        :placeholder="$gettext('Event title')"
+        required-mark
+        required
+      />
+
+      <!-- Calendar (only for new events) -->
+      <oc-select
+        v-if="!isEditing"
+        id="event-calendar"
+        v-model="formData.calendarHref"
+        :label="$gettext('Calendar')"
+        :options="writableCalendars"
+        option-label="displayName"
+        :reduce="(cal: Calendar) => cal.href"
+        :searchable="false"
+        :clearable="false"
+        position-fixed
+      />
+
+      <!-- All Day -->
+      <oc-checkbox id="event-allday" v-model="formData.allDay" :label="$gettext('All day event')" />
+
+      <!-- Start -->
       <div
-        class="ext:bg-white ext:rounded-lg ext:shadow-xl ext:w-full ext:max-w-lg ext:mx-4 ext:max-h-[90vh] ext:flex ext:flex-col"
+        :class="formData.allDay ? 'ext:grid ext:grid-cols-1' : 'ext:grid ext:grid-cols-2 ext:gap-4'"
       >
-        <!-- Header -->
-        <div
-          class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-b ext:shrink-0"
-        >
-          <h2 class="ext:text-lg ext:font-semibold ext:text-gray-900">
-            {{ isEditing ? $gettext('Edit Event') : $gettext('New Event') }}
-            <span
-              v-if="editScope === 'single'"
-              class="ext:text-sm ext:font-normal ext:text-gray-500"
-            >
-              — {{ $gettext('this occurrence') }}
-            </span>
-            <span
-              v-else-if="editScope === 'series'"
-              class="ext:text-sm ext:font-normal ext:text-gray-500"
-            >
-              — {{ $gettext('entire series') }}
-            </span>
-          </h2>
-          <button
-            type="button"
-            class="ext:text-gray-500 hover:ext:text-gray-700"
-            @click="handleClose"
-          >
-            <svg class="ext:w-6 ext:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
-        <!-- Conflict Warning -->
-        <div
-          v-if="conflictData"
-          class="ext:px-6 ext:py-4 ext:bg-yellow-50 ext:border-b ext:border-yellow-200 ext:shrink-0"
-        >
-          <p class="ext:text-sm ext:text-yellow-800 ext:mb-3">
-            {{ $gettext('This event was modified by another client. Choose how to resolve:') }}
-          </p>
-          <div class="ext:flex ext:gap-2">
-            <button
-              type="button"
-              class="ext:px-3 ext:py-1.5 ext:text-sm ext:bg-yellow-600 ext:text-white ext:rounded hover:ext:bg-yellow-700"
-              @click="resolveConflictKeepLocal"
-            >
-              {{ $gettext('Keep my changes') }}
-            </button>
-            <button
-              type="button"
-              class="ext:px-3 ext:py-1.5 ext:text-sm ext:bg-gray-200 ext:text-gray-700 ext:rounded hover:ext:bg-gray-300"
-              @click="resolveConflictUseServer"
-            >
-              {{ $gettext('Use server version') }}
-            </button>
-          </div>
-        </div>
-
-        <!-- Form (scrollable) -->
-        <form
-          class="ext:px-6 ext:py-4 ext:space-y-4 ext:overflow-y-auto ext:flex-1"
-          @submit.prevent="handleSave"
-        >
-          <!-- Title -->
-          <div>
-            <label
-              for="event-title"
-              class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-            >
-              {{ $gettext('Title') }}
-            </label>
-            <input
-              id="event-title"
-              v-model="formData.summary"
-              type="text"
-              required
-              class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500 ext:focus:border-blue-500"
-              :placeholder="$gettext('Event title')"
-            />
-          </div>
-
-          <!-- Calendar (only for new events) -->
-          <div v-if="!isEditing">
-            <label
-              for="event-calendar"
-              class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-            >
-              {{ $gettext('Calendar') }}
-            </label>
-            <select
-              id="event-calendar"
-              v-model="formData.calendarHref"
-              class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-            >
-              <option v-for="cal in writableCalendars" :key="cal.href" :value="cal.href">
-                {{ cal.displayName }}
-              </option>
-            </select>
-          </div>
-
-          <!-- All Day -->
-          <div class="ext:flex ext:items-center ext:gap-2">
-            <input
-              id="event-allday"
-              v-model="formData.allDay"
-              type="checkbox"
-              class="ext:w-4 ext:h-4 ext:rounded ext:border-gray-300"
-            />
-            <label for="event-allday" class="ext:text-sm ext:font-medium ext:text-gray-900">
-              {{ $gettext('All day event') }}
-            </label>
-          </div>
-
-          <!-- Start -->
-          <div
-            :class="
-              formData.allDay ? 'ext:grid ext:grid-cols-1' : 'ext:grid ext:grid-cols-2 ext:gap-4'
-            "
-          >
-            <div>
-              <label
-                for="event-start-date"
-                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-              >
-                {{ $gettext('Start Date') }}
-              </label>
-              <input
-                id="event-start-date"
-                v-model="startDate"
-                type="date"
-                required
-                class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-              />
-            </div>
-            <div v-if="!formData.allDay">
-              <label
-                for="event-start-time"
-                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-              >
-                {{ $gettext('Start Time') }}
-              </label>
-              <input
-                id="event-start-time"
-                v-model="startTime"
-                type="time"
-                required
-                class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <!-- End -->
-          <div
-            :class="
-              formData.allDay ? 'ext:grid ext:grid-cols-1' : 'ext:grid ext:grid-cols-2 ext:gap-4'
-            "
-          >
-            <div>
-              <label
-                for="event-end-date"
-                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-              >
-                {{ $gettext('End Date') }}
-              </label>
-              <input
-                id="event-end-date"
-                v-model="endDate"
-                type="date"
-                required
-                class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-              />
-            </div>
-            <div v-if="!formData.allDay">
-              <label
-                for="event-end-time"
-                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-              >
-                {{ $gettext('End Time') }}
-              </label>
-              <input
-                id="event-end-time"
-                v-model="endTime"
-                type="time"
-                required
-                class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <!-- Recurrence (hidden when editing single occurrence) -->
-          <div v-if="editScope !== 'single'" class="ext:space-y-3">
-            <div class="ext:flex ext:items-center ext:gap-2">
-              <input
-                id="event-repeat"
-                v-model="hasRecurrence"
-                type="checkbox"
-                class="ext:w-4 ext:h-4 ext:rounded ext:border-gray-300"
-              />
-              <label for="event-repeat" class="ext:text-sm ext:font-medium ext:text-gray-900">
-                {{ $gettext('Repeat') }}
-              </label>
-            </div>
-
-            <div
-              v-if="hasRecurrence"
-              class="ext:pl-6 ext:space-y-3 ext:border-l-2 ext:border-blue-200"
-            >
-              <!-- Frequency + Interval -->
-              <div class="ext:flex ext:items-center ext:gap-2">
-                <label class="ext:text-sm ext:text-gray-700">{{ $gettext('Every') }}</label>
-                <input
-                  v-model.number="recurrenceInterval"
-                  type="number"
-                  min="1"
-                  max="99"
-                  class="ext:w-16 ext:px-2 ext:py-1 ext:text-sm ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-                />
-                <select
-                  v-model="recurrenceFrequency"
-                  class="ext:px-2 ext:py-1 ext:text-sm ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-                >
-                  <option value="DAILY">
-                    {{ $ngettext('day', 'days', recurrenceInterval) }}
-                  </option>
-                  <option value="WEEKLY">
-                    {{ $ngettext('week', 'weeks', recurrenceInterval) }}
-                  </option>
-                  <option value="MONTHLY">
-                    {{ $ngettext('month', 'months', recurrenceInterval) }}
-                  </option>
-                  <option value="YEARLY">
-                    {{ $ngettext('year', 'years', recurrenceInterval) }}
-                  </option>
-                </select>
-              </div>
-
-              <!-- Weekly: day picker -->
-              <div v-if="recurrenceFrequency === 'WEEKLY'" class="ext:flex ext:flex-wrap ext:gap-1">
-                <button
-                  v-for="day in weekdays"
-                  :key="day.value"
-                  type="button"
-                  class="ext:px-2 ext:py-1 ext:text-xs ext:rounded ext:border ext:transition-colors"
-                  :class="
-                    isWeekdaySelected(day.value)
-                      ? 'ext:bg-blue-600 ext:text-white ext:border-blue-600'
-                      : 'ext:bg-white ext:text-gray-700 ext:border-gray-300 hover:ext:bg-gray-100'
-                  "
-                  @click="toggleWeekday(day.value)"
-                >
-                  {{ day.label }}
-                </button>
-              </div>
-
-              <!-- End condition -->
-              <div class="ext:space-y-2">
-                <label class="ext:text-sm ext:font-medium ext:text-gray-700">{{
-                  $gettext('Ends')
-                }}</label>
-
-                <div class="ext:flex ext:items-center ext:gap-2">
-                  <input
-                    id="end-never"
-                    v-model="recurrenceEndType"
-                    type="radio"
-                    value="never"
-                    class="ext:w-4 ext:h-4"
-                  />
-                  <label for="end-never" class="ext:text-sm ext:text-gray-900">{{
-                    $gettext('Never')
-                  }}</label>
-                </div>
-
-                <div class="ext:flex ext:items-center ext:gap-2">
-                  <input
-                    id="end-count"
-                    v-model="recurrenceEndType"
-                    type="radio"
-                    value="count"
-                    class="ext:w-4 ext:h-4"
-                  />
-                  <label for="end-count" class="ext:text-sm ext:text-gray-900">{{
-                    $gettext('After')
-                  }}</label>
-                  <input
-                    v-model.number="recurrenceCount"
-                    type="number"
-                    min="1"
-                    max="999"
-                    :disabled="recurrenceEndType !== 'count'"
-                    class="ext:w-20 ext:px-2 ext:py-1 ext:text-sm ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded disabled:ext:opacity-50"
-                  />
-                  <span class="ext:text-sm ext:text-gray-700">{{
-                    $ngettext('occurrence', 'occurrences', recurrenceCount)
-                  }}</span>
-                </div>
-
-                <div class="ext:flex ext:items-center ext:gap-2">
-                  <input
-                    id="end-until"
-                    v-model="recurrenceEndType"
-                    type="radio"
-                    value="until"
-                    class="ext:w-4 ext:h-4"
-                  />
-                  <label for="end-until" class="ext:text-sm ext:text-gray-900">{{
-                    $gettext('On')
-                  }}</label>
-                  <input
-                    v-model="recurrenceUntil"
-                    type="date"
-                    :disabled="recurrenceEndType !== 'until'"
-                    class="ext:px-2 ext:py-1 ext:text-sm ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded disabled:ext:opacity-50"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Location -->
-          <div class="ext:relative">
-            <label
-              for="event-location"
-              class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-            >
-              {{ $gettext('Location') }}
-            </label>
-            <div class="ext:relative">
-              <input
-                id="event-location"
-                v-model="formData.location"
-                type="text"
-                class="ext:w-full ext:px-3 ext:py-2 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-                :placeholder="$gettext('Add location')"
-                @input="handleLocationInput"
-                @blur="handleLocationBlur"
-              />
-              <div v-if="searchingLocation" class="ext:absolute ext:right-3 ext:top-2.5">
-                <svg
-                  class="ext:animate-spin ext:h-4 ext:w-4 ext:text-gray-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    class="ext:opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    stroke-width="4"
-                  ></circle>
-                  <path
-                    class="ext:opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-              </div>
-            </div>
-
-            <!-- Location Search Results -->
-            <div
-              v-if="locationResults.length > 0"
-              class="ext:absolute ext:z-50 ext:w-full ext:mt-1 ext:bg-white ext:border ext:border-gray-300 ext:rounded ext:shadow-lg ext:max-h-60 ext:overflow-y-auto"
-            >
-              <button
-                v-for="res in locationResults"
-                :key="res.display_name"
-                type="button"
-                class="ext:w-full ext:text-left ext:px-4 ext:py-2 ext:text-sm hover:ext:bg-gray-100 focus:ext:bg-gray-100"
-                @click="selectLocation(res.display_name)"
-              >
-                {{ res.display_name }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Description -->
-          <div>
-            <label
-              for="event-description"
-              class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
-            >
-              {{ $gettext('Description') }}
-            </label>
-            <textarea
-              id="event-description"
-              v-model="formData.description"
-              rows="3"
-              class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500"
-              :placeholder="$gettext('Add description')"
-            />
-          </div>
-
-          <!-- Error -->
-          <div v-if="error && !conflictData" class="ext:text-sm ext:text-red-600">
-            {{ translateError(error, $gettext) }}
-          </div>
-        </form>
-
-        <!-- Footer -->
-        <div
-          class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-t ext:bg-gray-50 ext:shrink-0"
-        >
-          <div class="ext:flex ext:items-center ext:gap-2">
-            <button
-              v-if="isEditing"
-              type="button"
-              class="ext:px-4 ext:py-2 ext:text-sm ext:text-red-600 hover:ext:text-red-800"
-              :disabled="saving"
-              @click="handleDelete"
-            >
-              {{ editScope === 'single' ? $gettext('Delete this event') : $gettext('Delete') }}
-            </button>
-            <button
-              v-if="isEditing"
-              type="button"
-              class="ext:flex ext:items-center ext:gap-1.5 ext:px-3 ext:py-2 ext:text-sm ext:text-gray-600 ext:rounded ext:border ext:border-gray-300 hover:ext:bg-gray-100"
-              :title="
-                editScope === 'single'
-                  ? $gettext('Download this occurrence as .ics')
-                  : $gettext('Download as .ics')
-              "
-              @click="handleExport"
-            >
-              <svg class="ext:w-4 ext:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-              <span>.ics</span>
-            </button>
-          </div>
-          <div class="ext:flex ext:gap-3">
-            <button
-              type="button"
-              class="ext:px-4 ext:py-2 ext:text-sm ext:text-gray-700 ext:bg-gray-200 ext:rounded hover:ext:bg-gray-300"
-              :disabled="saving"
-              @click="handleClose"
-            >
-              {{ $gettext('Cancel') }}
-            </button>
-            <button
-              type="button"
-              class="ext:px-4 ext:py-2 ext:text-sm ext:rounded"
-              :class="
-                saving || !formData.summary || !formData.summary.trim()
-                  ? 'ext:bg-gray-300 ext:text-gray-500 ext:cursor-not-allowed'
-                  : 'ext:bg-blue-600 ext:text-white hover:ext:bg-blue-700'
-              "
-              :disabled="saving || !formData.summary || !formData.summary.trim()"
-              @click="handleSave"
-            >
-              {{ saving ? $gettext('Saving...') : $gettext('Save') }}
-            </button>
-          </div>
+        <oc-text-input
+          id="event-start-date"
+          v-model="startDate"
+          type="date"
+          :label="$gettext('Start Date')"
+          required
+        />
+        <div v-if="!formData.allDay">
+          <label for="event-start-time" class="ext:inline-block ext:mb-0.5">
+            {{ $gettext('Start Time') }}
+          </label>
+          <input
+            id="event-start-time"
+            v-model="startTime"
+            type="time"
+            required
+            class="oc-text-input oc-input ext:h-9"
+          />
         </div>
       </div>
-    </div>
-  </Teleport>
+
+      <!-- End -->
+      <div
+        :class="formData.allDay ? 'ext:grid ext:grid-cols-1' : 'ext:grid ext:grid-cols-2 ext:gap-4'"
+      >
+        <oc-text-input
+          id="event-end-date"
+          v-model="endDate"
+          type="date"
+          :label="$gettext('End Date')"
+          required
+        />
+        <div v-if="!formData.allDay">
+          <label for="event-end-time" class="ext:inline-block ext:mb-0.5">
+            {{ $gettext('End Time') }}
+          </label>
+          <input
+            id="event-end-time"
+            v-model="endTime"
+            type="time"
+            required
+            class="oc-text-input oc-input ext:h-9"
+          />
+        </div>
+      </div>
+
+      <!-- Recurrence (hidden when editing single occurrence) -->
+      <div v-if="editScope !== 'single'" class="ext:space-y-3">
+        <oc-checkbox id="event-repeat" v-model="hasRecurrence" :label="$gettext('Repeat')" />
+
+        <div
+          v-if="hasRecurrence"
+          class="ext:pl-6 ext:space-y-3 ext:border-l-2 ext:border-role-primary"
+        >
+          <!-- Frequency + Interval -->
+          <div class="ext:flex ext:items-end ext:gap-2">
+            <oc-text-input
+              id="event-repeat-interval"
+              class="ext:w-36"
+              type="number"
+              inline-label
+              :label="$gettext('Every')"
+              :model-value="String(recurrenceInterval)"
+              min="1"
+              max="99"
+              @update:model-value="parseNumber($event, (n) => (recurrenceInterval = n))"
+            />
+            <oc-select
+              id="event-repeat-frequency"
+              v-model="recurrenceFrequency"
+              class="ext:w-36"
+              :label="$gettext('Frequency')"
+              label-hidden
+              :options="frequencyOptions"
+              :reduce="(option: { value: string }) => option.value"
+              :searchable="false"
+              :clearable="false"
+              position-fixed
+            />
+          </div>
+
+          <!-- Weekly: day picker -->
+          <div
+            v-if="recurrenceFrequency === 'WEEKLY'"
+            class="ext:flex ext:flex-wrap ext:gap-1"
+            role="group"
+            :aria-label="$gettext('Weekdays')"
+          >
+            <oc-button
+              v-for="day in weekdays"
+              :key="day.value"
+              size="small"
+              :appearance="isWeekdaySelected(day.value) ? 'filled' : 'outline'"
+              :color-role="isWeekdaySelected(day.value) ? 'primary' : 'secondary'"
+              :aria-pressed="isWeekdaySelected(day.value) ? 'true' : 'false'"
+              @click="toggleWeekday(day.value)"
+            >
+              {{ day.label }}
+            </oc-button>
+          </div>
+
+          <!-- End condition -->
+          <fieldset class="ext:m-0 ext:p-0 ext:border-0 ext:space-y-2">
+            <legend class="ext:p-0 ext:mb-2 ext:font-medium">{{ $gettext('Ends') }}</legend>
+
+            <div class="ext:flex ext:items-center ext:gap-2">
+              <oc-radio
+                id="end-never"
+                v-model="recurrenceEndType"
+                option="never"
+                :label="$gettext('Never')"
+              />
+            </div>
+
+            <div class="ext:flex ext:items-center ext:gap-2">
+              <oc-radio
+                id="end-count"
+                v-model="recurrenceEndType"
+                option="count"
+                :label="$gettext('After')"
+              />
+              <oc-text-input
+                id="event-repeat-count"
+                class="ext:w-24"
+                type="number"
+                :label="$gettext('Number of occurrences')"
+                :aria-label="$gettext('Number of occurrences')"
+                :model-value="String(recurrenceCount)"
+                min="1"
+                max="999"
+                :disabled="recurrenceEndType !== 'count'"
+                @update:model-value="parseNumber($event, (n) => (recurrenceCount = n))"
+              >
+                <template #label><span /></template>
+              </oc-text-input>
+              <span>{{ $ngettext('occurrence', 'occurrences', recurrenceCount) }}</span>
+            </div>
+
+            <div class="ext:flex ext:items-center ext:gap-2">
+              <oc-radio
+                id="end-until"
+                v-model="recurrenceEndType"
+                option="until"
+                :label="$gettext('On')"
+              />
+              <oc-text-input
+                id="event-repeat-until"
+                v-model="recurrenceUntil"
+                type="date"
+                :label="$gettext('End date')"
+                :aria-label="$gettext('End date')"
+                :disabled="recurrenceEndType !== 'until'"
+              >
+                <template #label><span /></template>
+              </oc-text-input>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+
+      <!-- Location -->
+      <div class="ext:relative">
+        <div class="ext:relative">
+          <oc-text-input
+            id="event-location"
+            v-model="formData.location"
+            :label="$gettext('Location')"
+            :placeholder="$gettext('Add location')"
+            role="combobox"
+            aria-autocomplete="list"
+            :aria-expanded="locationResults.length > 0 ? 'true' : 'false'"
+            :aria-controls="locationListId"
+            @update:model-value="handleLocationInput"
+            @blur="handleLocationBlur"
+          />
+          <oc-spinner
+            v-if="searchingLocation"
+            size="small"
+            class="ext:absolute ext:right-3 ext:bottom-2.5"
+            :aria-label="$gettext('Searching locations')"
+          />
+        </div>
+
+        <!-- Location Search Results -->
+        <ul
+          v-if="locationResults.length > 0"
+          :id="locationListId"
+          role="listbox"
+          :aria-label="$gettext('Location suggestions')"
+          class="ext:absolute ext:z-50 ext:w-full ext:mt-1 ext:p-1 ext:list-none ext:bg-role-surface ext:border ext:border-role-outline-variant ext:rounded ext:shadow-lg ext:max-h-60 ext:overflow-y-auto"
+        >
+          <li v-for="res in locationResults" :key="res.display_name" role="option">
+            <oc-button
+              class="ext:w-full ext:text-left ext:text-sm"
+              appearance="raw"
+              justify-content="left"
+              @click="selectLocation(res.display_name)"
+            >
+              {{ res.display_name }}
+            </oc-button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Description -->
+      <oc-textarea
+        id="event-description"
+        v-model="formData.description"
+        class="ext:w-full"
+        :label="$gettext('Description')"
+        :placeholder="$gettext('Add description')"
+        rows="3"
+      />
+
+      <!-- Error -->
+      <p v-if="error && !conflictData" class="ext:m-0 ext:text-sm ext:text-role-error" role="alert">
+        {{ translateError(error, $gettext) }}
+      </p>
+    </form>
+
+    <teleport defer :to="`#${modalActionsTarget(modal)}`">
+      <oc-button
+        v-if="isEditing"
+        class="web-calendar-danger-button ext:ml-2"
+        appearance="raw"
+        :disabled="busy || isReadOnly"
+        @click="handleDelete"
+      >
+        {{ editScope === 'single' ? $gettext('Delete this event') : $gettext('Delete') }}
+      </oc-button>
+      <oc-button
+        v-if="isEditing"
+        class="ext:ml-2"
+        :aria-label="
+          editScope === 'single'
+            ? $gettext('Download this occurrence as .ics')
+            : $gettext('Download as .ics')
+        "
+        :title="
+          editScope === 'single'
+            ? $gettext('Download this occurrence as .ics')
+            : $gettext('Download as .ics')
+        "
+        @click="handleExport"
+      >
+        <oc-icon name="download-2" fill-type="line" size="small" />
+        <span aria-hidden="true">.ics</span>
+      </oc-button>
+      <oc-button class="ext:ml-2" :disabled="busy" @click="emit('cancel')">
+        {{ $gettext('Cancel') }}
+      </oc-button>
+      <oc-button
+        class="ext:ml-2"
+        appearance="filled"
+        color-role="primary"
+        submit="submit"
+        :form="formId"
+        :disabled="!canSave"
+        :show-spinner="saving"
+      >
+        {{ saving ? $gettext('Saving...') : $gettext('Save') }}
+      </oc-button>
+    </teleport>
+  </div>
 </template>
