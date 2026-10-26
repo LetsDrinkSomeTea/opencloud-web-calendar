@@ -2,7 +2,6 @@
 import { ref, computed, watch } from 'vue'
 import { useICSImport, type ImportMode } from '../composables/useICSImport'
 import type { Calendar } from '../types/calendar'
-import { t } from '../composables/useLanguage'
 
 const props = defineProps<{
   calendars: readonly Calendar[]
@@ -98,7 +97,7 @@ defineExpose({ open })
           class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-b ext:shrink-0"
         >
           <h2 class="ext:text-lg ext:font-semibold ext:text-gray-900">
-            {{ t('Import Calendar') }}
+            {{ $gettext('Import Calendar') }}
           </h2>
           <button
             type="button"
@@ -123,7 +122,7 @@ defineExpose({ open })
             <!-- File picker -->
             <div>
               <label class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
-                {{ t('ICS File') }}
+                {{ $gettext('ICS File') }}
               </label>
               <input
                 ref="fileInputRef"
@@ -140,7 +139,7 @@ defineExpose({ open })
             <!-- Mode selection -->
             <div class="ext:space-y-2">
               <label class="ext:block ext:text-sm ext:font-medium ext:text-gray-700">
-                {{ t('Import mode') }}
+                {{ $gettext('Import mode') }}
               </label>
               <div class="ext:flex ext:items-center ext:gap-2">
                 <input
@@ -151,7 +150,7 @@ defineExpose({ open })
                   class="ext:w-4 ext:h-4"
                 />
                 <label for="mode-new" class="ext:text-sm ext:text-gray-900">
-                  {{ t('Create new calendar') }}
+                  {{ $gettext('Create new calendar') }}
                 </label>
               </div>
               <div class="ext:flex ext:items-center ext:gap-2">
@@ -164,7 +163,7 @@ defineExpose({ open })
                   class="ext:w-4 ext:h-4"
                 />
                 <label for="mode-merge" class="ext:text-sm ext:text-gray-900">
-                  {{ t('Merge into existing calendar') }}
+                  {{ $gettext('Merge into existing calendar') }}
                 </label>
               </div>
             </div>
@@ -175,7 +174,7 @@ defineExpose({ open })
                 for="merge-target"
                 class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
               >
-                {{ t('Target calendar') }}
+                {{ $gettext('Target calendar') }}
               </label>
               <select
                 id="merge-target"
@@ -187,7 +186,7 @@ defineExpose({ open })
                     null
                 "
               >
-                <option value="" disabled>{{ t('Select calendar') }}</option>
+                <option value="" disabled>{{ $gettext('Select calendar') }}</option>
                 <option v-for="cal in calendars" :key="cal.href" :value="cal.href">
                   {{ cal.displayName }}
                 </option>
@@ -200,7 +199,7 @@ defineExpose({ open })
                 for="import-cal-name"
                 class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
               >
-                {{ t('Calendar Name') }}
+                {{ $gettext('Calendar Name') }}
               </label>
               <input
                 id="import-cal-name"
@@ -208,7 +207,7 @@ defineExpose({ open })
                 type="text"
                 required
                 class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500 ext:focus:border-blue-500"
-                :placeholder="t('Enter calendar name')"
+                :placeholder="$gettext('Enter calendar name')"
               />
             </div>
 
@@ -232,13 +231,17 @@ defineExpose({ open })
           >
             <div class="ext:space-y-3">
               <p class="ext:text-sm ext:text-gray-700">
-                <template v-if="phase === 'reading'">{{ t('Reading file...') }}</template>
-                <template v-else-if="phase === 'parsing'">{{ t('Parsing events...') }}</template>
+                <template v-if="phase === 'reading'">{{ $gettext('Reading file...') }}</template>
+                <template v-else-if="phase === 'parsing'">{{
+                  $gettext('Parsing events...')
+                }}</template>
                 <template v-else-if="phase === 'analyzing'">{{
-                  t('Analyzing for duplicates...')
+                  $gettext('Analyzing for duplicates...')
                 }}</template>
                 <template v-else-if="phase === 'importing'">
-                  {{ t('Importing events...') }} ({{ progress.current }}/{{ progress.total }})
+                  {{ $gettext('Importing events...') }} ({{ progress.current }}/{{
+                    progress.total
+                  }})
                 </template>
               </p>
               <div class="ext:w-full ext:bg-gray-200 ext:rounded-full ext:h-2">
@@ -260,7 +263,7 @@ defineExpose({ open })
                   <div class="ext:text-2xl ext:font-bold ext:text-green-700">
                     {{ report.created }}
                   </div>
-                  <div class="ext:text-xs ext:text-green-600">{{ t('Created') }}</div>
+                  <div class="ext:text-xs ext:text-green-600">{{ $gettext('Created') }}</div>
                 </div>
                 <div
                   v-if="report.mode === 'merge'"
@@ -269,7 +272,7 @@ defineExpose({ open })
                   <div class="ext:text-2xl ext:font-bold ext:text-blue-700">
                     {{ report.updated }}
                   </div>
-                  <div class="ext:text-xs ext:text-blue-600">{{ t('Updated') }}</div>
+                  <div class="ext:text-xs ext:text-blue-600">{{ $gettext('Updated') }}</div>
                 </div>
                 <div
                   v-if="report.skipped > 0"
@@ -278,23 +281,28 @@ defineExpose({ open })
                   <div class="ext:text-2xl ext:font-bold ext:text-gray-700">
                     {{ report.skipped }}
                   </div>
-                  <div class="ext:text-xs ext:text-gray-600">{{ t('Skipped') }}</div>
+                  <div class="ext:text-xs ext:text-gray-600">{{ $gettext('Skipped') }}</div>
                 </div>
                 <div
                   v-if="report.failed > 0"
                   class="ext:p-3 ext:bg-red-50 ext:rounded ext:text-center"
                 >
                   <div class="ext:text-2xl ext:font-bold ext:text-red-700">{{ report.failed }}</div>
-                  <div class="ext:text-xs ext:text-red-600">{{ t('Failed') }}</div>
+                  <div class="ext:text-xs ext:text-red-600">{{ $gettext('Failed') }}</div>
                 </div>
               </div>
 
               <p class="ext:text-sm ext:text-gray-600">
                 {{
-                  t('Imported %{count} events into "%{name}"', {
-                    count: String(report.created + report.updated),
-                    name: report.calendarName
-                  })
+                  $ngettext(
+                    'Imported %{count} event into "%{name}"',
+                    'Imported %{count} events into "%{name}"',
+                    report.created + report.updated,
+                    {
+                      count: String(report.created + report.updated),
+                      name: report.calendarName
+                    }
+                  )
                 }}
               </p>
 
@@ -304,7 +312,7 @@ defineExpose({ open })
                 class="ext:p-3 ext:bg-yellow-50 ext:rounded ext:border ext:border-yellow-200"
               >
                 <p class="ext:text-sm ext:font-medium ext:text-yellow-800 ext:mb-1">
-                  {{ t('Parse warnings') }}
+                  {{ $gettext('Parse warnings') }}
                 </p>
                 <ul class="ext:text-xs ext:text-yellow-700 ext:space-y-0.5">
                   <li v-for="(err, i) in report.errors" :key="i">{{ err }}</li>
@@ -318,7 +326,7 @@ defineExpose({ open })
                 class="ext:text-sm ext:text-blue-600 hover:ext:underline"
                 @click="showDetails = !showDetails"
               >
-                {{ showDetails ? t('Hide details') : t('Show details') }}
+                {{ showDetails ? $gettext('Hide details') : $gettext('Show details') }}
               </button>
 
               <!-- Detailed results -->
@@ -376,7 +384,7 @@ defineExpose({ open })
               class="ext:px-4 ext:py-2 ext:text-sm ext:text-gray-700 ext:bg-gray-200 ext:rounded hover:ext:bg-gray-300"
               @click="handleClose"
             >
-              {{ t('Cancel') }}
+              {{ $gettext('Cancel') }}
             </button>
             <button
               type="button"
@@ -389,7 +397,7 @@ defineExpose({ open })
               :disabled="!canImport"
               @click="handleImport"
             >
-              {{ t('Import') }}
+              {{ $gettext('Import') }}
             </button>
           </template>
 
@@ -399,7 +407,7 @@ defineExpose({ open })
               class="ext:px-4 ext:py-2 ext:text-sm ext:text-gray-700 ext:bg-gray-200 ext:rounded hover:ext:bg-gray-300"
               @click="handleClose"
             >
-              {{ t('Close') }}
+              {{ $gettext('Close') }}
             </button>
           </template>
         </div>

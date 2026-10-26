@@ -1,4 +1,5 @@
 import { ref, readonly } from 'vue'
+import { useGettext } from 'vue3-gettext'
 import { getCalDAVClient } from '../caldav/client'
 import {
   readICSFile,
@@ -10,6 +11,7 @@ import {
   type ImportReport
 } from '../caldav/ics-import'
 import type { Calendar } from '../types/calendar'
+import { translateError } from '../utils/error-message'
 
 export type ImportMode = 'new-calendar' | 'merge'
 export type ImportPhase =
@@ -28,6 +30,7 @@ const report = ref<ImportReport | null>(null)
 const error = ref<string | null>(null)
 
 export function useICSImport() {
+  const { $gettext } = useGettext()
   const client = getCalDAVClient()
 
   function open() {
@@ -67,7 +70,9 @@ export function useICSImport() {
 
       if (groups.length === 0) {
         error.value =
-          parseErrors.length > 0 ? parseErrors.join('\n') : 'No valid events found in file'
+          parseErrors.length > 0
+            ? parseErrors.join('\n')
+            : $gettext('No valid events found in file')
         phase.value = 'error'
         return null
       }
@@ -81,7 +86,10 @@ export function useICSImport() {
           (c) => c.displayName.toLowerCase() === calendarName.trim().toLowerCase()
         )
         if (nameExists) {
-          error.value = `Calendar "${calendarName}" already exists. Please choose a different name.`
+          error.value = $gettext(
+            'Calendar "%{name}" already exists. Please choose a different name.',
+            { name: calendarName }
+          )
           phase.value = 'error'
           return null
         }
@@ -95,7 +103,7 @@ export function useICSImport() {
         displayName = calendarName.trim()
       } else {
         if (!targetCalendar) {
-          error.value = 'No target calendar selected'
+          error.value = $gettext('No target calendar selected')
           phase.value = 'error'
           return null
         }
@@ -122,7 +130,7 @@ export function useICSImport() {
       phase.value = 'done'
       return importReport
     } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e)
+      error.value = translateError(e, $gettext)
       phase.value = 'error'
       return null
     }

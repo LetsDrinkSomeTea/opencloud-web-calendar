@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, unref } from 'vue'
 import { useRoute, useRouter } from '@opencloud-eu/web-pkg'
-import { t } from '../composables/useLanguage'
 import { useSharing } from '../composables/useSharing'
 import { withCalDAVBasePath } from '../config'
 import type { Calendar } from '../types/calendar'
@@ -103,7 +102,7 @@ function getCalDAVUrl(token: string) {
         class="ext:p-6 ext:border-b ext:border-gray-200 ext:flex ext:items-center ext:justify-between"
       >
         <h2 class="ext:text-xl ext:font-semibold ext:text-gray-900">
-          {{ t('Share calendar: %{name}', { name: calendar.displayName }) }}
+          {{ $gettext('Share calendar: %{name}', { name: calendar.displayName }) }}
         </h2>
         <button
           type="button"
@@ -132,13 +131,13 @@ function getCalDAVUrl(token: string) {
         <!-- Section: Share with users -->
         <section class="ext:mb-8">
           <h3 class="ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-3">
-            {{ t('Share with users') }}
+            {{ $gettext('Share with users') }}
           </h3>
           <div class="ext:flex ext:gap-2 ext:mb-4">
             <input
               v-model="newUserEmail"
               type="text"
-              :placeholder="t('User ID or Email')"
+              :placeholder="$gettext('User ID or Email')"
               class="ext:flex-1 ext:rounded-md ext:border-gray-300 ext:text-sm focus:ext:border-blue-500 focus:ext:ring-blue-500"
               @keyup.enter="handleShareWithUser"
             />
@@ -146,8 +145,8 @@ function getCalDAVUrl(token: string) {
               v-model="newSharePermission"
               class="ext:rounded-md ext:border-gray-300 ext:text-sm focus:ext:border-blue-500 focus:ext:ring-blue-500"
             >
-              <option value="r">{{ t('Read') }}</option>
-              <option value="rw">{{ t('Read & Write') }}</option>
+              <option value="r">{{ $gettext('Read') }}</option>
+              <option value="rw">{{ $gettext('Read & Write') }}</option>
             </select>
             <button
               type="button"
@@ -155,7 +154,7 @@ function getCalDAVUrl(token: string) {
               :disabled="loading || !newUserEmail"
               @click="handleShareWithUser"
             >
-              {{ t('Invite') }}
+              {{ $gettext('Invite') }}
             </button>
           </div>
 
@@ -181,23 +180,25 @@ function getCalDAVUrl(token: string) {
                       v-if="share.EnabledByUser"
                       class="ext:px-1.5 ext:py-0.5 ext:text-[10px] ext:font-medium ext:bg-green-100 ext:text-green-700 ext:rounded"
                     >
-                      {{ t('Accepted') }}
+                      {{ $gettext('Accepted') }}
                     </span>
                     <span
                       v-else-if="!share.EnabledByUser && share.HiddenByUser"
                       class="ext:px-1.5 ext:py-0.5 ext:text-[10px] ext:font-medium ext:bg-yellow-100 ext:text-yellow-700 ext:rounded"
                     >
-                      {{ t('Invited') }}
+                      {{ $gettext('Invited') }}
                     </span>
                     <span
                       v-else
                       class="ext:px-1.5 ext:py-0.5 ext:text-[10px] ext:font-medium ext:bg-red-100 ext:text-red-700 ext:rounded"
                     >
-                      {{ t('Left') }}
+                      {{ $gettext('Left') }}
                     </span>
                   </div>
                   <div class="ext:text-xs ext:text-gray-500">
-                    {{ share.Permissions === 'r' ? t('Read only') : t('Read & Write') }}
+                    {{
+                      share.Permissions === 'r' ? $gettext('Read only') : $gettext('Read & Write')
+                    }}
                   </div>
                 </div>
               </div>
@@ -207,13 +208,13 @@ function getCalDAVUrl(token: string) {
                   class="ext:text-xs ext:rounded ext:border-gray-300 ext:bg-transparent"
                   @change="updatePermissions(share, ($event.target as HTMLSelectElement).value)"
                 >
-                  <option value="r">{{ t('Read') }}</option>
-                  <option value="rw">{{ t('Read & Write') }}</option>
+                  <option value="r">{{ $gettext('Read') }}</option>
+                  <option value="rw">{{ $gettext('Read & Write') }}</option>
                 </select>
                 <button
                   type="button"
                   class="ext:p-1 ext:text-gray-400 hover:ext:text-red-600"
-                  :title="t('Remove share')"
+                  :title="$gettext('Remove share')"
                   @click="removeShare(share)"
                 >
                   <svg
@@ -238,15 +239,15 @@ function getCalDAVUrl(token: string) {
         <!-- Section: Invite & Public Links -->
         <section>
           <h3 class="ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-3">
-            {{ t('Invite & Public links') }}
+            {{ $gettext('Invite & Public links') }}
           </h3>
           <div class="ext:flex ext:gap-2 ext:mb-4">
             <select
               v-model="newLinkPermission"
               class="ext:rounded-md ext:border-gray-300 ext:text-sm focus:ext:border-blue-500 focus:ext:ring-blue-500"
             >
-              <option value="r">{{ t('Read') }}</option>
-              <option value="rw">{{ t('Read & Write') }}</option>
+              <option value="r">{{ $gettext('Read') }}</option>
+              <option value="rw">{{ $gettext('Read & Write') }}</option>
             </select>
             <button
               type="button"
@@ -254,7 +255,7 @@ function getCalDAVUrl(token: string) {
               :disabled="loading"
               @click="handleCreatePublicLink"
             >
-              {{ t('Create invite link') }}
+              {{ $gettext('Create invite link') }}
             </button>
           </div>
 
@@ -275,21 +276,23 @@ function getCalDAVUrl(token: string) {
                         : 'ext:bg-gray-200 ext:text-gray-700'
                     ]"
                   >
-                    {{ share.Permissions === 'rw' ? t('Read & Write') : t('Read only') }}
+                    {{
+                      share.Permissions === 'rw' ? $gettext('Read & Write') : $gettext('Read only')
+                    }}
                   </span>
                   <select
                     :value="share.Permissions"
                     class="ext:text-xs ext:rounded ext:border-gray-300 ext:bg-white ext:py-0.5 ext:px-1.5"
                     @change="updatePermissions(share, ($event.target as HTMLSelectElement).value)"
                   >
-                    <option value="r">{{ t('Read') }}</option>
-                    <option value="rw">{{ t('Read & Write') }}</option>
+                    <option value="r">{{ $gettext('Read') }}</option>
+                    <option value="rw">{{ $gettext('Read & Write') }}</option>
                   </select>
                 </div>
                 <button
                   type="button"
                   class="ext:p-1 ext:text-gray-400 hover:ext:text-red-600"
-                  :title="t('Revoke link')"
+                  :title="$gettext('Revoke link')"
                   @click="removeShare(share)"
                 >
                   <svg
@@ -326,7 +329,7 @@ function getCalDAVUrl(token: string) {
                       d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
                     />
                   </svg>
-                  <span>{{ t('Web Invite Link') }} (OpenCloud)</span>
+                  <span>{{ $gettext('Web Invite Link') }} (OpenCloud)</span>
                 </div>
                 <div class="ext:flex ext:gap-2">
                   <input
@@ -346,7 +349,9 @@ function getCalDAVUrl(token: string) {
                     "
                   >
                     {{
-                      copiedKey === 'web-' + share.PathOrToken ? t('Copied!') : t('Copy Web Invite')
+                      copiedKey === 'web-' + share.PathOrToken
+                        ? $gettext('Copied!')
+                        : $gettext('Copy Web Invite')
                     }}
                   </button>
                 </div>
@@ -370,7 +375,7 @@ function getCalDAVUrl(token: string) {
                       d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                     />
                   </svg>
-                  <span>{{ t('CalDAV Link') }} (Thunderbird, Apple Calendar)</span>
+                  <span>{{ $gettext('CalDAV Link') }} (Thunderbird, Apple Calendar)</span>
                 </div>
                 <div class="ext:flex ext:gap-2">
                   <input
@@ -391,8 +396,8 @@ function getCalDAVUrl(token: string) {
                   >
                     {{
                       copiedKey === 'caldav-' + share.PathOrToken
-                        ? t('Copied!')
-                        : t('Copy CalDAV URL')
+                        ? $gettext('Copied!')
+                        : $gettext('Copy CalDAV URL')
                     }}
                   </button>
                 </div>
@@ -400,7 +405,7 @@ function getCalDAVUrl(token: string) {
             </li>
           </ul>
           <p v-else class="ext:text-sm ext:text-gray-500 ext:italic">
-            {{ t('No public links created yet') }}
+            {{ $gettext('No public links created yet') }}
           </p>
         </section>
       </div>
@@ -411,7 +416,7 @@ function getCalDAVUrl(token: string) {
           class="ext:px-4 ext:py-2 ext:bg-gray-100 ext:text-gray-700 ext:text-sm ext:font-medium ext:rounded-md hover:ext:bg-gray-200"
           @click="emit('close')"
         >
-          {{ t('Close') }}
+          {{ $gettext('Close') }}
         </button>
       </div>
     </div>

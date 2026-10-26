@@ -14,7 +14,7 @@ A CalDAV calendar application integrated as a native [OpenCloud](https://openclo
 - All-day and timed events
 - Event conflict detection and resolution
 - Auto-save with optimistic updates
-- Multi-language support (English, German) with automatic detection from user profile
+- Translated into German (more languages welcome), following the language selected in OpenCloud
 
 ## Installation
 
@@ -199,6 +199,23 @@ pnpm lint
 pnpm format:check
 pnpm check:types
 ```
+
+### Translations
+
+Translations use [vue3-gettext](https://github.com/jshmrtn/vue3-gettext), as described in the
+[OpenCloud extension docs](https://docs.opencloud.eu/docs/dev/web/extension-system/advanced-topics/translations).
+Use `$gettext('…')` in templates and `const { $gettext, $ngettext } = useGettext()` in scripts. Pass
+plain string literals (the extractor cannot read variables or template literals) and put dynamic
+values into `%{placeholders}`: `$gettext('Share calendar: %{name}', { name })`.
+
+```bash
+pnpm l10n:extract   # update l10n/template.pot and l10n/locale/<lang>/app.po (needs GNU gettext: msgmerge, msginit, msgattrib)
+pnpm l10n:compile   # compile the .po files into l10n/translations.json, which is bundled with the app
+```
+
+Translate the new entries in `l10n/locale/<lang>/app.po`, then run `pnpm l10n:compile` and commit the
+`.pot`, `.po` and `translations.json` files. To add a language, add it to `locales` in
+`gettext.config.cjs` and run `pnpm l10n:extract`.
 
 ## Architecture
 

@@ -4,11 +4,15 @@ import type { AppMenuItemExtension, ApplicationSetupOptions } from '@opencloud-e
 
 vi.mock('@opencloud-eu/web-pkg', () => ({
   // defineWebApplication is a typed identity helper, so passing the definition through is enough
-  defineWebApplication: (app: unknown) => app,
-  useUserStore: () => ({ user: { preferredLanguage: 'en' } })
+  defineWebApplication: (app: unknown) => app
 }))
 
 vi.mock('@opencloud-eu/extension-sdk/tailwind.css', () => ({}))
+
+// The app setup runs outside of a component, so gettext is mocked with an identity translator
+vi.mock('vue3-gettext', () => ({
+  useGettext: () => ({ $gettext: (msgid: string) => msgid })
+}))
 
 vi.mock('../../src/views/Calendar.vue', () => ({
   default: { name: 'CalendarViewStub' }
@@ -27,6 +31,7 @@ function setupApp() {
         meta: Record<string, unknown>
       }>
       extensions: { value: AppMenuItemExtension[] }
+      translations: Record<string, Record<string, string>>
     }
   }
   return definition.setup({} as ApplicationSetupOptions)
@@ -71,5 +76,10 @@ describe('web-calendar app definition', () => {
     expect(menuItem.path).toMatch(/^\/?web-calendar$/)
     expect(typeof menuItem.label).toBe('function')
     expect((menuItem.label as () => string)()).toBe(appInfo.name)
+  })
+
+  it('ships the compiled translations', () => {
+    const { translations } = setupApp()
+    expect(translations.de['Web Calendar']).toBe('Web-Kalender')
   })
 })

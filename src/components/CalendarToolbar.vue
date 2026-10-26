@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { t, getLanguage } from '../composables/useLanguage'
+import { useGettext } from 'vue3-gettext'
+import { toLanguageTag } from '../utils/locale'
 
 const props = defineProps<{
   currentDate: Date
@@ -15,7 +16,8 @@ const emit = defineEmits<{
   'toggle-sidebar': []
 }>()
 
-const locale = computed(() => getLanguage())
+const language = useGettext()
+const locale = computed(() => toLanguageTag(language.current))
 
 const title = computed(() => {
   const date = props.currentDate
@@ -51,7 +53,7 @@ const title = computed(() => {
         <button
           type="button"
           class="sm:ext:hidden ext:p-1.5 ext:text-gray-700 ext:rounded ext:border ext:border-gray-300 ext:bg-white hover:ext:bg-gray-50"
-          :title="t('Toggle sidebar')"
+          :title="$gettext('Toggle sidebar')"
           @click="emit('toggle-sidebar')"
         >
           <svg class="ext:w-5 ext:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +71,7 @@ const title = computed(() => {
           class="ext:px-2.5 sm:ext:px-3 ext:py-1.5 ext:text-sm ext:font-medium ext:text-gray-700 ext:rounded ext:border ext:border-gray-300 ext:bg-white hover:ext:bg-gray-50"
           @click="emit('today')"
         >
-          {{ t('Today') }}
+          {{ $gettext('Today') }}
         </button>
         <button
           type="button"
@@ -130,7 +132,7 @@ const title = computed(() => {
           ]"
           @click="emit('change-view', 'dayGridMonth')"
         >
-          {{ t('Month') }}
+          {{ $gettext('Month') }}
         </button>
         <button
           type="button"
@@ -142,7 +144,7 @@ const title = computed(() => {
           ]"
           @click="emit('change-view', 'timeGridWeek')"
         >
-          {{ t('Week') }}
+          {{ $gettext('Week') }}
         </button>
         <button
           type="button"
@@ -154,7 +156,7 @@ const title = computed(() => {
           ]"
           @click="emit('change-view', 'timeGridDay')"
         >
-          {{ t('Day') }}
+          {{ $gettext('Day') }}
         </button>
       </div>
     </div>

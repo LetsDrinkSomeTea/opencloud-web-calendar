@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { t } from '../composables/useLanguage'
-
 export interface InviteData {
   token?: string
   calendarPath?: string
@@ -49,7 +47,7 @@ const emit = defineEmits<{
             </svg>
           </div>
           <h2 class="ext:text-lg ext:font-semibold ext:text-gray-900">
-            {{ t('Join Shared Calendar') }}
+            {{ $gettext('Join Shared Calendar') }}
           </h2>
         </div>
         <button
@@ -72,7 +70,7 @@ const emit = defineEmits<{
       <div class="ext:p-6 ext:space-y-4">
         <p class="ext:text-sm ext:text-gray-600">
           {{
-            t('You have been invited to join the calendar "%{name}".', {
+            $gettext('You have been invited to join the calendar "%{name}".', {
               name: inviteData.displayName
             })
           }}
@@ -92,7 +90,7 @@ const emit = defineEmits<{
                 {{ inviteData.displayName }}
               </div>
               <div v-if="inviteData.owner" class="ext:text-xs ext:text-gray-500">
-                {{ t('Shared by:') }} {{ inviteData.owner }}
+                {{ $gettext('Shared by:') }} {{ inviteData.owner }}
               </div>
             </div>
           </div>
@@ -104,7 +102,7 @@ const emit = defineEmits<{
                 : 'ext:bg-gray-200 ext:text-gray-700'
             ]"
           >
-            {{ inviteData.permissions === 'rw' ? t('Read & Write') : t('Read only') }}
+            {{ inviteData.permissions === 'rw' ? $gettext('Read & Write') : $gettext('Read only') }}
           </span>
         </div>
       </div>
@@ -119,7 +117,7 @@ const emit = defineEmits<{
           :disabled="loading"
           @click="emit('close')"
         >
-          {{ t('Cancel') }}
+          {{ $gettext('Cancel') }}
         </button>
         <button
           type="button"
@@ -127,7 +125,7 @@ const emit = defineEmits<{
           :disabled="loading"
           @click="emit('join')"
         >
-          {{ loading ? t('Saving...') : t('Join Calendar') }}
+          {{ loading ? $gettext('Saving...') : $gettext('Join Calendar') }}
         </button>
       </div>
     </div>

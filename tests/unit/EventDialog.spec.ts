@@ -2,6 +2,9 @@ import { mount } from '@vue/test-utils'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import EventDialog from '../../src/components/EventDialog.vue'
 import { nextTick, ref } from 'vue'
+import { createGettext } from 'vue3-gettext'
+import translations from '../../l10n/translations.json'
+import type { RecurrenceFormData } from '../../src/types/calendar'
 
 const mockFormData = ref({
   summary: '',
@@ -10,7 +13,8 @@ const mockFormData = ref({
   end: new Date(),
   allDay: false,
   description: '',
-  location: ''
+  location: '',
+  recurrence: undefined as RecurrenceFormData | undefined
 })
 const mockSaving = ref(false)
 
@@ -36,10 +40,6 @@ vi.mock('../../src/composables/useEventEditor', () => ({
   })
 }))
 
-vi.mock('../../src/composables/useLanguage', () => ({
-  t: (key: string) => key
-}))
-
 vi.mock('../../src/composables/useLocationSearch', () => ({
   useLocationSearch: () => ({
     results: ref([]),
@@ -49,9 +49,24 @@ vi.mock('../../src/composables/useLocationSearch', () => ({
   })
 }))
 
+function mountDialog(language = 'en') {
+  const gettext = createGettext({
+    defaultLanguage: language,
+    translations,
+    silent: true
+  })
+  const wrapper = mount(EventDialog, {
+    props: { calendars: [] },
+    attachTo: '#app',
+    global: { plugins: [gettext] }
+  })
+  return { wrapper, gettext }
+}
+
 beforeEach(() => {
   document.body.innerHTML = '<div id="app"></div>'
   mockFormData.value.summary = ''
+  mockFormData.value.recurrence = undefined
   mockSaving.value = false
 })
 
@@ -61,10 +76,7 @@ afterEach(() => {
 
 describe('EventDialog.vue', () => {
   it('disables the save button when title is empty', async () => {
-    mount(EventDialog, {
-      props: { calendars: [] },
-      attachTo: '#app'
-    })
+    mountDialog()
 
     await nextTick()
 
@@ -77,10 +89,7 @@ describe('EventDialog.vue', () => {
   })
 
   it('disables the save button when title is only whitespace', async () => {
-    mount(EventDialog, {
-      props: { calendars: [] },
-      attachTo: '#app'
-    })
+    mountDialog()
 
     await nextTick()
 
@@ -97,10 +106,7 @@ describe('EventDialog.vue', () => {
   })
 
   it('enables the save button when title is provided', async () => {
-    mount(EventDialog, {
-      props: { calendars: [] },
-      attachTo: '#app'
-    })
+    mountDialog()
 
     await nextTick()
 
@@ -114,5 +120,40 @@ describe('EventDialog.vue', () => {
       b.textContent?.includes('Save')
     ) as HTMLButtonElement
     expect(saveButton.disabled).toBe(false)
+  })
+
+  it('renders German strings when the language is de', async () => {
+    mountDialog('de')
+    await nextTick()
+
+    const buttons = Array.from(document.querySelectorAll('button')).map((b) =>
+      b.textContent?.trim()
+    )
+    expect(buttons).toContain('Speichern')
+    expect(buttons).toContain('Abbrechen')
+    expect(document.body.textContent).toContain('Neuer Termin')
+    expect(document.body.textContent).not.toContain('New Event')
+  })
+
+  it('follows language changes', async () => {
+    const { gettext } = mountDialog('de')
+    await nextTick()
+    expect(document.body.textContent).toContain('Neuer Termin')
+
+    gettext.current = 'en'
+    await nextTick()
+    expect(document.body.textContent).toContain('New Event')
+    expect(document.body.textContent).not.toContain('Neuer Termin')
+  })
+
+  it('uses plural forms for the recurrence interval', async () => {
+    mockFormData.value.recurrence = { frequency: 'WEEKLY', interval: 2, endType: 'never' }
+    mountDialog('de')
+    await nextTick()
+
+    const options = Array.from(document.querySelectorAll('option')).map((o) =>
+      o.textContent?.trim()
+    )
+    expect(options).toEqual(expect.arrayContaining(['Tage', 'Wochen', 'Monate', 'Jahre']))
   })
 })
