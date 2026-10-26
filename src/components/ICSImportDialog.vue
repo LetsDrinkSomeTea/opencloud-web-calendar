@@ -80,14 +80,6 @@ function handleClose() {
   close()
 }
 
-function resetForRetry() {
-  selectedFile.value = null
-  newCalendarName.value = ''
-  if (fileInputRef.value) {
-    fileInputRef.value.value = ''
-  }
-}
-
 defineExpose({ open })
 </script>
 

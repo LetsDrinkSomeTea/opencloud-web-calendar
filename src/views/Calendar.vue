@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -- route view loaded only via the router, never used as a tag; the file name is referenced in index.ts and the roadmap -->
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useAuthStore } from '@opencloud-eu/web-pkg'
@@ -33,7 +34,6 @@ const {
   loading: calendarsLoading,
   calendarHomeUrl,
   loadCalendars,
-  loadPendingShares,
   toggleCalendarVisibility,
   getDefaultCalendar,
   deleteCalendar,
@@ -46,12 +46,13 @@ const {
   userProfiles
 } = useCalendars()
 
-const { fetchEvents, getVisibleEvents, addEvent, updateEventInCache, removeEvent } = useEvents()
+const { fetchEvents, getVisibleEvents, updateEventInCache } = useEvents()
 
 const { openCreate, openEdit } = useEventEditor()
 const { open: openCalendarEditor } = useCalendarEditor()
 const importDialogRef = ref<InstanceType<typeof ICSImportDialog> | null>(null)
-const { isDark } = useTheme()
+// Called for its side effect: keeps the data-calendar-theme attribute in sync
+useTheme()
 
 const sidebarOpen = ref(false)
 
@@ -138,7 +139,7 @@ function clearJoinUrlParams() {
       url.hash = hashBase
     }
     window.history.replaceState({}, document.title, url.toString())
-  } catch (e) {
+  } catch {
     // Ignore
   }
 }

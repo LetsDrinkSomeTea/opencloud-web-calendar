@@ -42,7 +42,7 @@ async function handleShareWithUser() {
   try {
     await shareWithUser(newUserEmail.value, newSharePermission.value)
     newUserEmail.value = ''
-  } catch (e) {
+  } catch {
     // Error is handled in composable
   }
 }
@@ -50,7 +50,7 @@ async function handleShareWithUser() {
 async function handleCreatePublicLink() {
   try {
     await createPublicLink(newLinkPermission.value)
-  } catch (e) {
+  } catch {
     // Error is handled in composable
   }
 }

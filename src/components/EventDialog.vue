@@ -135,16 +135,6 @@ const recurrenceUntil = computed({
   }
 })
 
-const frequencyLabel = computed(() => {
-  const labels: Record<string, string> = {
-    DAILY: t('day(s)'),
-    WEEKLY: t('week(s)'),
-    MONTHLY: t('month(s)'),
-    YEARLY: t('year(s)')
-  }
-  return labels[recurrenceFrequency.value] || ''
-})
-
 function isWeekdaySelected(day: string): boolean {
   return formData.value.recurrence?.byDay?.includes(day) || false
 }
