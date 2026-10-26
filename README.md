@@ -14,6 +14,8 @@ A CalDAV calendar application integrated as a native [OpenCloud](https://openclo
 - All-day and timed events
 - Event conflict detection and resolution
 - Auto-save with optimistic updates
+- Reminders (`VALARM`) shown as OpenCloud and browser notifications while the app is open
+- Attendees (`ATTENDEE`/`ORGANIZER`) with participation status, accept/tentative/decline
 - Translated into German (more languages welcome), following the language selected in OpenCloud
 
 ## Installation
@@ -103,6 +105,29 @@ For local development, `src/config.json` can override the values for the dev ser
 
 The current view and date are kept in the URL (e.g. `/web-calendar/?view=week&date=2026-10-26`),
 so reloading the page or sharing the link restores them.
+
+## Reminders and Invitations
+
+**Reminders.** Reminders are stored as `VALARM` components in the event, so other CalDAV
+clients (phones, Thunderbird, …) show them as well. The web app shows `DISPLAY` and `AUDIO`
+reminders of the loaded events only while it is open in a browser tab: as an OpenCloud
+notification and, after the user allowed it via "Enable browser notifications" in the event
+dialog, as a browser notification. Reminders the app cannot edit (e.g. `EMAIL` alarms or absolute
+triggers created by other clients) are kept unchanged when an event is saved.
+
+**Invitations are not sent.** Attendees can be added (OpenCloud users or any email address) and
+are saved as `ATTENDEE` properties, and invited users can accept, tentatively accept or decline
+events in calendars they can write to. Delivering invitations and replies (iTIP, RFC 5546)
+requires server-side scheduling (CalDAV Scheduling, RFC 6638, or iMIP email), which
+[Radicale](https://radicale.org/v3.html) does not implement (see the open feature request
+[Kozea/Radicale#1945](https://github.com/Kozea/Radicale/issues/1945)). The app does not fake it:
+
+- Radicale 3.5.5 and later can email attendees when an event is created, changed or deleted
+  ([`[hook] type = email`](https://radicale.org/v3.html)). These are notifications with the
+  event attached, attendee replies are not processed. Configure it on the Radicale server if you
+  want attendees to be notified.
+- "Download invitation" in the event dialog saves the event as an iTIP request
+  (`METHOD:REQUEST`), which can be sent to attendees by email manually.
 
 ## Kubernetes / Helm Deployment
 

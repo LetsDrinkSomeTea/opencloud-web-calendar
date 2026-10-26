@@ -19,6 +19,7 @@ import { useICSImport } from '../composables/useICSImport'
 import { useEventDialogs } from '../composables/useEventDialogs'
 import { useModalBinding } from '../composables/useModalBinding'
 import { useErrorMessage } from '../composables/useErrorMessage'
+import { useReminders } from '../composables/useReminders'
 import { getExtendedRange } from '../utils/date'
 import { getCalDAVClient } from '../caldav/client'
 import { useCalendarConfig, type CalendarViewType } from '../config'
@@ -162,6 +163,9 @@ const currentDate = ref(dateFromQuery(unref(route).query.date) || new Date())
 const viewType = ref<CalendarViewType>(viewFromQuery(unref(route).query.view) || config.defaultView)
 
 const visibleEvents = computed(() => getVisibleEvents(calendars.value as any))
+
+// Reminders of the loaded events while the app is open
+useReminders(visibleEvents)
 
 function syncRouteQuery() {
   const view = viewToQuery(viewType.value)

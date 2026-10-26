@@ -114,10 +114,21 @@ export function useUserProfiles() {
     throw new Error(`User not found: ${userIdOrEmail}`)
   }
 
+  /** Users matching the term, e.g. to invite them to an event */
+  function searchUsers(term: string): Promise<User[]> {
+    const trimmed = term.trim()
+    if (trimmed.length < 2) return Promise.resolve([])
+    return clientService.graphAuthenticated.users.listUsers({
+      search: quoteSearchTerm(trimmed),
+      select: USER_SELECT
+    })
+  }
+
   return {
     userProfiles,
     loadUserProfile,
     resolveUser,
+    searchUsers,
     cleanUserId
   }
 }
