@@ -5,6 +5,7 @@
       "enabled": true,
       "url": "https://nominatim.openstreetmap.org/search"
     },
-    "defaultView": "dayGridMonth"
+    "defaultView": "dayGridMonth",
+    "searchRangeMonths": 12
   }
 }

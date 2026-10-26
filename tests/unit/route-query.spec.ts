@@ -2,6 +2,8 @@ import {
   dateFromQuery,
   dateToQuery,
   parseJoinParams,
+  searchFromQuery,
+  searchToQuery,
   viewFromQuery,
   viewToQuery,
   withoutJoinParams
@@ -13,7 +15,8 @@ describe('route query mapping', () => {
     it.each<[CalendarViewType, string]>([
       ['dayGridMonth', 'month'],
       ['timeGridWeek', 'week'],
-      ['timeGridDay', 'day']
+      ['timeGridDay', 'day'],
+      ['listAgenda', 'agenda']
     ])('round-trips %s <-> %s', (view, query) => {
       expect(viewToQuery(view)).toBe(query)
       expect(viewFromQuery(query)).toBe(view)
@@ -30,6 +33,26 @@ describe('route query mapping', () => {
 
     it.each([undefined, null, '', 'year', 'listWeek', [], [null]])('rejects %j', (value) => {
       expect(viewFromQuery(value as any)).toBeNull()
+    })
+  })
+
+  describe('search', () => {
+    it('reads and trims the query', () => {
+      expect(searchFromQuery('  Müller ')).toBe('Müller')
+      expect(searchFromQuery(['team', 'other'])).toBe('team')
+    })
+
+    it.each([undefined, null, '', [], [null]])('returns an empty query for %j', (value) => {
+      expect(searchFromQuery(value as any)).toBe('')
+    })
+
+    it('limits the length', () => {
+      expect(searchFromQuery('x'.repeat(500))).toHaveLength(200)
+    })
+
+    it('removes empty queries from the URL', () => {
+      expect(searchToQuery('  ')).toBeUndefined()
+      expect(searchToQuery(' café ')).toBe('café')
     })
   })
 

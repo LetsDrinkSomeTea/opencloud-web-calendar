@@ -1,25 +1,47 @@
 import { mount } from '@vue/test-utils'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import CalendarToolbar from '../../src/components/CalendarToolbar.vue'
 import CalendarSidebar from '../../src/components/CalendarSidebar.vue'
 import type { Calendar } from '../../src/types/calendar'
 import { globalMountOptions } from './helpers/design-system'
 
 describe('CalendarToolbar.vue', () => {
-  function mountToolbar(language = 'en') {
+  function mountToolbar(language = 'en', props: Record<string, unknown> = {}) {
     const { global } = globalMountOptions(language)
     return mount(CalendarToolbar, {
-      props: { currentDate: new Date(2026, 9, 26), viewType: 'timeGridWeek', sidebarOpen: false },
-      global
+      props: {
+        currentDate: new Date(2026, 9, 26),
+        viewType: 'timeGridWeek',
+        sidebarOpen: false,
+        ...props
+      },
+      global,
+      attachTo: document.body
     })
   }
+
+  afterEach(() => {
+    vi.useRealTimers()
+    document.body.innerHTML = ''
+  })
 
   it('labels the icon-only buttons', () => {
     const wrapper = mountToolbar('de')
     const labels = wrapper.findAll('button[aria-label]').map((b) => b.attributes('aria-label'))
-    expect(labels).toEqual(['Seitenleiste ein-/ausblenden', 'Zurück', 'Weiter'])
+    expect(labels).toEqual(
+      expect.arrayContaining([
+        'Seitenleiste ein-/ausblenden',
+        'Zurück',
+        'Weiter',
+        'Termine durchsuchen',
+        'Neuer Termin'
+      ])
+    )
     expect(wrapper.find('button[aria-controls="web-calendar-sidebar"]').attributes()).toMatchObject(
       { 'aria-expanded': 'false' }
+    )
+    expect(wrapper.find('input[type="search"]').attributes('aria-label')).toBe(
+      'Termine durchsuchen'
     )
   })
 
@@ -29,11 +51,20 @@ describe('CalendarToolbar.vue', () => {
     expect(views.map((b) => [b.text(), b.attributes('aria-pressed')])).toEqual([
       ['Month', 'false'],
       ['Week', 'true'],
-      ['Day', 'false']
+      ['Day', 'false'],
+      ['Agenda', 'false']
     ])
 
     await views[0].trigger('click')
-    expect(wrapper.emitted('change-view')).toEqual([['dayGridMonth']])
+    await views[3].trigger('click')
+    expect(wrapper.emitted('change-view')).toEqual([['dayGridMonth'], ['listAgenda']])
+  })
+
+  it('shows the date range of the agenda', () => {
+    const wrapper = mountToolbar('en', { viewType: 'listAgenda' })
+    const title = wrapper.find('h2').text()
+    expect(title).toContain('Oct 26')
+    expect(title).toContain('Nov 24')
   })
 
   it('emits navigation events', async () => {
@@ -47,6 +78,69 @@ describe('CalendarToolbar.vue', () => {
     expect(Object.keys(wrapper.emitted())).toEqual(
       expect.arrayContaining(['prev', 'next', 'toggle-sidebar', 'today'])
     )
+  })
+
+  describe('new event button', () => {
+    it('is a labelled primary button that emits new-event', async () => {
+      const wrapper = mountToolbar()
+      const button = wrapper.find('[data-testid="web-calendar-new-event"]')
+      expect(button.attributes('aria-label')).toBe('New event')
+      expect(button.text()).toBe('New event')
+      expect(button.classes()).toContain('oc-button-filled')
+      await button.trigger('click')
+      expect(wrapper.emitted('new-event')).toEqual([[]])
+    })
+
+    it('is disabled without a calendar to create the event in', async () => {
+      const wrapper = mountToolbar('en', { canCreate: false })
+      const button = wrapper.find('[data-testid="web-calendar-new-event"]')
+      expect(button.attributes()).toHaveProperty('disabled')
+      await button.trigger('click')
+      expect(wrapper.emitted('new-event')).toBeUndefined()
+    })
+  })
+
+  describe('search', () => {
+    it('debounces the typed query', async () => {
+      vi.useFakeTimers()
+      const wrapper = mountToolbar()
+      const input = wrapper.find('input[type="search"]')
+      await input.setValue('mül')
+      await input.setValue('müller ')
+      vi.advanceTimersByTime(299)
+      expect(wrapper.emitted('search')).toBeUndefined()
+      vi.advanceTimersByTime(1)
+      expect(wrapper.emitted('search')).toEqual([['müller']])
+    })
+
+    it('searches immediately on Enter', async () => {
+      vi.useFakeTimers()
+      const wrapper = mountToolbar()
+      const input = wrapper.find('input[type="search"]')
+      await input.setValue('team')
+      await input.trigger('keydown', { key: 'Enter' })
+      expect(wrapper.emitted('search')).toEqual([['team']])
+      vi.runAllTimers()
+      expect(wrapper.emitted('search')).toHaveLength(1)
+    })
+
+    it('shows the query from the route', async () => {
+      const wrapper = mountToolbar('en', { searchQuery: 'café' })
+      expect((wrapper.find('input[type="search"]').element as HTMLInputElement).value).toBe('café')
+      await wrapper.setProps({ searchQuery: '' })
+      expect((wrapper.find('input[type="search"]').element as HTMLInputElement).value).toBe('')
+    })
+
+    it('has a toggle for small screens that clears the search when closed', async () => {
+      const wrapper = mountToolbar('en', { searchQuery: 'café' })
+      const toggle = wrapper.find('button[aria-label="Close search"]')
+      expect(toggle.attributes('aria-expanded')).toBe('true')
+      await toggle.trigger('click')
+      expect(wrapper.emitted('search')).toEqual([['']])
+      expect(wrapper.find('button[aria-label="Search events"]').attributes('aria-expanded')).toBe(
+        'false'
+      )
+    })
   })
 })
 
