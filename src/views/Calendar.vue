@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { useAuthStore } from '@opencloud-eu/web-pkg'
 import CalendarToolbar from '../components/CalendarToolbar.vue'
 import CalendarSidebar from '../components/CalendarSidebar.vue'
 import CalendarView from '../components/CalendarView.vue'
@@ -17,13 +16,8 @@ import { useCalendarEditor } from '../composables/useCalendarEditor'
 import { useTheme } from '../composables/useTheme'
 import { getExtendedRange } from '../utils/date'
 import { getCalDAVClient } from '../caldav/client'
-import { initAuthStore } from '../caldav/auth'
 import { initLanguage, t } from '../composables/useLanguage'
 import type { Calendar, CalendarEvent } from '../types/calendar'
-
-// Initialize auth store for CalDAV requests
-const authStore = useAuthStore()
-initAuthStore(authStore)
 
 // Initialize language from user profile
 initLanguage()
