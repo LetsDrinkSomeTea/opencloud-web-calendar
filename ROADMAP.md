@@ -79,8 +79,8 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
 - [ ] Incremental sync via `sync-token` / `sync-collection` and periodic refresh
 - [ ] Free/busy lookup
 - [ ] Calendar export (`.ics`) and subscription URL
-- [ ] Search and filter events
-- [ ] Agenda / list view
+- [x] Search and filter events
+- [x] Agenda / list view
 - [ ] Rename and recolor existing calendars
 - [ ] Open `.ics` files from the Files app ("Open with" / `fileExtensions`)
 
