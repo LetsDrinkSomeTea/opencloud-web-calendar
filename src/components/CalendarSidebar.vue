@@ -20,223 +20,188 @@ const emit = defineEmits<{
   declineShare: [share: Share]
   refresh: []
 }>()
+
+function checkboxId(calendar: Calendar) {
+  return `web-calendar-visible-${calendar.href.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+}
 </script>
 
 <template>
   <aside
+    id="web-calendar-sidebar"
     :class="[
-      'ext:w-56 sm:ext:w-64 ext:border-r ext:border-gray-200 ext:bg-gray-50 ext:overflow-y-auto ext:shrink-0',
+      'ext:w-56 sm:ext:w-64 ext:border-r ext:border-role-outline-variant ext:bg-role-surface-container ext:text-role-on-surface ext:overflow-y-auto ext:shrink-0',
       'ext:absolute ext:inset-y-0 ext:left-0 ext:z-20 ext:transition-transform ext:duration-200 ext:will-change-transform',
       'sm:ext:static sm:ext:z-auto sm:ext:transition-none sm:ext:shadow-none',
       isOpen ? 'ext:translate-x-0 ext:shadow-lg' : 'ext:-translate-x-full sm:ext:translate-x-0'
     ]"
+    :aria-label="$gettext('Calendars')"
   >
     <div class="ext:p-4">
       <!-- Pending Shares Section -->
-      <div v-if="pendingShares && pendingShares.length > 0" class="ext:mb-6">
+      <section v-if="pendingShares && pendingShares.length > 0" class="ext:mb-6">
         <h3
-          class="ext:text-xs ext:font-semibold ext:text-gray-500 ext:uppercase ext:tracking-wider ext:mb-2"
+          class="ext:m-0 ext:text-xs ext:font-semibold ext:text-role-on-surface-variant ext:uppercase ext:tracking-wider ext:mb-2"
         >
           {{ $gettext('Pending Invitations') }}
         </h3>
-        <ul class="ext:space-y-2">
+        <ul class="ext:list-none ext:m-0 ext:p-0 ext:space-y-2">
           <li
             v-for="share in pendingShares"
             :key="share.PathOrToken"
-            class="ext:p-2 ext:bg-white ext:border ext:border-yellow-200 ext:rounded-md ext:shadow-sm"
+            class="ext:p-2 ext:bg-role-surface ext:border ext:border-role-outline-variant ext:rounded-md ext:shadow-sm"
           >
-            <div class="ext:text-sm font-medium ext:text-gray-900 ext:truncate ext:mb-1">
+            <div class="ext:text-sm ext:font-medium ext:text-role-on-surface ext:truncate ext:mb-1">
               {{
                 share.PathOrToken.split('/').filter(Boolean).pop()?.replace('-shared', '') ||
                 $gettext('Calendar')
               }}
             </div>
-            <div class="ext:text-xs ext:text-gray-500 ext:truncate ext:mb-2">
+            <div class="ext:text-xs ext:text-role-on-surface-variant ext:truncate ext:mb-2">
               {{ $gettext('From:') }} {{ userProfiles?.[share.Owner] || share.Owner }}
             </div>
             <div class="ext:flex ext:gap-2">
-              <button
-                type="button"
-                class="ext:flex-1 ext:px-2 ext:py-1 ext:bg-blue-600 ext:text-white ext:text-xs ext:font-medium ext:rounded hover:ext:bg-blue-700"
+              <oc-button
+                class="ext:flex-1"
+                appearance="filled"
+                color-role="primary"
+                size="small"
                 @click="emit('acceptShare', share)"
               >
                 {{ $gettext('Accept') }}
-              </button>
-              <button
-                type="button"
-                class="ext:flex-1 ext:px-2 ext:py-1 ext:bg-gray-100 ext:text-gray-700 ext:text-xs ext:font-medium ext:rounded hover:ext:bg-gray-200"
-                @click="emit('declineShare', share)"
-              >
+              </oc-button>
+              <oc-button class="ext:flex-1" size="small" @click="emit('declineShare', share)">
                 {{ $gettext('Decline') }}
-              </button>
+              </oc-button>
             </div>
           </li>
         </ul>
-      </div>
+      </section>
 
       <div class="ext:flex ext:items-center ext:justify-between ext:mb-3">
-        <h3 class="ext:text-sm ext:font-semibold ext:text-gray-600 ext:uppercase ext:tracking-wide">
+        <h3
+          class="ext:m-0 ext:text-sm ext:font-semibold ext:text-role-on-surface-variant ext:uppercase ext:tracking-wide"
+        >
           {{ $gettext('Calendars') }}
         </h3>
         <div class="ext:flex ext:items-center ext:gap-1">
-          <button
-            type="button"
-            class="ext:p-1 ext:text-blue-600 hover:ext:bg-blue-50 ext:rounded"
+          <oc-button
+            appearance="raw"
+            color-role="primary"
+            :aria-label="$gettext('Refresh')"
             :title="$gettext('Refresh')"
             :disabled="loading"
             @click="emit('refresh')"
           >
-            <svg
-              class="ext:w-5 ext:h-5"
-              :class="{ 'ext:animate-spin': loading }"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="ext:p-1 ext:text-blue-600 hover:ext:bg-blue-50 ext:rounded"
+            <oc-spinner v-if="loading" size="small" />
+            <oc-icon v-else name="refresh" fill-type="line" />
+          </oc-button>
+          <oc-button
+            appearance="raw"
+            color-role="primary"
+            :aria-label="$gettext('Import calendar')"
             :title="$gettext('Import calendar')"
             @click="emit('import')"
           >
-            <svg class="ext:w-5 ext:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-              />
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="ext:p-1 ext:text-blue-600 hover:ext:bg-blue-50 ext:rounded"
+            <oc-icon name="upload-2" fill-type="line" />
+          </oc-button>
+          <oc-button
+            appearance="raw"
+            color-role="primary"
+            :aria-label="$gettext('Create new calendar')"
             :title="$gettext('Create new calendar')"
             @click="emit('create')"
           >
-            <svg class="ext:w-5 ext:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-          </button>
+            <oc-icon name="add" fill-type="line" />
+          </oc-button>
         </div>
       </div>
 
-      <div v-if="loading && calendars.length === 0" class="ext:text-sm ext:text-gray-500">
+      <div
+        v-if="loading && calendars.length === 0"
+        class="ext:text-sm ext:text-role-on-surface-variant"
+      >
         {{ $gettext('Loading calendars...') }}
       </div>
 
-      <div v-else-if="calendars.length === 0" class="ext:text-sm ext:text-gray-500">
+      <div v-else-if="calendars.length === 0" class="ext:text-sm ext:text-role-on-surface-variant">
         {{ $gettext('No calendars found') }}
       </div>
 
-      <ul v-else class="ext:space-y-2">
+      <ul v-else class="ext:list-none ext:m-0 ext:p-0 ext:space-y-2">
         <li
           v-for="calendar in calendars"
           :key="calendar.href"
           class="ext:group ext:flex ext:flex-col ext:gap-0.5"
         >
           <div class="ext:flex ext:items-center ext:gap-2">
-            <input
-              :id="`cal-${calendar.href}`"
-              type="checkbox"
-              :checked="calendar.visible"
-              class="ext:w-4 ext:h-4 ext:rounded ext:border-gray-300"
-              :style="{ accentColor: calendar.color }"
-              @change="emit('toggle', calendar.href)"
+            <!-- The checkbox takes the user's calendar color instead of the primary role -->
+            <oc-checkbox
+              :id="checkboxId(calendar)"
+              :model-value="calendar.visible"
+              :label="calendar.displayName"
+              label-hidden
+              :style="{ '--color-role-primary': calendar.color }"
+              @update:model-value="emit('toggle', calendar.href)"
             />
             <label
-              :for="`cal-${calendar.href}`"
-              class="ext:flex ext:items-center ext:gap-2 ext:text-sm ext:text-gray-900 ext:cursor-pointer ext:flex-1"
+              :for="checkboxId(calendar)"
+              class="ext:flex ext:items-center ext:gap-2 ext:min-w-0 ext:text-sm ext:text-role-on-surface ext:cursor-pointer ext:flex-1"
             >
               <span
-                class="ext:w-3 ext:h-3 ext:rounded-full ext:flex-shrink-0"
+                class="ext:w-3 ext:h-3 ext:rounded-full ext:shrink-0"
                 :style="{ backgroundColor: calendar.color }"
+                aria-hidden="true"
               />
               <span class="ext:truncate">{{ calendar.displayName }}</span>
             </label>
             <div class="ext:flex ext:items-center ext:gap-0.5">
-              <button
+              <oc-button
                 v-if="!calendar.readOnly && !calendar.isShared"
-                type="button"
-                class="ext:p-1 ext:text-gray-400 hover:ext:text-blue-600 ext:transition-colors ext:flex-shrink-0"
+                class="ext:shrink-0"
+                appearance="raw"
+                size="small"
+                :aria-label="$gettext('Share calendar')"
                 :title="$gettext('Share calendar')"
                 @click.stop="emit('share', calendar.href)"
               >
-                <svg class="ext:w-4 ext:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                  />
-                </svg>
-              </button>
-              <button
-                type="button"
-                class="ext:p-1 ext:text-gray-400 hover:ext:text-red-600 ext:transition-colors ext:flex-shrink-0"
+                <oc-icon name="share" fill-type="line" size="small" />
+              </oc-button>
+              <oc-button
+                class="ext:shrink-0"
+                appearance="raw"
+                size="small"
+                :aria-label="
+                  calendar.isShared ? $gettext('Leave calendar') : $gettext('Delete calendar')
+                "
                 :title="
                   calendar.isShared ? $gettext('Leave calendar') : $gettext('Delete calendar')
                 "
                 @click.stop="emit('delete', calendar.href)"
               >
-                <svg
-                  v-if="calendar.isShared"
-                  class="ext:w-4 ext:h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
-                <svg
-                  v-else
-                  class="ext:w-4 ext:h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </button>
+                <oc-icon
+                  :name="calendar.isShared ? 'logout-box-r' : 'delete-bin'"
+                  fill-type="line"
+                  size="small"
+                />
+              </oc-button>
             </div>
           </div>
           <div
             v-if="calendar.isShared"
-            class="ext:pl-9 ext:text-[10px] ext:text-gray-500 ext:truncate"
+            class="ext:pl-9 ext:text-[10px] ext:text-role-on-surface-variant ext:truncate"
           >
             <span v-if="calendar.owner"
               >{{ $gettext('Shared by:') }}
               {{ userProfiles?.[calendar.owner] || calendar.owner }}</span
             >
             <span v-else>{{ $gettext('Shared via link') }}</span>
-            <span v-if="calendar.readOnly" class="ext:text-gray-400">
-              ({{ $gettext('Read only') }})</span
-            >
+            <span v-if="calendar.readOnly"> ({{ $gettext('Read only') }})</span>
           </div>
-          <div v-else-if="calendar.readOnly" class="ext:pl-9 ext:text-[10px] ext:text-gray-400">
+          <div
+            v-else-if="calendar.readOnly"
+            class="ext:pl-9 ext:text-[10px] ext:text-role-on-surface-variant"
+          >
             {{ $gettext('Read only') }}
           </div>
         </li>
