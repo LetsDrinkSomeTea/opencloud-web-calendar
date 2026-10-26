@@ -3,8 +3,10 @@ import { isRef } from 'vue'
 import type {
   ActionExtension,
   AppMenuItemExtension,
+  AppNavigationItem,
   ApplicationSetupOptions,
-  FileActionOptions
+  FileActionOptions,
+  GlobalProperties
 } from '@opencloud-eu/web-pkg'
 import type { Resource } from '@opencloud-eu/web-client'
 
@@ -27,6 +29,10 @@ vi.mock('../../src/views/Calendar.vue', () => ({
   default: { name: 'CalendarViewStub' }
 }))
 
+vi.mock('../../src/views/Tasks.vue', () => ({
+  default: { name: 'TasksViewStub' }
+}))
+
 import app from '../../src/index'
 
 function setupApp() {
@@ -40,6 +46,7 @@ function setupApp() {
         meta: Record<string, unknown>
       }>
       extensions: { value: [AppMenuItemExtension, ActionExtension] }
+      navItems: (props: GlobalProperties) => AppNavigationItem[]
       translations: Record<string, Record<string, string>>
     }
   }
@@ -57,17 +64,36 @@ describe('web-calendar app definition', () => {
     })
   })
 
-  it('registers a single authenticated root route', async () => {
+  it('registers the authenticated calendar and tasks routes', async () => {
     const { routes } = setupApp()
-    expect(routes).toHaveLength(1)
+    expect(routes).toHaveLength(2)
 
-    const [route] = routes
-    expect(route.path).toBe('/')
-    expect(route.name).toBe('web-calendar')
-    expect(route.meta).toEqual({ authContext: 'user', title: 'Web Calendar' })
+    const [calendar, tasks] = routes
+    expect(calendar.path).toBe('/')
+    expect(calendar.name).toBe('web-calendar')
+    expect(calendar.meta).toEqual({ authContext: 'user', title: 'Web Calendar' })
+    expect((await calendar.component()).default).toEqual({ name: 'CalendarViewStub' })
 
-    const component = await route.component()
-    expect(component.default).toEqual({ name: 'CalendarViewStub' })
+    expect(tasks.path).toBe('/tasks')
+    expect(tasks.name).toBe('tasks')
+    expect(tasks.meta).toEqual({ authContext: 'user', title: 'Tasks' })
+    expect((await tasks.component()).default).toEqual({ name: 'TasksViewStub' })
+  })
+
+  it('provides navigation items for calendar and tasks', () => {
+    const { navItems } = setupApp()
+    const currentRoute = { value: { name: 'web-calendar' as string } }
+    const items = navItems({ $router: { currentRoute } } as unknown as GlobalProperties)
+
+    expect(items.map((item) => (item.name as () => string)())).toEqual(['Calendar', 'Tasks'])
+    expect(items.map((item) => item.route)).toEqual([
+      { path: '/web-calendar/' },
+      { path: '/web-calendar/tasks' }
+    ])
+    // the calendar path is a prefix of the tasks path
+    expect(items[0].isActive()).toBe(true)
+    currentRoute.value.name = 'web-calendar-tasks'
+    expect(items[0].isActive()).toBe(false)
   })
 
   it('provides an app menu item extension', () => {

@@ -81,6 +81,7 @@ export function parseCalendars(xml: string): CalendarData[] {
     let ctag: unknown
     let description: unknown
     let privileges: any
+    let componentSet: unknown
     let foundCalendar = false
 
     for (const propstat of propstats) {
@@ -106,6 +107,8 @@ export function parseCalendars(xml: string): CalendarData[] {
       if (prop['calendar-description'] !== undefined) description = prop['calendar-description']
       if (prop['current-user-privilege-set'] !== undefined)
         privileges = prop['current-user-privilege-set']
+      if (prop['supported-calendar-component-set'] !== undefined)
+        componentSet = prop['supported-calendar-component-set']
     }
 
     if (!foundCalendar) continue
@@ -127,7 +130,8 @@ export function parseCalendars(xml: string): CalendarData[] {
       color: extractString(color),
       ctag: extractString(ctag),
       description: extractString(description),
-      readOnly
+      readOnly,
+      components: parseComponentSet(componentSet)
     })
   }
 
@@ -187,4 +191,20 @@ function extractString(value: unknown): string | undefined {
     return String((value as { '#text': unknown })['#text'])
   }
   return undefined
+}
+
+/**
+ * Reads the component names of a `supported-calendar-component-set`
+ * (`<c:comp name="VEVENT"/><c:comp name="VTODO"/>`). Returns undefined if the property is
+ * missing or empty, which means the collection accepts all component types.
+ */
+export function parseComponentSet(value: unknown): string[] | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const comp = (value as { comp?: unknown }).comp
+  const comps = Array.isArray(comp) ? comp : comp ? [comp] : []
+  const names = comps
+    .map((c) => (c && typeof c === 'object' ? (c as Record<string, unknown>)['@_name'] : undefined))
+    .filter((name): name is string => typeof name === 'string' && name.length > 0)
+    .map((name) => name.toUpperCase())
+  return names.length ? names : undefined
 }

@@ -7,7 +7,8 @@ import {
   buildCalendarQuery,
   buildMkCalendar,
   buildProppatchCalendar,
-  buildCalendarQueryAll
+  buildCalendarQueryAll,
+  buildTaskQuery
 } from '../../../src/caldav/xml-builder'
 
 const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' })
@@ -37,6 +38,7 @@ describe('PROPFIND bodies', () => {
     expect(propfind['@_xmlns:ic']).toBe('http://apple.com/ns/ical/')
     expect(Object.keys(propfind['d:prop']).sort()).toEqual([
       'c:calendar-description',
+      'c:supported-calendar-component-set',
       'cs:getctag',
       'd:current-user-privilege-set',
       'd:displayname',
@@ -61,6 +63,16 @@ describe('buildCalendarQuery', () => {
     expect(vevent['@_name']).toBe('VEVENT')
     expect(vevent['c:time-range']['@_start']).toBe('20240301T000000Z')
     expect(vevent['c:time-range']['@_end']).toBe('20240415T123045Z')
+  })
+})
+
+describe('buildTaskQuery', () => {
+  it('builds a VTODO filter without time range', () => {
+    const query = parse(buildTaskQuery())['c:calendar-query']
+    expect(query['d:prop']).toHaveProperty('c:calendar-data')
+    const vcalendar = query['c:filter']['c:comp-filter']
+    expect(vcalendar['@_name']).toBe('VCALENDAR')
+    expect(vcalendar['c:comp-filter']).toEqual({ '@_name': 'VTODO' })
   })
 })
 

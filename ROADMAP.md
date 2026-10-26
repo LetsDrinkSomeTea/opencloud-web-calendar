@@ -80,7 +80,7 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
   - iTIP delivery: **not possible with Radicale**, which has no CalDAV scheduling (RFC 6638) or
     iMIP. Invitations can be downloaded as `METHOD:REQUEST`; Radicale >= 3.5.5 can email
     attendees via its `email` hook (server configuration, see README)
-- [ ] Tasks (`VTODO`)
+- [x] Tasks (`VTODO`)
 - [ ] Incremental sync via `sync-token` / `sync-collection` and periodic refresh
 - [ ] Free/busy lookup
 - [x] Calendar export (`.ics`) and subscription URL

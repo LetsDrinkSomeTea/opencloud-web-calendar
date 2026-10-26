@@ -1,5 +1,9 @@
 import translations from '../l10n/translations.json'
-import { defineWebApplication } from '@opencloud-eu/web-pkg'
+import {
+  defineWebApplication,
+  type AppNavigationItem,
+  type GlobalProperties
+} from '@opencloud-eu/web-pkg'
 import '@opencloud-eu/extension-sdk/tailwind.css'
 import { RouteRecordRaw } from 'vue-router'
 import { useGettext } from 'vue3-gettext'
@@ -29,12 +33,41 @@ export default defineWebApplication({
           authContext: 'user',
           title: $gettext('Web Calendar')
         }
+      },
+      {
+        path: '/tasks',
+        // Namespaced by the runtime to `web-calendar-tasks`
+        name: 'tasks',
+        component: () => import('./views/Tasks.vue'),
+        meta: {
+          authContext: 'user',
+          title: $gettext('Tasks')
+        }
+      }
+    ]
+
+    // Shown by OpenCloud in the left sidebar (like Personal/Shares/Spaces in Files)
+    const navItems = ({ $router }: GlobalProperties): AppNavigationItem[] => [
+      {
+        name: () => $gettext('Calendar'),
+        icon: 'calendar',
+        route: { path: `/${appInfo.id}/` },
+        // `/web-calendar/` is a prefix of the tasks route as well
+        isActive: () => $router.currentRoute.value.name !== `${appInfo.id}-tasks`,
+        priority: 10
+      },
+      {
+        name: () => $gettext('Tasks'),
+        icon: 'checkbox-circle',
+        route: { path: `/${appInfo.id}/tasks` },
+        priority: 20
       }
     ]
 
     return {
       appInfo,
       routes,
+      navItems,
       translations,
       // App menu entry and the "Import into calendar" action for .ics files in the Files app
       extensions: useCalendarExtensions(appInfo)

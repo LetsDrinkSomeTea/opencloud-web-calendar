@@ -4,6 +4,7 @@ import {
   parseCurrentUserPrincipal,
   parseCalendarHomeSet,
   parseCalendars,
+  parseComponentSet,
   parseEvents
 } from '../../../src/caldav/xml-parser'
 import {
@@ -174,6 +175,45 @@ describe('parseCalendars', () => {
         </d:propstat>
       </d:response>`)
     expect(parseCalendars(xml)).toEqual([])
+  })
+})
+
+describe('supported-calendar-component-set', () => {
+  const calendar = (componentSet: string) =>
+    parseCalendars(
+      multistatus(`
+      <d:response>
+        <d:href>/caldav/alice/default/</d:href>
+        <d:propstat>
+          <d:prop>
+            <d:resourcetype><d:collection/><c:calendar xmlns:c="urn:ietf:params:xml:ns:caldav"/></d:resourcetype>
+            ${componentSet}
+          </d:prop>
+          <d:status>HTTP/1.1 200 OK</d:status>
+        </d:propstat>
+      </d:response>`)
+    )[0]
+
+  it('reads all advertised components (Radicale default calendar)', () => {
+    expect(
+      calendar(`<C:supported-calendar-component-set xmlns:C="urn:ietf:params:xml:ns:caldav">
+        <C:comp name="VEVENT"/><C:comp name="VJOURNAL"/><C:comp name="VTODO"/>
+      </C:supported-calendar-component-set>`).components
+    ).toEqual(['VEVENT', 'VJOURNAL', 'VTODO'])
+  })
+
+  it('reads a single component', () => {
+    expect(
+      calendar(`<C:supported-calendar-component-set xmlns:C="urn:ietf:params:xml:ns:caldav">
+        <C:comp name="vtodo"/>
+      </C:supported-calendar-component-set>`).components
+    ).toEqual(['VTODO'])
+  })
+
+  it('is undefined when not advertised', () => {
+    expect(calendar('').components).toBeUndefined()
+    expect(parseComponentSet('')).toBeUndefined()
+    expect(parseComponentSet({ comp: [{}] })).toBeUndefined()
   })
 })
 

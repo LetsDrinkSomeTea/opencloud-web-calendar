@@ -108,6 +108,7 @@ msgstr ""
 #: src/components/CalendarSidebar.vue:279
 #: src/components/CalendarSidebar.vue:285
 #: src/components/InviteJoinDialog.vue:58
+#: src/views/Tasks.vue:275
 msgid "Read only"
 msgstr ""
 
@@ -198,6 +199,7 @@ msgstr ""
 
 #: src/components/CalendarSidebar.vue:133
 #: src/components/EventDialog.vue:349
+#: src/index.ts:52
 msgid "Calendar"
 msgstr ""
 
@@ -217,6 +219,8 @@ msgstr ""
 
 #: src/components/CalendarSidebar.vue:167
 #: src/components/CalendarSidebar.vue:168
+#: src/views/Tasks.vue:188
+#: src/views/Tasks.vue:189
 msgid "Refresh"
 msgstr ""
 
@@ -358,6 +362,7 @@ msgstr ""
 
 #: src/components/EventAttendees.vue:252
 #: src/components/EventReminders.vue:174
+#: src/views/Tasks.vue:248
 msgid "Add"
 msgstr ""
 
@@ -440,6 +445,7 @@ msgid "Use server version"
 msgstr ""
 
 #: src/components/EventDialog.vue:338
+#: src/components/TaskDialog.vue:149
 msgid "Title"
 msgstr ""
 
@@ -532,6 +538,7 @@ msgid "Location suggestions"
 msgstr ""
 
 #: src/components/EventDialog.vue:574
+#: src/components/TaskDialog.vue:271
 msgid "Description"
 msgstr ""
 
@@ -545,6 +552,7 @@ msgstr ""
 
 #: src/components/EventDialog.vue:611
 #: src/views/Calendar.vue:456
+#: src/views/Tasks.vue:148
 msgid "Delete"
 msgstr ""
 
@@ -569,6 +577,7 @@ msgstr ""
 
 #: src/components/EventDialog.vue:643
 #: src/views/Calendar.vue:561
+#: src/views/Tasks.vue:129
 msgid "Save"
 msgstr ""
 
@@ -729,6 +738,7 @@ msgid "You have been invited to join the calendar \"%{name}\"."
 msgstr ""
 
 #: src/components/SearchResults.vue:55
+#: src/components/TaskDialog.vue:179
 msgid "All day"
 msgstr ""
 
@@ -764,7 +774,127 @@ msgid "The server search failed."
 msgstr ""
 
 #: src/components/SearchResults.vue:147
+#: src/components/TaskItem.vue:86
 msgid "(No title)"
+msgstr ""
+
+#: src/components/TaskDialog.vue:66
+msgid "None"
+msgstr ""
+
+#: src/components/TaskDialog.vue:67
+msgid "High"
+msgstr ""
+
+#: src/components/TaskDialog.vue:68
+msgid "Medium"
+msgstr ""
+
+#: src/components/TaskDialog.vue:69
+msgid "Low"
+msgstr ""
+
+#: src/components/TaskDialog.vue:73
+msgid "Needs action"
+msgstr ""
+
+#: src/components/TaskDialog.vue:74
+msgid "In progress"
+msgstr ""
+
+#: src/components/TaskDialog.vue:75
+msgid "Completed"
+msgstr ""
+
+#: src/components/TaskDialog.vue:76
+msgid "Cancelled"
+msgstr ""
+
+#: src/components/TaskDialog.vue:89
+msgid "The start must not be after the due date."
+msgstr ""
+
+#: src/components/TaskDialog.vue:150
+msgid "Task title"
+msgstr ""
+
+#: src/components/TaskDialog.vue:158
+#: src/views/Tasks.vue:235
+msgid "Task list"
+msgstr ""
+
+#: src/components/TaskDialog.vue:173
+msgid "This is a recurring task. Changes apply to all occurrences, the dates shown are those of the first occurrence."
+msgstr ""
+
+#: src/components/TaskDialog.vue:186
+msgid "Start date (optional)"
+msgstr ""
+
+#: src/components/TaskDialog.vue:190
+msgid "Start time"
+msgstr ""
+
+#: src/components/TaskDialog.vue:207
+#: src/views/Tasks.vue:228
+msgid "Due date (optional)"
+msgstr ""
+
+#: src/components/TaskDialog.vue:211
+msgid "Due time"
+msgstr ""
+
+#: src/components/TaskDialog.vue:231
+msgid "Priority"
+msgstr ""
+
+#: src/components/TaskDialog.vue:241
+msgid "Status"
+msgstr ""
+
+#: src/components/TaskDialog.vue:257
+msgid "Percent complete"
+msgstr ""
+
+#: src/components/TaskDialog.vue:263
+msgid "Categories"
+msgstr ""
+
+#: src/components/TaskDialog.vue:264
+msgid "Separate multiple categories with commas"
+msgstr ""
+
+#: src/components/TaskItem.vue:48
+msgid "High priority"
+msgstr ""
+
+#: src/components/TaskItem.vue:50
+msgid "Medium priority"
+msgstr ""
+
+#: src/components/TaskItem.vue:52
+msgid "Low priority"
+msgstr ""
+
+#: src/components/TaskItem.vue:68
+msgid "Completed: %{task}"
+msgstr ""
+
+#: src/components/TaskItem.vue:79
+msgid "Edit task: %{task}"
+msgstr ""
+
+#: src/components/TaskItem.vue:102
+msgid "overdue"
+msgstr ""
+
+#: src/components/TaskItem.vue:110
+msgid "Recurring"
+msgstr ""
+
+#: src/components/TaskItem.vue:127
+#: src/components/TaskItem.vue:128
+msgid "Delete task"
 msgstr ""
 
 #: src/composables/useCalendars.ts:236
@@ -835,14 +965,40 @@ msgstr ""
 msgid "Reminder: %{summary}"
 msgstr ""
 
+#: src/composables/useTasks.ts:95
+msgid "Failed to load tasks"
+msgstr ""
+
+#: src/composables/useTasks.ts:109
+msgid "Failed to create the task"
+msgstr ""
+
+#: src/composables/useTasks.ts:121
+msgid "Failed to save the task"
+msgstr ""
+
+#: src/composables/useTasks.ts:132
+msgid "Failed to update the task"
+msgstr ""
+
+#: src/composables/useTasks.ts:144
+msgid "Failed to delete the task"
+msgstr ""
+
 #: src/extensions.ts:44
 msgid "Import into calendar"
 msgstr ""
 
 #: src/extensions.ts:74
-#: src/index.ts:18
-#: src/index.ts:30
+#: src/index.ts:22
+#: src/index.ts:34
 msgid "Web Calendar"
+msgstr ""
+
+#: src/index.ts:44
+#: src/index.ts:60
+#: src/views/Tasks.vue:179
+msgid "Tasks"
 msgstr ""
 
 #: src/utils/alarm-label.ts:45
@@ -1018,6 +1174,7 @@ msgid "New Calendar"
 msgstr ""
 
 #: src/views/Calendar.vue:561
+#: src/views/Tasks.vue:129
 msgid "Create"
 msgstr ""
 
@@ -1035,4 +1192,52 @@ msgstr ""
 
 #: src/views/Calendar.vue:612
 msgid "Join Calendar"
+msgstr ""
+
+#: src/views/Tasks.vue:116
+msgid "Edit Task"
+msgstr ""
+
+#: src/views/Tasks.vue:116
+msgid "New Task"
+msgstr ""
+
+#: src/views/Tasks.vue:141
+msgid "Delete Task"
+msgstr ""
+
+#: src/views/Tasks.vue:143
+msgid "Are you sure you want to delete '%{name}'? All occurrences of this recurring task will be deleted."
+msgstr ""
+
+#: src/views/Tasks.vue:147
+msgid "Are you sure you want to delete '%{name}'?"
+msgstr ""
+
+#: src/views/Tasks.vue:184
+msgid "Show completed"
+msgstr ""
+
+#: src/views/Tasks.vue:203
+msgid "New task"
+msgstr ""
+
+#: src/views/Tasks.vue:220
+msgid "Add a task"
+msgstr ""
+
+#: src/views/Tasks.vue:221
+msgid "What needs to be done?"
+msgstr ""
+
+#: src/views/Tasks.vue:256
+msgid "No task lists found. Create a calendar to add tasks."
+msgstr ""
+
+#: src/views/Tasks.vue:295
+msgid "No tasks"
+msgstr ""
+
+#: src/views/Tasks.vue:295
+msgid "No open tasks"
 msgstr ""
