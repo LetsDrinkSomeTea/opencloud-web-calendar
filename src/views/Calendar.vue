@@ -19,15 +19,19 @@ import { useICSImport } from '../composables/useICSImport'
 import { useEventDialogs } from '../composables/useEventDialogs'
 import { useModalBinding } from '../composables/useModalBinding'
 import { useErrorMessage } from '../composables/useErrorMessage'
+import { useFileImport } from '../composables/useFileImport'
+import { downloadICS } from '../utils/download'
 import { getExtendedRange } from '../utils/date'
 import { getCalDAVClient } from '../caldav/client'
 import { useCalendarConfig, type CalendarViewType } from '../config'
 import {
   dateFromQuery,
   dateToQuery,
+  parseImportFileParams,
   parseJoinParams,
   viewFromQuery,
   viewToQuery,
+  withoutImportFileParams,
   withoutJoinParams
 } from '../utils/route-query'
 import type { Calendar, CalendarEvent } from '../types/calendar'
@@ -63,10 +67,17 @@ const { fetchEvents, getVisibleEvents, updateEventInCache } = useEvents()
 const { openCreate, openEdit } = useEventEditor()
 const {
   isOpen: calendarEditorOpen,
+  editingCalendar,
   open: openCalendarEditor,
   close: closeCalendarEditor
 } = useCalendarEditor()
-const { isOpen: importOpen, open: openImport, close: closeImport } = useICSImport()
+const {
+  isOpen: importOpen,
+  initialFile: importInitialFile,
+  open: openImport,
+  close: closeImport
+} = useICSImport()
+const { loadFile } = useFileImport()
 
 const sidebarOpen = ref(false)
 
@@ -136,6 +147,25 @@ function clearJoinUrlParams() {
   ])
 }
 
+// File id of an "Import into calendar" request from the Files app that was already handled but
+// may still be in the URL until the route update has finished
+let handledImportFileId: string | null = null
+
+async function checkImportFile() {
+  const params = parseImportFileParams(unref(route).query)
+  if (!params || params.fileId === handledImportFileId) return
+  handledImportFileId = params.fileId
+  replaceRoute((query, hash) => [withoutImportFileParams(query), hash])
+
+  try {
+    const file = await loadFile(params.fileId, params.name)
+    openImport(file)
+  } catch (e) {
+    console.error('Failed to load file for import:', e)
+    showError($gettext('Failed to load the calendar file'), e)
+  }
+}
+
 async function handleJoinCalendar() {
   if (!pendingJoinInvite.value) return
   try {
@@ -196,7 +226,9 @@ let initialLoadDone = false
 watch(
   () => [unref(route).query, unref(route).hash] as const,
   () => {
-    if (initialLoadDone && !pendingJoinInvite.value) checkJoinInvite()
+    if (!initialLoadDone) return
+    if (!pendingJoinInvite.value) checkJoinInvite()
+    checkImportFile()
   }
 )
 
@@ -206,6 +238,7 @@ onMounted(async () => {
   await loadEventsForCurrentRange()
   initialLoadDone = true
   checkJoinInvite()
+  checkImportFile()
 })
 
 watch(
@@ -342,6 +375,60 @@ function handleDeleteCalendar(calendarHref: string) {
   })
 }
 
+function handleEditCalendar(calendarHref: string) {
+  const calendar = calendars.value.find((c) => c.href === calendarHref)
+  if (calendar) {
+    openCalendarEditor(calendar)
+  }
+}
+
+async function handleExportCalendar(calendarHref: string) {
+  const calendar = calendars.value.find((c) => c.href === calendarHref)
+  if (!calendar) return
+  try {
+    const { ics, objectCount, skipped } = await getCalDAVClient().exportCalendar(calendar.href, {
+      displayName: calendar.displayName,
+      description: calendar.description,
+      color: calendar.color
+    })
+    downloadICS(ics, calendar.displayName)
+    if (skipped > 0) {
+      showMessage({
+        title: $gettext('Calendar exported'),
+        desc: $gettext('%{skipped} of %{total} entries could not be read and were left out.', {
+          skipped: String(skipped),
+          total: String(objectCount + skipped)
+        }),
+        status: 'warning'
+      })
+    }
+  } catch (err) {
+    console.error('Failed to export calendar:', err)
+    showError($gettext('Failed to export calendar'), err)
+  }
+}
+
+/** Absolute CalDAV URL of a calendar, for external clients (Thunderbird, DAVx5, Apple Calendar) */
+function subscriptionUrl(calendar: Calendar): string {
+  return new URL(calendar.href, window.location.origin).href
+}
+
+async function handleCopySubscriptionUrl(calendarHref: string) {
+  const calendar = calendars.value.find((c) => c.href === calendarHref)
+  if (!calendar) return
+  try {
+    await navigator.clipboard.writeText(subscriptionUrl(calendar))
+    showMessage({
+      title: $gettext('Subscription URL copied'),
+      desc: $gettext(
+        'Use it in your calendar app together with your user name and an app token as password.'
+      )
+    })
+  } catch (err) {
+    showError($gettext('Failed to copy the subscription URL'), err)
+  }
+}
+
 function handleShareCalendar(calendarHref: string) {
   const calendar = calendars.value.find((c) => c.href === calendarHref)
   if (calendar) {
@@ -371,14 +458,17 @@ useEventDialogs({
 
 useModalBinding({
   open: () => calendarEditorOpen.value,
-  title: () => $gettext('New Calendar'),
+  title: () =>
+    editingCalendar.value
+      ? $gettext('Edit calendar: %{name}', { name: editingCalendar.value.displayName })
+      : $gettext('New Calendar'),
   modal: () => ({
     customComponent: CalendarDialog,
     customComponentAttrs: () => ({
       calendarHomeUrl: calendarHomeUrl.value,
       onSaved: handleCalendarSaved
     }),
-    confirmText: $gettext('Create'),
+    confirmText: editingCalendar.value ? $gettext('Save') : $gettext('Create'),
     confirmDisabled: true,
     focusTrapInitial: '#calendar-name',
     onCancel: closeCalendarEditor
@@ -394,6 +484,7 @@ useModalBinding({
       calendars: calendars.value,
       calendarHomeUrl: calendarHomeUrl.value,
       defaultCalendar: getDefaultCalendar() || null,
+      initialFile: importInitialFile.value,
       onImported: handleImported
     }),
     // The footer buttons are rendered by the component, the import keeps the modal open
@@ -466,8 +557,11 @@ useModalBinding({
         :is-open="sidebarOpen"
         @toggle="handleToggleCalendar"
         @create="handleCreateCalendar"
+        @edit="handleEditCalendar"
         @delete="handleDeleteCalendar"
         @share="handleShareCalendar"
+        @export="handleExportCalendar"
+        @copy-url="handleCopySubscriptionUrl"
         @import="handleImportCalendar"
         @accept-share="acceptShare"
         @decline-share="declineShare"

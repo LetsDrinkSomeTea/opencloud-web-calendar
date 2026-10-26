@@ -28,12 +28,15 @@ const phase = ref<ImportPhase>('idle')
 const progress = ref({ current: 0, total: 0 })
 const report = ref<ImportReport | null>(null)
 const error = ref<string | null>(null)
+/** File handed over by the Files app ("Import into calendar"), preselected in the dialog */
+const initialFile = ref<File | null>(null)
 
 export function useICSImport() {
   const { $gettext } = useGettext()
   const client = getCalDAVClient()
 
-  function open() {
+  function open(file: File | null = null) {
+    initialFile.value = file
     phase.value = 'idle'
     progress.value = { current: 0, total: 0 }
     report.value = null
@@ -43,6 +46,7 @@ export function useICSImport() {
 
   function close() {
     isOpen.value = false
+    initialFile.value = null
     phase.value = 'idle'
     report.value = null
     error.value = null
@@ -142,6 +146,7 @@ export function useICSImport() {
     progress: readonly(progress),
     report: readonly(report),
     error: readonly(error),
+    initialFile: readonly(initialFile),
     open,
     close,
     importFile

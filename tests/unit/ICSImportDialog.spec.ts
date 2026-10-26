@@ -28,14 +28,15 @@ const calendars: Calendar[] = [
   { href: '/cal/work/', displayName: 'Work', color: '#ef4444', ctag: '', visible: true }
 ]
 
-function mountDialog(language = 'en') {
+function mountDialog(language = 'en', initialFile: File | null = null) {
   const { global } = globalMountOptions(language)
   return mount(ICSImportDialog, {
     props: {
       modal: { id: 'import', title: 'Import Calendar' },
       calendars,
       calendarHomeUrl: '/home/',
-      defaultCalendar: calendars[0]
+      defaultCalendar: calendars[0],
+      initialFile
     },
     attachTo: '#app',
     global
@@ -151,5 +152,44 @@ describe('InviteJoinDialog.vue', () => {
     expect(wrapper.text()).toContain('„Team“')
     expect(wrapper.text()).toContain('alice')
     expect(wrapper.text()).toContain('Lesen & Schreiben')
+  })
+})
+
+describe('ICSImportDialog.vue with a file from the Files app', () => {
+  it('preselects a file opened from the Files app', async () => {
+    const file = new File(['BEGIN:VCALENDAR'], 'team.ics', { type: 'text/calendar' })
+    const wrapper = mountDialog('en', file)
+    await nextTick()
+    await nextTick()
+
+    expect(document.querySelector('#web-calendar-import-initial-file').textContent).toContain(
+      'team.ics'
+    )
+    expect((document.querySelector('#import-cal-name') as HTMLInputElement).value).toBe('team')
+    expect(findButton('Import').disabled).toBe(false)
+
+    importFile.mockImplementation(async () => {
+      phase.value = 'done'
+    })
+    document.querySelector('form').dispatchEvent(new Event('submit'))
+    await nextTick()
+    await nextTick()
+    expect(importFile).toHaveBeenCalledWith(file, 'new-calendar', 'team', null, '/home/', [
+      ...calendars
+    ])
+    expect(wrapper.emitted('imported')).toHaveLength(1)
+  })
+
+  it('uses a file picked by the user instead of the preselected one', async () => {
+    mountDialog('en', new File(['BEGIN:VCALENDAR'], 'team.ics'))
+    await nextTick()
+    selectFile('other.ics')
+    await nextTick()
+    await nextTick()
+    expect(document.querySelector('#web-calendar-import-initial-file')).toBeNull()
+
+    document.querySelector('form').dispatchEvent(new Event('submit'))
+    await nextTick()
+    expect(importFile.mock.calls[0][0].name).toBe('other.ics')
   })
 })

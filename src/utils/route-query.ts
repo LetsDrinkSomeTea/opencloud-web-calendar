@@ -114,3 +114,29 @@ export function withoutJoinParams(query: LocationQuery): LocationQuery {
   }
   return result
 }
+
+/**
+ * Query parameters set by the "Import into calendar" action in the Files app
+ * (`/web-calendar/?importFile=<file id>&importName=<file name>`)
+ */
+export const IMPORT_FILE_QUERY_KEYS = ['importFile', 'importName'] as const
+
+export interface ImportFileParams {
+  fileId: string
+  name?: string
+}
+
+export function parseImportFileParams(query: LocationQuery): ImportFileParams | null {
+  const fileId = firstValue(query.importFile)
+  if (!fileId) return null
+  return { fileId, name: firstValue(query.importName) || undefined }
+}
+
+/** Returns a copy of the query without the import file parameters */
+export function withoutImportFileParams(query: LocationQuery): LocationQuery {
+  const result: LocationQuery = { ...query }
+  for (const key of IMPORT_FILE_QUERY_KEYS) {
+    delete result[key]
+  }
+  return result
+}
