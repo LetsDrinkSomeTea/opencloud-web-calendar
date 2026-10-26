@@ -46,13 +46,7 @@ const {
   userProfiles
 } = useCalendars()
 
-const {
-  fetchEvents,
-  getVisibleEvents,
-  addEvent,
-  updateEventInCache,
-  removeEvent
-} = useEvents()
+const { fetchEvents, getVisibleEvents, addEvent, updateEventInCache, removeEvent } = useEvents()
 
 const { openCreate, openEdit } = useEventEditor()
 const { open: openCalendarEditor } = useCalendarEditor()
@@ -394,11 +388,7 @@ async function handleImported() {
       />
     </div>
 
-    <EventDialog
-      :calendars="calendars"
-      @saved="handleEventSaved"
-      @deleted="handleEventDeleted"
-    />
+    <EventDialog :calendars="calendars" @saved="handleEventSaved" @deleted="handleEventDeleted" />
 
     <CalendarDialog :calendar-home-url="calendarHomeUrl" @saved="handleCalendarSaved" />
 
@@ -420,9 +410,17 @@ async function handleImported() {
     <ConfirmDialog
       :is-open="confirmAction?.isOpen || false"
       :title="confirmAction?.type === 'leave' ? t('Leave Calendar') : t('Delete Calendar')"
-      :message="confirmAction?.type === 'leave'
-        ? t(`Are you sure you want to leave '%{name}'? You will no longer have access to this calendar.`, { name: confirmAction?.calendarName || '' })
-        : t(`Are you sure you want to delete '%{name}'? All events in this calendar will be permanently deleted.`, { name: confirmAction?.calendarName || '' })"
+      :message="
+        confirmAction?.type === 'leave'
+          ? t(
+              `Are you sure you want to leave '%{name}'? You will no longer have access to this calendar.`,
+              { name: confirmAction?.calendarName || '' }
+            )
+          : t(
+              `Are you sure you want to delete '%{name}'? All events in this calendar will be permanently deleted.`,
+              { name: confirmAction?.calendarName || '' }
+            )
+      "
       :confirm-text="confirmAction?.type === 'leave' ? t('Leave') : t('Delete')"
       :confirm-danger="true"
       @confirm="confirmCalendarAction"
@@ -442,7 +440,12 @@ async function handleImported() {
       v-if="toastMessage"
       class="ext:fixed ext:bottom-6 ext:right-6 ext:z-50 ext:bg-gray-900/90 ext:text-white ext:px-4 ext:py-2.5 ext:rounded-lg ext:shadow-lg ext:text-sm ext:flex ext:items-center ext:gap-2 ext:backdrop-blur-sm"
     >
-      <svg class="ext:w-4 ext:h-4 ext:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg
+        class="ext:w-4 ext:h-4 ext:text-green-400"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
       </svg>
       <span>{{ toastMessage }}</span>
@@ -458,167 +461,167 @@ async function handleImported() {
    ============================================================ */
 
 /* --- Backgrounds --- */
-[data-calendar-theme="dark"] .ext\:bg-white {
+[data-calendar-theme='dark'] .ext\:bg-white {
   background-color: var(--oc-role-surface) !important;
 }
-[data-calendar-theme="dark"] .ext\:bg-gray-50 {
+[data-calendar-theme='dark'] .ext\:bg-gray-50 {
   background-color: var(--oc-role-surface-container) !important;
 }
-[data-calendar-theme="dark"] .ext\:bg-gray-100 {
+[data-calendar-theme='dark'] .ext\:bg-gray-100 {
   background-color: var(--oc-role-surface-container-high) !important;
 }
-[data-calendar-theme="dark"] .ext\:bg-gray-200 {
+[data-calendar-theme='dark'] .ext\:bg-gray-200 {
   background-color: var(--oc-role-surface-container-high) !important;
 }
-[data-calendar-theme="dark"] .hover\:ext\:bg-gray-50:hover {
+[data-calendar-theme='dark'] .hover\:ext\:bg-gray-50:hover {
   background-color: var(--oc-role-surface-container-high) !important;
 }
-[data-calendar-theme="dark"] .hover\:ext\:bg-gray-100:hover {
+[data-calendar-theme='dark'] .hover\:ext\:bg-gray-100:hover {
   background-color: var(--oc-role-surface-container-highest) !important;
 }
-[data-calendar-theme="dark"] .hover\:ext\:bg-gray-200:hover {
+[data-calendar-theme='dark'] .hover\:ext\:bg-gray-200:hover {
   background-color: var(--oc-role-surface-container-highest) !important;
 }
-[data-calendar-theme="dark"] .hover\:ext\:bg-gray-300:hover {
+[data-calendar-theme='dark'] .hover\:ext\:bg-gray-300:hover {
   background-color: var(--oc-role-surface-container-highest) !important;
 }
 
 /* --- Text colors --- */
-[data-calendar-theme="dark"] .ext\:text-gray-900 {
+[data-calendar-theme='dark'] .ext\:text-gray-900 {
   color: var(--oc-role-on-surface) !important;
 }
-[data-calendar-theme="dark"] .ext\:text-gray-700 {
+[data-calendar-theme='dark'] .ext\:text-gray-700 {
   color: var(--oc-role-on-surface-variant) !important;
 }
-[data-calendar-theme="dark"] .ext\:text-gray-600 {
+[data-calendar-theme='dark'] .ext\:text-gray-600 {
   color: var(--oc-role-outline) !important;
 }
-[data-calendar-theme="dark"] .ext\:text-gray-500 {
+[data-calendar-theme='dark'] .ext\:text-gray-500 {
   color: var(--oc-role-outline) !important;
 }
-[data-calendar-theme="dark"] .ext\:text-gray-400 {
+[data-calendar-theme='dark'] .ext\:text-gray-400 {
   color: var(--oc-role-outline) !important;
 }
-[data-calendar-theme="dark"] .hover\:ext\:text-gray-700:hover {
+[data-calendar-theme='dark'] .hover\:ext\:text-gray-700:hover {
   color: var(--oc-role-on-surface) !important;
 }
 
 /* --- Borders --- */
-[data-calendar-theme="dark"] .ext\:border-gray-200 {
+[data-calendar-theme='dark'] .ext\:border-gray-200 {
   border-color: var(--oc-role-outline-variant) !important;
 }
-[data-calendar-theme="dark"] .ext\:border-gray-300 {
+[data-calendar-theme='dark'] .ext\:border-gray-300 {
   border-color: var(--oc-role-outline-variant) !important;
 }
-[data-calendar-theme="dark"] .ext\:border-gray-900 {
+[data-calendar-theme='dark'] .ext\:border-gray-900 {
   border-color: var(--oc-role-on-surface) !important;
 }
-[data-calendar-theme="dark"] .ext\:border-b {
+[data-calendar-theme='dark'] .ext\:border-b {
   border-color: var(--oc-role-outline-variant);
 }
-[data-calendar-theme="dark"] .ext\:border-t {
+[data-calendar-theme='dark'] .ext\:border-t {
   border-color: var(--oc-role-outline-variant);
 }
-[data-calendar-theme="dark"] .ext\:border-r {
+[data-calendar-theme='dark'] .ext\:border-r {
   border-color: var(--oc-role-outline-variant);
 }
 
 /* --- Primary / Blue --- */
-[data-calendar-theme="dark"] .ext\:bg-blue-500 {
+[data-calendar-theme='dark'] .ext\:bg-blue-500 {
   background-color: var(--oc-role-primary) !important;
 }
-[data-calendar-theme="dark"] .ext\:bg-blue-600 {
+[data-calendar-theme='dark'] .ext\:bg-blue-600 {
   background-color: var(--oc-role-primary) !important;
 }
-[data-calendar-theme="dark"] .hover\:ext\:bg-blue-700:hover {
+[data-calendar-theme='dark'] .hover\:ext\:bg-blue-700:hover {
   background-color: var(--oc-role-primary-container) !important;
   color: var(--oc-role-on-primary-container) !important;
 }
-[data-calendar-theme="dark"] .ext\:text-blue-600 {
+[data-calendar-theme='dark'] .ext\:text-blue-600 {
   color: var(--oc-role-primary) !important;
 }
-[data-calendar-theme="dark"] .hover\:ext\:bg-blue-50:hover {
+[data-calendar-theme='dark'] .hover\:ext\:bg-blue-50:hover {
   background-color: var(--oc-role-primary-container) !important;
 }
-[data-calendar-theme="dark"] .ext\:border-blue-200 {
+[data-calendar-theme='dark'] .ext\:border-blue-200 {
   border-color: var(--oc-role-primary-container) !important;
 }
-[data-calendar-theme="dark"] .ext\:border-blue-600 {
+[data-calendar-theme='dark'] .ext\:border-blue-600 {
   border-color: var(--oc-role-primary) !important;
 }
-[data-calendar-theme="dark"] .ext\:bg-blue-600.ext\:text-white {
+[data-calendar-theme='dark'] .ext\:bg-blue-600.ext\:text-white {
   background-color: var(--oc-role-primary) !important;
   color: var(--oc-role-on-primary) !important;
 }
 
 /* --- Focus rings --- */
-[data-calendar-theme="dark"] .ext\:focus\:ring-blue-500:focus {
+[data-calendar-theme='dark'] .ext\:focus\:ring-blue-500:focus {
   --tw-ring-color: var(--oc-role-primary) !important;
 }
-[data-calendar-theme="dark"] .ext\:focus\:border-blue-500:focus {
+[data-calendar-theme='dark'] .ext\:focus\:border-blue-500:focus {
   border-color: var(--oc-role-primary) !important;
 }
 
 /* --- Error / Red --- */
-[data-calendar-theme="dark"] .ext\:text-red-600 {
+[data-calendar-theme='dark'] .ext\:text-red-600 {
   color: var(--oc-role-error) !important;
 }
-[data-calendar-theme="dark"] .hover\:ext\:text-red-600:hover {
+[data-calendar-theme='dark'] .hover\:ext\:text-red-600:hover {
   color: var(--oc-role-error) !important;
 }
-[data-calendar-theme="dark"] .hover\:ext\:text-red-800:hover {
+[data-calendar-theme='dark'] .hover\:ext\:text-red-800:hover {
   color: var(--oc-role-error) !important;
 }
-[data-calendar-theme="dark"] .ext\:bg-red-600 {
+[data-calendar-theme='dark'] .ext\:bg-red-600 {
   background-color: var(--oc-role-error-container) !important;
   color: var(--oc-role-on-error-container) !important;
 }
-[data-calendar-theme="dark"] .hover\:ext\:bg-red-700:hover {
+[data-calendar-theme='dark'] .hover\:ext\:bg-red-700:hover {
   background-color: var(--oc-role-error) !important;
 }
 
 /* --- Warning / Yellow (conflict resolution) --- */
-[data-calendar-theme="dark"] .ext\:bg-yellow-50 {
+[data-calendar-theme='dark'] .ext\:bg-yellow-50 {
   background-color: var(--oc-role-surface-container-high) !important;
 }
-[data-calendar-theme="dark"] .ext\:border-yellow-200 {
+[data-calendar-theme='dark'] .ext\:border-yellow-200 {
   border-color: var(--oc-role-outline-variant) !important;
 }
-[data-calendar-theme="dark"] .ext\:text-yellow-800 {
+[data-calendar-theme='dark'] .ext\:text-yellow-800 {
   color: var(--oc-role-on-surface) !important;
 }
-[data-calendar-theme="dark"] .ext\:bg-yellow-600 {
+[data-calendar-theme='dark'] .ext\:bg-yellow-600 {
   background-color: var(--oc-role-primary) !important;
 }
-[data-calendar-theme="dark"] .hover\:ext\:bg-yellow-700:hover {
+[data-calendar-theme='dark'] .hover\:ext\:bg-yellow-700:hover {
   background-color: var(--oc-role-primary-container) !important;
 }
 
 /* --- Inputs (inside dark theme) --- */
-[data-calendar-theme="dark"] input,
-[data-calendar-theme="dark"] select,
-[data-calendar-theme="dark"] textarea {
+[data-calendar-theme='dark'] input,
+[data-calendar-theme='dark'] select,
+[data-calendar-theme='dark'] textarea {
   background-color: var(--oc-role-surface-container-low) !important;
   color: var(--oc-role-on-surface) !important;
   border-color: var(--oc-role-outline-variant) !important;
 }
-[data-calendar-theme="dark"] input[type="checkbox"],
-[data-calendar-theme="dark"] input[type="radio"] {
+[data-calendar-theme='dark'] input[type='checkbox'],
+[data-calendar-theme='dark'] input[type='radio'] {
   background-color: var(--oc-role-surface-container-low) !important;
   accent-color: var(--oc-role-primary) !important;
 }
-[data-calendar-theme="dark"] input::placeholder,
-[data-calendar-theme="dark"] textarea::placeholder {
+[data-calendar-theme='dark'] input::placeholder,
+[data-calendar-theme='dark'] textarea::placeholder {
   color: var(--oc-role-outline) !important;
 }
-[data-calendar-theme="dark"] option {
+[data-calendar-theme='dark'] option {
   background-color: var(--oc-role-surface-container) !important;
   color: var(--oc-role-on-surface) !important;
 }
 
 /* --- Dialog shadows --- */
-[data-calendar-theme="dark"] .ext\:shadow-xl,
-[data-calendar-theme="dark"] .ext\:shadow-lg {
+[data-calendar-theme='dark'] .ext\:shadow-xl,
+[data-calendar-theme='dark'] .ext\:shadow-lg {
   --tw-shadow-color: rgba(0, 0, 0, 0.5) !important;
 }
 </style>

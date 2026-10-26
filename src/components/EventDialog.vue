@@ -127,7 +127,10 @@ const recurrenceUntil = computed({
   },
   set: (val: string) => {
     if (formData.value.recurrence && val) {
-      formData.value.recurrence = { ...formData.value.recurrence, until: new Date(val + 'T23:59:59') }
+      formData.value.recurrence = {
+        ...formData.value.recurrence,
+        until: new Date(val + 'T23:59:59')
+      }
     }
   }
 })
@@ -149,10 +152,11 @@ function isWeekdaySelected(day: string): boolean {
 function toggleWeekday(day: string) {
   if (!formData.value.recurrence) return
   const current = formData.value.recurrence.byDay || []
-  const newDays = current.includes(day)
-    ? current.filter((d) => d !== day)
-    : [...current, day]
-  formData.value.recurrence = { ...formData.value.recurrence, byDay: newDays.length > 0 ? newDays : undefined }
+  const newDays = current.includes(day) ? current.filter((d) => d !== day) : [...current, day]
+  formData.value.recurrence = {
+    ...formData.value.recurrence,
+    byDay: newDays.length > 0 ? newDays : undefined
+  }
 }
 
 const startDate = computed({
@@ -314,15 +318,25 @@ function handleExport() {
       class="ext:fixed ext:inset-0 ext:z-50 ext:flex ext:items-center ext:justify-center ext:bg-black/50"
       @click.self="handleClose"
     >
-      <div class="ext:bg-white ext:rounded-lg ext:shadow-xl ext:w-full ext:max-w-lg ext:mx-4 ext:max-h-[90vh] ext:flex ext:flex-col">
+      <div
+        class="ext:bg-white ext:rounded-lg ext:shadow-xl ext:w-full ext:max-w-lg ext:mx-4 ext:max-h-[90vh] ext:flex ext:flex-col"
+      >
         <!-- Header -->
-        <div class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-b ext:shrink-0">
+        <div
+          class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-b ext:shrink-0"
+        >
           <h2 class="ext:text-lg ext:font-semibold ext:text-gray-900">
             {{ isEditing ? t('Edit Event') : t('New Event') }}
-            <span v-if="editScope === 'single'" class="ext:text-sm ext:font-normal ext:text-gray-500">
+            <span
+              v-if="editScope === 'single'"
+              class="ext:text-sm ext:font-normal ext:text-gray-500"
+            >
               — {{ t('this occurrence') }}
             </span>
-            <span v-else-if="editScope === 'series'" class="ext:text-sm ext:font-normal ext:text-gray-500">
+            <span
+              v-else-if="editScope === 'series'"
+              class="ext:text-sm ext:font-normal ext:text-gray-500"
+            >
               — {{ t('entire series') }}
             </span>
           </h2>
@@ -332,13 +346,21 @@ function handleExport() {
             @click="handleClose"
           >
             <svg class="ext:w-6 ext:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
 
         <!-- Conflict Warning -->
-        <div v-if="conflictData" class="ext:px-6 ext:py-4 ext:bg-yellow-50 ext:border-b ext:border-yellow-200 ext:shrink-0">
+        <div
+          v-if="conflictData"
+          class="ext:px-6 ext:py-4 ext:bg-yellow-50 ext:border-b ext:border-yellow-200 ext:shrink-0"
+        >
           <p class="ext:text-sm ext:text-yellow-800 ext:mb-3">
             {{ t('This event was modified by another client. Choose how to resolve:') }}
           </p>
@@ -361,10 +383,16 @@ function handleExport() {
         </div>
 
         <!-- Form (scrollable) -->
-        <form class="ext:px-6 ext:py-4 ext:space-y-4 ext:overflow-y-auto ext:flex-1" @submit.prevent="handleSave">
+        <form
+          class="ext:px-6 ext:py-4 ext:space-y-4 ext:overflow-y-auto ext:flex-1"
+          @submit.prevent="handleSave"
+        >
           <!-- Title -->
           <div>
-            <label for="event-title" class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
+            <label
+              for="event-title"
+              class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
+            >
               {{ t('Title') }}
             </label>
             <input
@@ -379,7 +407,10 @@ function handleExport() {
 
           <!-- Calendar (only for new events) -->
           <div v-if="!isEditing">
-            <label for="event-calendar" class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
+            <label
+              for="event-calendar"
+              class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
+            >
               {{ t('Calendar') }}
             </label>
             <select
@@ -407,9 +438,16 @@ function handleExport() {
           </div>
 
           <!-- Start -->
-          <div :class="formData.allDay ? 'ext:grid ext:grid-cols-1' : 'ext:grid ext:grid-cols-2 ext:gap-4'">
+          <div
+            :class="
+              formData.allDay ? 'ext:grid ext:grid-cols-1' : 'ext:grid ext:grid-cols-2 ext:gap-4'
+            "
+          >
             <div>
-              <label for="event-start-date" class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
+              <label
+                for="event-start-date"
+                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
+              >
                 {{ t('Start Date') }}
               </label>
               <input
@@ -421,7 +459,10 @@ function handleExport() {
               />
             </div>
             <div v-if="!formData.allDay">
-              <label for="event-start-time" class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
+              <label
+                for="event-start-time"
+                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
+              >
                 {{ t('Start Time') }}
               </label>
               <input
@@ -435,9 +476,16 @@ function handleExport() {
           </div>
 
           <!-- End -->
-          <div :class="formData.allDay ? 'ext:grid ext:grid-cols-1' : 'ext:grid ext:grid-cols-2 ext:gap-4'">
+          <div
+            :class="
+              formData.allDay ? 'ext:grid ext:grid-cols-1' : 'ext:grid ext:grid-cols-2 ext:gap-4'
+            "
+          >
             <div>
-              <label for="event-end-date" class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
+              <label
+                for="event-end-date"
+                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
+              >
                 {{ t('End Date') }}
               </label>
               <input
@@ -449,7 +497,10 @@ function handleExport() {
               />
             </div>
             <div v-if="!formData.allDay">
-              <label for="event-end-time" class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
+              <label
+                for="event-end-time"
+                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
+              >
                 {{ t('End Time') }}
               </label>
               <input
@@ -476,7 +527,10 @@ function handleExport() {
               </label>
             </div>
 
-            <div v-if="hasRecurrence" class="ext:pl-6 ext:space-y-3 ext:border-l-2 ext:border-blue-200">
+            <div
+              v-if="hasRecurrence"
+              class="ext:pl-6 ext:space-y-3 ext:border-l-2 ext:border-blue-200"
+            >
               <!-- Frequency + Interval -->
               <div class="ext:flex ext:items-center ext:gap-2">
                 <label class="ext:text-sm ext:text-gray-700">{{ t('Every') }}</label>
@@ -505,9 +559,11 @@ function handleExport() {
                   :key="day.value"
                   type="button"
                   class="ext:px-2 ext:py-1 ext:text-xs ext:rounded ext:border ext:transition-colors"
-                  :class="isWeekdaySelected(day.value)
-                    ? 'ext:bg-blue-600 ext:text-white ext:border-blue-600'
-                    : 'ext:bg-white ext:text-gray-700 ext:border-gray-300 hover:ext:bg-gray-100'"
+                  :class="
+                    isWeekdaySelected(day.value)
+                      ? 'ext:bg-blue-600 ext:text-white ext:border-blue-600'
+                      : 'ext:bg-white ext:text-gray-700 ext:border-gray-300 hover:ext:bg-gray-100'
+                  "
                   @click="toggleWeekday(day.value)"
                 >
                   {{ t(day.label) }}
@@ -526,7 +582,9 @@ function handleExport() {
                     value="never"
                     class="ext:w-4 ext:h-4"
                   />
-                  <label for="end-never" class="ext:text-sm ext:text-gray-900">{{ t('Never') }}</label>
+                  <label for="end-never" class="ext:text-sm ext:text-gray-900">{{
+                    t('Never')
+                  }}</label>
                 </div>
 
                 <div class="ext:flex ext:items-center ext:gap-2">
@@ -537,7 +595,9 @@ function handleExport() {
                     value="count"
                     class="ext:w-4 ext:h-4"
                   />
-                  <label for="end-count" class="ext:text-sm ext:text-gray-900">{{ t('After') }}</label>
+                  <label for="end-count" class="ext:text-sm ext:text-gray-900">{{
+                    t('After')
+                  }}</label>
                   <input
                     v-model.number="recurrenceCount"
                     type="number"
@@ -571,7 +631,10 @@ function handleExport() {
 
           <!-- Location -->
           <div class="ext:relative">
-            <label for="event-location" class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
+            <label
+              for="event-location"
+              class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
+            >
               {{ t('Location') }}
             </label>
             <div class="ext:relative">
@@ -585,9 +648,25 @@ function handleExport() {
                 @blur="handleLocationBlur"
               />
               <div v-if="searchingLocation" class="ext:absolute ext:right-3 ext:top-2.5">
-                <svg class="ext:animate-spin ext:h-4 ext:w-4 ext:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle class="ext:opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="ext:opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  class="ext:animate-spin ext:h-4 ext:w-4 ext:text-gray-400"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    class="ext:opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle>
+                  <path
+                    class="ext:opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
               </div>
             </div>
@@ -611,7 +690,10 @@ function handleExport() {
 
           <!-- Description -->
           <div>
-            <label for="event-description" class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
+            <label
+              for="event-description"
+              class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
+            >
               {{ t('Description') }}
             </label>
             <textarea
@@ -630,7 +712,9 @@ function handleExport() {
         </form>
 
         <!-- Footer -->
-        <div class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-t ext:bg-gray-50 ext:shrink-0">
+        <div
+          class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-t ext:bg-gray-50 ext:shrink-0"
+        >
           <div class="ext:flex ext:items-center ext:gap-2">
             <button
               v-if="isEditing"
@@ -645,11 +729,20 @@ function handleExport() {
               v-if="isEditing"
               type="button"
               class="ext:flex ext:items-center ext:gap-1.5 ext:px-3 ext:py-2 ext:text-sm ext:text-gray-600 ext:rounded ext:border ext:border-gray-300 hover:ext:bg-gray-100"
-              :title="editScope === 'single' ? t('Download this occurrence as .ics') : t('Download as .ics')"
+              :title="
+                editScope === 'single'
+                  ? t('Download this occurrence as .ics')
+                  : t('Download as .ics')
+              "
               @click="handleExport"
             >
               <svg class="ext:w-4 ext:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                />
               </svg>
               <span>.ics</span>
             </button>
@@ -666,7 +759,11 @@ function handleExport() {
             <button
               type="button"
               class="ext:px-4 ext:py-2 ext:text-sm ext:rounded"
-              :class="(saving || !formData.summary || !formData.summary.trim()) ? 'ext:bg-gray-300 ext:text-gray-500 ext:cursor-not-allowed' : 'ext:bg-blue-600 ext:text-white hover:ext:bg-blue-700'"
+              :class="
+                saving || !formData.summary || !formData.summary.trim()
+                  ? 'ext:bg-gray-300 ext:text-gray-500 ext:cursor-not-allowed'
+                  : 'ext:bg-blue-600 ext:text-white hover:ext:bg-blue-700'
+              "
               :disabled="saving || !formData.summary || !formData.summary.trim()"
               @click="handleSave"
             >

@@ -35,7 +35,11 @@ export interface ShareInfo {
 
 const SHARING_BASE = '/caldav/.sharing/v1'
 
-async function sharingRequest<T>(hook: string, type: ShareType = 'all', data: any = {}): Promise<T> {
+async function sharingRequest<T>(
+  hook: string,
+  type: ShareType = 'all',
+  data: any = {}
+): Promise<T> {
   const url = `${SHARING_BASE}/${type}/${hook}`
   const response = await authenticatedFetch(url, {
     method: 'POST',
@@ -68,7 +72,10 @@ export async function getSharingInfo(): Promise<ShareInfo> {
   return await sharingRequest<ShareInfo>('info', 'all')
 }
 
-export async function listShares(type: ShareType = 'all', filter: { PathOrToken?: string; PathMapped?: string } = {}): Promise<Share[]> {
+export async function listShares(
+  type: ShareType = 'all',
+  filter: { PathOrToken?: string; PathMapped?: string } = {}
+): Promise<Share[]> {
   const result = await sharingRequest<{ Content: Share[] }>('list', type, filter)
   return result.Content || []
 }

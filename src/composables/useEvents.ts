@@ -57,9 +57,7 @@ export function useEvents() {
   function removeEvent(uid: string, recurrenceId?: string): void {
     if (recurrenceId) {
       // Remove a specific occurrence
-      events.value = events.value.filter(
-        (e) => !(e.uid === uid && e.recurrenceId === recurrenceId)
-      )
+      events.value = events.value.filter((e) => !(e.uid === uid && e.recurrenceId === recurrenceId))
     } else {
       // Remove all instances of this UID
       events.value = events.value.filter((e) => e.uid !== uid)

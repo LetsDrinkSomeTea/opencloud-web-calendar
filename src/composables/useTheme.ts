@@ -12,10 +12,7 @@ function detectTheme(): boolean {
 }
 
 function applyThemeAttribute() {
-  document.documentElement.setAttribute(
-    'data-calendar-theme',
-    isDark.value ? 'dark' : 'light'
-  )
+  document.documentElement.setAttribute('data-calendar-theme', isDark.value ? 'dark' : 'light')
 }
 
 export function useTheme() {

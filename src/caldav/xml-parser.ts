@@ -97,7 +97,8 @@ export function parseCalendars(xml: string): CalendarData[] {
       if (prop['calendar-color'] !== undefined) color = prop['calendar-color']
       if (prop['getctag'] !== undefined) ctag = prop['getctag']
       if (prop['calendar-description'] !== undefined) description = prop['calendar-description']
-      if (prop['current-user-privilege-set'] !== undefined) privileges = prop['current-user-privilege-set']
+      if (prop['current-user-privilege-set'] !== undefined)
+        privileges = prop['current-user-privilege-set']
     }
 
     if (!foundCalendar) continue

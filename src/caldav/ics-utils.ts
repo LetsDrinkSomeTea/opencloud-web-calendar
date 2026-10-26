@@ -1,10 +1,5 @@
 import ICAL from 'ical.js'
-import type {
-  CalendarEvent,
-  EventFormData,
-  DateRange,
-  RecurrenceFormData
-} from '../types/calendar'
+import type { CalendarEvent, EventFormData, DateRange, RecurrenceFormData } from '../types/calendar'
 
 /**
  * Parse an ICS string and return one or more CalendarEvent objects.
@@ -349,10 +344,7 @@ export function addExceptionToICS(
     const masterEvent = new ICAL.Event(masterVevent)
 
     excVevent.addPropertyWithValue('uid', masterEvent.uid)
-    excVevent.addPropertyWithValue(
-      'dtstamp',
-      ICAL.Time.fromJSDate(new Date(), false)
-    )
+    excVevent.addPropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), false))
 
     // Set RECURRENCE-ID
     const recIdProp = excVevent.addPropertyWithValue('recurrence-id', recIdTime)
@@ -379,10 +371,7 @@ export function addExceptionToICS(
         'dtstart',
         ICAL.Time.fromJSDate(exceptionFormData.start, false)
       )
-      excVevent.addPropertyWithValue(
-        'dtend',
-        ICAL.Time.fromJSDate(exceptionFormData.end, false)
-      )
+      excVevent.addPropertyWithValue('dtend', ICAL.Time.fromJSDate(exceptionFormData.end, false))
     }
 
     excVevent.addPropertyWithValue('summary', exceptionFormData.summary)
@@ -450,14 +439,8 @@ export function updateSeriesICS(icsData: string, formData: EventFormData): strin
     masterVevent.updatePropertyWithValue('dtstart', startTime)
     masterVevent.updatePropertyWithValue('dtend', endTime)
   } else {
-    masterVevent.updatePropertyWithValue(
-      'dtstart',
-      ICAL.Time.fromJSDate(formData.start, false)
-    )
-    masterVevent.updatePropertyWithValue(
-      'dtend',
-      ICAL.Time.fromJSDate(formData.end, false)
-    )
+    masterVevent.updatePropertyWithValue('dtstart', ICAL.Time.fromJSDate(formData.start, false))
+    masterVevent.updatePropertyWithValue('dtend', ICAL.Time.fromJSDate(formData.end, false))
   }
 
   // Update RRULE
@@ -468,10 +451,7 @@ export function updateSeriesICS(icsData: string, formData: EventFormData): strin
   }
 
   // Update DTSTAMP
-  masterVevent.updatePropertyWithValue(
-    'dtstamp',
-    ICAL.Time.fromJSDate(new Date(), false)
-  )
+  masterVevent.updatePropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), false))
 
   return comp.toString()
 }
@@ -483,7 +463,10 @@ export function generateUID(): string {
 }
 
 function formatICALDateTime(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  return date
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '')
 }
 
 function formatICALDate(date: Date): string {

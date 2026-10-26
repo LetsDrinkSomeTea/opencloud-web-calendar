@@ -14,16 +14,7 @@ const emit = defineEmits<{
   imported: []
 }>()
 
-const {
-  isOpen,
-  phase,
-  progress,
-  report,
-  error,
-  open,
-  close,
-  importFile
-} = useICSImport()
+const { isOpen, phase, progress, report, error, open, close, importFile } = useICSImport()
 
 const selectedFile = ref<File | null>(null)
 const importMode = ref<ImportMode>('new-calendar')
@@ -107,9 +98,13 @@ defineExpose({ open })
       class="ext:fixed ext:inset-0 ext:z-50 ext:flex ext:items-center ext:justify-center ext:bg-black/50"
       @click.self="handleClose"
     >
-      <div class="ext:bg-white ext:rounded-lg ext:shadow-xl ext:w-full ext:max-w-lg ext:mx-4 ext:max-h-[90vh] ext:flex ext:flex-col">
+      <div
+        class="ext:bg-white ext:rounded-lg ext:shadow-xl ext:w-full ext:max-w-lg ext:mx-4 ext:max-h-[90vh] ext:flex ext:flex-col"
+      >
         <!-- Header -->
-        <div class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-b ext:shrink-0">
+        <div
+          class="ext:flex ext:items-center ext:justify-between ext:px-6 ext:py-4 ext:border-b ext:shrink-0"
+        >
           <h2 class="ext:text-lg ext:font-semibold ext:text-gray-900">
             {{ t('Import Calendar') }}
           </h2>
@@ -119,14 +114,18 @@ defineExpose({ open })
             @click="handleClose"
           >
             <svg class="ext:w-6 ext:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
 
         <!-- Content -->
         <div class="ext:px-6 ext:py-4 ext:space-y-4 ext:overflow-y-auto ext:flex-1">
-
           <!-- Phase: idle / error — show form -->
           <template v-if="phase === 'idle' || phase === 'error'">
             <!-- File picker -->
@@ -138,10 +137,7 @@ defineExpose({ open })
                 ref="fileInputRef"
                 type="file"
                 accept=".ics,text/calendar"
-                class="ext:w-full ext:text-sm ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:p-2
-                       file:ext:mr-3 file:ext:py-1 file:ext:px-3 file:ext:rounded file:ext:border-0
-                       file:ext:text-sm file:ext:font-medium file:ext:bg-blue-600 file:ext:text-white
-                       file:ext:cursor-pointer hover:file:ext:bg-blue-700"
+                class="ext:w-full ext:text-sm ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:p-2 file:ext:mr-3 file:ext:py-1 file:ext:px-3 file:ext:rounded file:ext:border-0 file:ext:text-sm file:ext:font-medium file:ext:bg-blue-600 file:ext:text-white file:ext:cursor-pointer hover:file:ext:bg-blue-700"
                 @change="handleFileSelect"
               />
               <p v-if="selectedFile" class="ext:mt-1 ext:text-xs ext:text-gray-500">
@@ -183,21 +179,24 @@ defineExpose({ open })
 
             <!-- Calendar selector (merge mode) -->
             <div v-if="importMode === 'merge'">
-              <label for="merge-target" class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
+              <label
+                for="merge-target"
+                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
+              >
                 {{ t('Target calendar') }}
               </label>
               <select
                 id="merge-target"
                 :value="selectedMergeCalendar?.href ?? ''"
                 class="ext:w-full ext:px-3 ext:py-2 ext:text-gray-900 ext:border ext:border-gray-300 ext:rounded ext:focus:ring-2 ext:focus:ring-blue-500 ext:focus:border-blue-500 ext:bg-white"
-                @change="selectedMergeCalendar = calendars.find(c => c.href === ($event.target as HTMLSelectElement).value) ?? null"
+                @change="
+                  selectedMergeCalendar =
+                    calendars.find((c) => c.href === ($event.target as HTMLSelectElement).value) ??
+                    null
+                "
               >
                 <option value="" disabled>{{ t('Select calendar') }}</option>
-                <option
-                  v-for="cal in calendars"
-                  :key="cal.href"
-                  :value="cal.href"
-                >
+                <option v-for="cal in calendars" :key="cal.href" :value="cal.href">
                   {{ cal.displayName }}
                 </option>
               </select>
@@ -205,7 +204,10 @@ defineExpose({ open })
 
             <!-- Calendar name (new calendar mode) -->
             <div v-if="importMode === 'new-calendar'">
-              <label for="import-cal-name" class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1">
+              <label
+                for="import-cal-name"
+                class="ext:block ext:text-sm ext:font-medium ext:text-gray-700 ext:mb-1"
+              >
                 {{ t('Calendar Name') }}
               </label>
               <input
@@ -219,18 +221,30 @@ defineExpose({ open })
             </div>
 
             <!-- Error display -->
-            <div v-if="error" class="ext:p-3 ext:bg-red-50 ext:border ext:border-red-200 ext:rounded">
+            <div
+              v-if="error"
+              class="ext:p-3 ext:bg-red-50 ext:border ext:border-red-200 ext:rounded"
+            >
               <p class="ext:text-sm ext:text-red-600 ext:whitespace-pre-line">{{ error }}</p>
             </div>
           </template>
 
           <!-- Phase: reading/parsing/analyzing/importing — show progress -->
-          <template v-if="phase === 'reading' || phase === 'parsing' || phase === 'analyzing' || phase === 'importing'">
+          <template
+            v-if="
+              phase === 'reading' ||
+              phase === 'parsing' ||
+              phase === 'analyzing' ||
+              phase === 'importing'
+            "
+          >
             <div class="ext:space-y-3">
               <p class="ext:text-sm ext:text-gray-700">
                 <template v-if="phase === 'reading'">{{ t('Reading file...') }}</template>
                 <template v-else-if="phase === 'parsing'">{{ t('Parsing events...') }}</template>
-                <template v-else-if="phase === 'analyzing'">{{ t('Analyzing for duplicates...') }}</template>
+                <template v-else-if="phase === 'analyzing'">{{
+                  t('Analyzing for duplicates...')
+                }}</template>
                 <template v-else-if="phase === 'importing'">
                   {{ t('Importing events...') }} ({{ progress.current }}/{{ progress.total }})
                 </template>
@@ -251,30 +265,55 @@ defineExpose({ open })
               <!-- Summary -->
               <div class="ext:grid ext:grid-cols-2 ext:gap-2">
                 <div class="ext:p-3 ext:bg-green-50 ext:rounded ext:text-center">
-                  <div class="ext:text-2xl ext:font-bold ext:text-green-700">{{ report.created }}</div>
+                  <div class="ext:text-2xl ext:font-bold ext:text-green-700">
+                    {{ report.created }}
+                  </div>
                   <div class="ext:text-xs ext:text-green-600">{{ t('Created') }}</div>
                 </div>
-                <div v-if="report.mode === 'merge'" class="ext:p-3 ext:bg-blue-50 ext:rounded ext:text-center">
-                  <div class="ext:text-2xl ext:font-bold ext:text-blue-700">{{ report.updated }}</div>
+                <div
+                  v-if="report.mode === 'merge'"
+                  class="ext:p-3 ext:bg-blue-50 ext:rounded ext:text-center"
+                >
+                  <div class="ext:text-2xl ext:font-bold ext:text-blue-700">
+                    {{ report.updated }}
+                  </div>
                   <div class="ext:text-xs ext:text-blue-600">{{ t('Updated') }}</div>
                 </div>
-                <div v-if="report.skipped > 0" class="ext:p-3 ext:bg-gray-100 ext:rounded ext:text-center">
-                  <div class="ext:text-2xl ext:font-bold ext:text-gray-700">{{ report.skipped }}</div>
+                <div
+                  v-if="report.skipped > 0"
+                  class="ext:p-3 ext:bg-gray-100 ext:rounded ext:text-center"
+                >
+                  <div class="ext:text-2xl ext:font-bold ext:text-gray-700">
+                    {{ report.skipped }}
+                  </div>
                   <div class="ext:text-xs ext:text-gray-600">{{ t('Skipped') }}</div>
                 </div>
-                <div v-if="report.failed > 0" class="ext:p-3 ext:bg-red-50 ext:rounded ext:text-center">
+                <div
+                  v-if="report.failed > 0"
+                  class="ext:p-3 ext:bg-red-50 ext:rounded ext:text-center"
+                >
                   <div class="ext:text-2xl ext:font-bold ext:text-red-700">{{ report.failed }}</div>
                   <div class="ext:text-xs ext:text-red-600">{{ t('Failed') }}</div>
                 </div>
               </div>
 
               <p class="ext:text-sm ext:text-gray-600">
-                {{ t('Imported %{count} events into "%{name}"', { count: String(report.created + report.updated), name: report.calendarName }) }}
+                {{
+                  t('Imported %{count} events into "%{name}"', {
+                    count: String(report.created + report.updated),
+                    name: report.calendarName
+                  })
+                }}
               </p>
 
               <!-- Parse errors -->
-              <div v-if="report.errors.length > 0" class="ext:p-3 ext:bg-yellow-50 ext:rounded ext:border ext:border-yellow-200">
-                <p class="ext:text-sm ext:font-medium ext:text-yellow-800 ext:mb-1">{{ t('Parse warnings') }}</p>
+              <div
+                v-if="report.errors.length > 0"
+                class="ext:p-3 ext:bg-yellow-50 ext:rounded ext:border ext:border-yellow-200"
+              >
+                <p class="ext:text-sm ext:font-medium ext:text-yellow-800 ext:mb-1">
+                  {{ t('Parse warnings') }}
+                </p>
                 <ul class="ext:text-xs ext:text-yellow-700 ext:space-y-0.5">
                   <li v-for="(err, i) in report.errors" :key="i">{{ err }}</li>
                 </ul>
@@ -291,7 +330,10 @@ defineExpose({ open })
               </button>
 
               <!-- Detailed results -->
-              <div v-if="showDetails" class="ext:max-h-48 ext:overflow-y-auto ext:border ext:border-gray-200 ext:rounded">
+              <div
+                v-if="showDetails"
+                class="ext:max-h-48 ext:overflow-y-auto ext:border ext:border-gray-200 ext:rounded"
+              >
                 <table class="ext:w-full ext:text-xs">
                   <tbody>
                     <tr
@@ -312,10 +354,15 @@ defineExpose({ open })
                           {{ result.type }}
                         </span>
                       </td>
-                      <td class="ext:px-2 ext:py-1 ext:text-gray-900 ext:truncate ext:max-w-[200px]">
+                      <td
+                        class="ext:px-2 ext:py-1 ext:text-gray-900 ext:truncate ext:max-w-[200px]"
+                      >
                         {{ result.summary }}
                       </td>
-                      <td v-if="'reason' in result || 'error' in result" class="ext:px-2 ext:py-1 ext:text-gray-500">
+                      <td
+                        v-if="'reason' in result || 'error' in result"
+                        class="ext:px-2 ext:py-1 ext:text-gray-500"
+                      >
                         {{ 'reason' in result ? result.reason : '' }}
                         {{ 'error' in result ? result.error : '' }}
                       </td>
@@ -328,7 +375,9 @@ defineExpose({ open })
         </div>
 
         <!-- Footer -->
-        <div class="ext:flex ext:items-center ext:justify-end ext:gap-3 ext:px-6 ext:py-4 ext:border-t ext:bg-gray-50 ext:shrink-0">
+        <div
+          class="ext:flex ext:items-center ext:justify-end ext:gap-3 ext:px-6 ext:py-4 ext:border-t ext:bg-gray-50 ext:shrink-0"
+        >
           <template v-if="phase === 'idle' || phase === 'error'">
             <button
               type="button"
@@ -340,7 +389,11 @@ defineExpose({ open })
             <button
               type="button"
               class="ext:px-4 ext:py-2 ext:text-sm ext:rounded"
-              :class="(!canImport) ? 'ext:bg-gray-300 ext:text-gray-500 ext:cursor-not-allowed' : 'ext:bg-blue-600 ext:text-white hover:ext:bg-blue-700'"
+              :class="
+                !canImport
+                  ? 'ext:bg-gray-300 ext:text-gray-500 ext:cursor-not-allowed'
+                  : 'ext:bg-blue-600 ext:text-white hover:ext:bg-blue-700'
+              "
               :disabled="!canImport"
               @click="handleImport"
             >

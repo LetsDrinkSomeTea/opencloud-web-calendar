@@ -4,7 +4,14 @@ import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import type { CalendarOptions, EventInput, EventClickArg, DateSelectArg, EventDropArg, DatesSetArg } from '@fullcalendar/core'
+import type {
+  CalendarOptions,
+  EventInput,
+  EventClickArg,
+  DateSelectArg,
+  EventDropArg,
+  DatesSetArg
+} from '@fullcalendar/core'
 import type { EventResizeDoneArg } from '@fullcalendar/interaction'
 import type { CalendarEvent, Calendar } from '../types/calendar'
 import { getFullCalendarLocale } from '../composables/useLanguage'
@@ -37,7 +44,7 @@ const calendarColorMap = computed(() => {
 
 const fullCalendarEvents = computed<EventInput[]>(() => {
   return props.events.map((event) => {
-    const calendar = props.calendars.find(c => c.href === event.calendarHref)
+    const calendar = props.calendars.find((c) => c.href === event.calendarHref)
     const isReadOnly = calendar?.readOnly || false
 
     return {

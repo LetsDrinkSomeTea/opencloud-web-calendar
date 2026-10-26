@@ -35,7 +35,9 @@ const emit = defineEmits<{
     <div class="ext:p-4">
       <!-- Pending Shares Section -->
       <div v-if="pendingShares && pendingShares.length > 0" class="ext:mb-6">
-        <h3 class="ext:text-xs ext:font-semibold ext:text-gray-500 ext:uppercase ext:tracking-wider ext:mb-2">
+        <h3
+          class="ext:text-xs ext:font-semibold ext:text-gray-500 ext:uppercase ext:tracking-wider ext:mb-2"
+        >
           {{ t('Pending Invitations') }}
         </h3>
         <ul class="ext:space-y-2">
@@ -45,7 +47,10 @@ const emit = defineEmits<{
             class="ext:p-2 ext:bg-white ext:border ext:border-yellow-200 ext:rounded-md ext:shadow-sm"
           >
             <div class="ext:text-sm font-medium ext:text-gray-900 ext:truncate ext:mb-1">
-              {{ share.PathOrToken.split('/').filter(Boolean).pop()?.replace('-shared', '') || t('Calendar') }}
+              {{
+                share.PathOrToken.split('/').filter(Boolean).pop()?.replace('-shared', '') ||
+                t('Calendar')
+              }}
             </div>
             <div class="ext:text-xs ext:text-gray-500 ext:truncate ext:mb-2">
               {{ t('From:') }} {{ userProfiles?.[share.Owner] || share.Owner }}
@@ -89,7 +94,12 @@ const emit = defineEmits<{
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
           </button>
           <button
@@ -99,7 +109,12 @@ const emit = defineEmits<{
             @click="emit('import')"
           >
             <svg class="ext:w-5 ext:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              />
             </svg>
           </button>
           <button
@@ -109,7 +124,12 @@ const emit = defineEmits<{
             @click="emit('create')"
           >
             <svg class="ext:w-5 ext:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v16m8-8H4"
+              />
             </svg>
           </button>
         </div>
@@ -157,7 +177,12 @@ const emit = defineEmits<{
                 @click.stop="emit('share', calendar.href)"
               >
                 <svg class="ext:w-4 ext:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                  />
                 </svg>
               </button>
               <button
@@ -166,10 +191,27 @@ const emit = defineEmits<{
                 :title="calendar.isShared ? t('Leave calendar') : t('Delete calendar')"
                 @click.stop="emit('delete', calendar.href)"
               >
-                <svg v-if="calendar.isShared" class="ext:w-4 ext:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <svg
+                  v-if="calendar.isShared"
+                  class="ext:w-4 ext:h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
                 </svg>
-                <svg v-else class="ext:w-4 ext:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg
+                  v-else
+                  class="ext:w-4 ext:h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
                   <path
                     stroke-linecap="round"
                     stroke-linejoin="round"
@@ -180,8 +222,13 @@ const emit = defineEmits<{
               </button>
             </div>
           </div>
-          <div v-if="calendar.isShared" class="ext:pl-9 ext:text-[10px] ext:text-gray-500 ext:truncate">
-            <span v-if="calendar.owner">{{ t('Shared by:') }} {{ userProfiles?.[calendar.owner] || calendar.owner }}</span>
+          <div
+            v-if="calendar.isShared"
+            class="ext:pl-9 ext:text-[10px] ext:text-gray-500 ext:truncate"
+          >
+            <span v-if="calendar.owner"
+              >{{ t('Shared by:') }} {{ userProfiles?.[calendar.owner] || calendar.owner }}</span
+            >
             <span v-else>{{ t('Shared via link') }}</span>
             <span v-if="calendar.readOnly" class="ext:text-gray-400"> ({{ t('Read only') }})</span>
           </div>

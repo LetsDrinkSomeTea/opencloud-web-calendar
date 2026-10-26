@@ -30,7 +30,7 @@ OpenCloud automatically discovers extensions placed in this directory.
 
 ### 2. Configure Content Security Policy (CSP)
 
-Allow `data:` in `font-src` so FullCalendar's bundled icon font can load. 
+Allow `data:` in `font-src` so FullCalendar's bundled icon font can load.
 Additionally, allow `https://nominatim.openstreetmap.org/` in `connect-src` to enable location search features:
 
 ```yaml
@@ -38,10 +38,10 @@ Additionally, allow `https://nominatim.openstreetmap.org/` in `connect-src` to e
 directives:
   font-src:
     - "'self'"
-    - "data:"
+    - 'data:'
   connect-src:
     - "'self'"
-    - "https://nominatim.openstreetmap.org/"
+    - 'https://nominatim.openstreetmap.org/'
 ```
 
 ### 3. Configure CalDAV Backend Proxy (if not already setup)
@@ -83,10 +83,10 @@ csp:
   directives:
     font-src:
       - "'self'"
-      - "data:"
+      - 'data:'
     connect-src:
       - "'self'"
-      - "https://nominatim.openstreetmap.org/"
+      - 'https://nominatim.openstreetmap.org/'
 ```
 
 ### 2. Configure CalDAV Proxy Routes (if not already setup)
@@ -177,6 +177,7 @@ The application is built with:
 ### CalDAV Integration
 
 The CalDAV client (`src/caldav/client.ts`) handles:
+
 - Calendar discovery via PROPFIND
 - Event fetching via REPORT
 - Event creation, updates and deletion via PUT/DELETE

@@ -31,7 +31,12 @@ export function getUserId(): string | null {
     try {
       const userStore = useUserStore()
       if (userStore.user) {
-        return userStore.user.id || userStore.user.onPremisesSamAccountName || userStore.user.mail || null
+        return (
+          userStore.user.id ||
+          userStore.user.onPremisesSamAccountName ||
+          userStore.user.mail ||
+          null
+        )
       }
     } catch {
       // Ignore
@@ -53,7 +58,7 @@ export async function waitForUserId(timeoutMs = 5000): Promise<string | null> {
   while (Date.now() - start < timeoutMs) {
     const id = getUserId()
     if (id) return id
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
   }
   return null
 }

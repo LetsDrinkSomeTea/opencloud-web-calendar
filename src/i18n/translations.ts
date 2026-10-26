@@ -62,7 +62,8 @@ export const translations = {
 
     // Recurrence
     'Edit Recurring Event': 'Edit Recurring Event',
-    'This is a recurring event. What would you like to edit?': 'This is a recurring event. What would you like to edit?',
+    'This is a recurring event. What would you like to edit?':
+      'This is a recurring event. What would you like to edit?',
     'This event only': 'This event only',
     'All events in series': 'All events in series',
     'this occurrence': 'this occurrence',
@@ -138,7 +139,8 @@ export const translations = {
     'Revoke link': 'Revoke link',
     'Shared via link': 'Shared via link',
     'Join Shared Calendar': 'Join Shared Calendar',
-    'You have been invited to join the calendar "%{name}".': 'You have been invited to join the calendar "%{name}".',
+    'You have been invited to join the calendar "%{name}".':
+      'You have been invited to join the calendar "%{name}".',
     'Permission: %{perm}': 'Permission: %{perm}',
     'Join Calendar': 'Join Calendar',
     'You are already subscribed to this calendar.': 'You are already subscribed to this calendar.',
@@ -209,7 +211,8 @@ export const translations = {
 
     // Recurrence
     'Edit Recurring Event': 'Wiederkehrenden Termin bearbeiten',
-    'This is a recurring event. What would you like to edit?': 'Dies ist ein wiederkehrender Termin. Was möchten Sie bearbeiten?',
+    'This is a recurring event. What would you like to edit?':
+      'Dies ist ein wiederkehrender Termin. Was möchten Sie bearbeiten?',
     'This event only': 'Nur diesen Termin',
     'All events in series': 'Alle Termine der Serie',
     'this occurrence': 'dieses Vorkommen',
@@ -285,13 +288,15 @@ export const translations = {
     'Revoke link': 'Link widerrufen',
     'Shared via link': 'Über Link geteilt',
     'Join Shared Calendar': 'Geteiltem Kalender beitreten',
-    'You have been invited to join the calendar "%{name}".': 'Sie wurden eingeladen, dem Kalender „%{name}" beizutreten.',
+    'You have been invited to join the calendar "%{name}".':
+      'Sie wurden eingeladen, dem Kalender „%{name}" beizutreten.',
     'Permission: %{perm}': 'Berechtigung: %{perm}',
     'Join Calendar': 'Kalender beitreten',
     'You are already subscribed to this calendar.': 'Sie haben diesen Kalender bereits abonniert.',
     'Joined calendar successfully': 'Kalender erfolgreich beigetreten',
     'Leave calendar': 'Kalender verlassen',
-    'This calendar is read-only. You cannot make changes.': 'Dieser Kalender ist schreibgeschützt. Sie können keine Änderungen vornehmen.',
+    'This calendar is read-only. You cannot make changes.':
+      'Dieser Kalender ist schreibgeschützt. Sie können keine Änderungen vornehmen.',
 
     // Confirm Dialog
     Confirm: 'Bestätigen',

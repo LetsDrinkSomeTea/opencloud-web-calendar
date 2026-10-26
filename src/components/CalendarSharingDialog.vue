@@ -90,8 +90,12 @@ function getCalDAVUrl(token: string) {
     class="ext:fixed ext:inset-0 ext:z-50 ext:flex ext:items-center ext:justify-center ext:p-4 ext:bg-black/50"
     @click.self="emit('close')"
   >
-    <div class="ext:bg-white ext:rounded-lg ext:shadow-xl ext:w-full ext:max-w-2xl ext:max-h-[90vh] ext:flex ext:flex-col">
-      <div class="ext:p-6 ext:border-b ext:border-gray-200 ext:flex ext:items-center ext:justify-between">
+    <div
+      class="ext:bg-white ext:rounded-lg ext:shadow-xl ext:w-full ext:max-w-2xl ext:max-h-[90vh] ext:flex ext:flex-col"
+    >
+      <div
+        class="ext:p-6 ext:border-b ext:border-gray-200 ext:flex ext:items-center ext:justify-between"
+      >
         <h2 class="ext:text-xl ext:font-semibold ext:text-gray-900">
           {{ t('Share calendar: %{name}', { name: calendar.displayName }) }}
         </h2>
@@ -101,13 +105,21 @@ function getCalDAVUrl(token: string) {
           @click="emit('close')"
         >
           <svg class="ext:w-6 ext:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
           </svg>
         </button>
       </div>
 
       <div class="ext:p-6 ext:overflow-y-auto ext:flex-1">
-        <div v-if="error" class="ext:mb-4 ext:p-3 ext:bg-red-50 ext:text-red-700 ext:text-sm ext:rounded-md">
+        <div
+          v-if="error"
+          class="ext:mb-4 ext:p-3 ext:bg-red-50 ext:text-red-700 ext:text-sm ext:rounded-md"
+        >
           {{ error }}
         </div>
 
@@ -148,12 +160,16 @@ function getCalDAVUrl(token: string) {
               class="ext:flex ext:items-center ext:justify-between ext:p-3 ext:bg-gray-50 ext:rounded-lg"
             >
               <div class="ext:flex ext:items-center ext:gap-3">
-                <div class="ext:w-8 ext:h-8 ext:bg-blue-100 ext:text-blue-600 ext:rounded-full ext:flex ext:items-center ext:justify-center ext:text-xs ext:font-bold">
+                <div
+                  class="ext:w-8 ext:h-8 ext:bg-blue-100 ext:text-blue-600 ext:rounded-full ext:flex ext:items-center ext:justify-center ext:text-xs ext:font-bold"
+                >
                   {{ (userProfiles[share.User] || share.User).slice(0, 2).toUpperCase() }}
                 </div>
                 <div>
                   <div class="ext:flex ext:items-center ext:gap-2">
-                    <span class="ext:text-sm ext:font-medium ext:text-gray-900">{{ userProfiles[share.User] || share.User }}</span>
+                    <span class="ext:text-sm ext:font-medium ext:text-gray-900">{{
+                      userProfiles[share.User] || share.User
+                    }}</span>
                     <!-- Status Badges -->
                     <span
                       v-if="share.EnabledByUser"
@@ -194,8 +210,18 @@ function getCalDAVUrl(token: string) {
                   :title="t('Remove share')"
                   @click="removeShare(share)"
                 >
-                  <svg class="ext:w-4 ext:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <svg
+                    class="ext:w-4 ext:h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
                   </svg>
                 </button>
               </div>
@@ -260,17 +286,39 @@ function getCalDAVUrl(token: string) {
                   :title="t('Revoke link')"
                   @click="removeShare(share)"
                 >
-                  <svg class="ext:w-4 ext:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <svg
+                    class="ext:w-4 ext:h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
                   </svg>
                 </button>
               </div>
 
               <!-- Web Invite Link -->
               <div class="ext:mb-2.5">
-                <div class="ext:text-xs ext:font-medium ext:text-gray-600 ext:mb-1 ext:flex ext:items-center ext:gap-1.5">
-                  <svg class="ext:w-3.5 ext:h-3.5 ext:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                <div
+                  class="ext:text-xs ext:font-medium ext:text-gray-600 ext:mb-1 ext:flex ext:items-center ext:gap-1.5"
+                >
+                  <svg
+                    class="ext:w-3.5 ext:h-3.5 ext:text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                    />
                   </svg>
                   <span>{{ t('Web Invite Link') }} (OpenCloud)</span>
                 </div>
@@ -284,18 +332,37 @@ function getCalDAVUrl(token: string) {
                   <button
                     type="button"
                     class="ext:px-3 ext:py-1 ext:bg-blue-50 ext:text-blue-700 ext:border ext:border-blue-200 ext:text-xs ext:font-medium ext:rounded hover:ext:bg-blue-100 ext:whitespace-nowrap"
-                    @click="copyToClipboard(getWebInviteUrl(share.PathOrToken, share.Permissions), 'web-' + share.PathOrToken)"
+                    @click="
+                      copyToClipboard(
+                        getWebInviteUrl(share.PathOrToken, share.Permissions),
+                        'web-' + share.PathOrToken
+                      )
+                    "
                   >
-                    {{ copiedKey === 'web-' + share.PathOrToken ? t('Copied!') : t('Copy Web Invite') }}
+                    {{
+                      copiedKey === 'web-' + share.PathOrToken ? t('Copied!') : t('Copy Web Invite')
+                    }}
                   </button>
                 </div>
               </div>
 
               <!-- CalDAV Direct Link -->
               <div>
-                <div class="ext:text-xs ext:font-medium ext:text-gray-500 ext:mb-1 ext:flex ext:items-center ext:gap-1.5">
-                  <svg class="ext:w-3.5 ext:h-3.5 ext:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <div
+                  class="ext:text-xs ext:font-medium ext:text-gray-500 ext:mb-1 ext:flex ext:items-center ext:gap-1.5"
+                >
+                  <svg
+                    class="ext:w-3.5 ext:h-3.5 ext:text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
                   </svg>
                   <span>{{ t('CalDAV Link') }} (Thunderbird, Apple Calendar)</span>
                 </div>
@@ -309,9 +376,18 @@ function getCalDAVUrl(token: string) {
                   <button
                     type="button"
                     class="ext:px-3 ext:py-1 ext:bg-gray-200 ext:text-gray-700 ext:text-xs ext:font-medium ext:rounded hover:ext:bg-gray-300 ext:whitespace-nowrap"
-                    @click="copyToClipboard(getCalDAVUrl(share.PathOrToken), 'caldav-' + share.PathOrToken)"
+                    @click="
+                      copyToClipboard(
+                        getCalDAVUrl(share.PathOrToken),
+                        'caldav-' + share.PathOrToken
+                      )
+                    "
                   >
-                    {{ copiedKey === 'caldav-' + share.PathOrToken ? t('Copied!') : t('Copy CalDAV URL') }}
+                    {{
+                      copiedKey === 'caldav-' + share.PathOrToken
+                        ? t('Copied!')
+                        : t('Copy CalDAV URL')
+                    }}
                   </button>
                 </div>
               </div>

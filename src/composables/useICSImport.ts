@@ -12,7 +12,14 @@ import {
 import type { Calendar } from '../types/calendar'
 
 export type ImportMode = 'new-calendar' | 'merge'
-export type ImportPhase = 'idle' | 'reading' | 'parsing' | 'analyzing' | 'importing' | 'done' | 'error'
+export type ImportPhase =
+  | 'idle'
+  | 'reading'
+  | 'parsing'
+  | 'analyzing'
+  | 'importing'
+  | 'done'
+  | 'error'
 
 const isOpen = ref(false)
 const phase = ref<ImportPhase>('idle')
@@ -59,9 +66,8 @@ export function useICSImport() {
       const { groups, errors: parseErrors } = parseICSFile(icsText)
 
       if (groups.length === 0) {
-        error.value = parseErrors.length > 0
-          ? parseErrors.join('\n')
-          : 'No valid events found in file'
+        error.value =
+          parseErrors.length > 0 ? parseErrors.join('\n') : 'No valid events found in file'
         phase.value = 'error'
         return null
       }
@@ -99,9 +105,7 @@ export function useICSImport() {
 
       // Stage 6: Duplicate detection (merge only)
       phase.value = 'analyzing'
-      const existing = mode === 'merge'
-        ? await fetchExistingEventMeta(calendarHref)
-        : null
+      const existing = mode === 'merge' ? await fetchExistingEventMeta(calendarHref) : null
 
       // Stage 7: Generate plan
       const actions = generateImportPlan(groups, existing, mode)

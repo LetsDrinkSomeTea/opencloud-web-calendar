@@ -41,7 +41,9 @@ const title = computed(() => {
 </script>
 
 <template>
-  <div class="ext:border-b ext:border-gray-200 ext:bg-white ext:px-3 sm:ext:px-4 ext:py-2 sm:ext:py-3">
+  <div
+    class="ext:border-b ext:border-gray-200 ext:bg-white ext:px-3 sm:ext:px-4 ext:py-2 sm:ext:py-3"
+  >
     <!-- Controls row: nav buttons + (desktop) title on left, view switcher on right -->
     <div class="ext:flex ext:items-center ext:justify-between">
       <div class="ext:flex ext:items-center ext:gap-1.5 sm:ext:gap-2">
@@ -53,7 +55,12 @@ const title = computed(() => {
           @click="emit('toggle-sidebar')"
         >
           <svg class="ext:w-5 ext:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h7"
+            />
           </svg>
         </button>
 
@@ -69,8 +76,18 @@ const title = computed(() => {
           class="ext:p-1.5 ext:text-gray-700 ext:rounded ext:border ext:border-gray-300 ext:bg-white hover:ext:bg-gray-50"
           @click="emit('prev')"
         >
-          <svg class="ext:w-4 ext:h-4 sm:ext:w-5 sm:ext:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          <svg
+            class="ext:w-4 ext:h-4 sm:ext:w-5 sm:ext:h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </button>
         <button
@@ -78,13 +95,25 @@ const title = computed(() => {
           class="ext:p-1.5 ext:text-gray-700 ext:rounded ext:border ext:border-gray-300 ext:bg-white hover:ext:bg-gray-50"
           @click="emit('next')"
         >
-          <svg class="ext:w-4 ext:h-4 sm:ext:w-5 sm:ext:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          <svg
+            class="ext:w-4 ext:h-4 sm:ext:w-5 sm:ext:h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            />
           </svg>
         </button>
 
         <!-- Title: only visible on sm+ in this row -->
-        <h2 class="ext:hidden sm:ext:block ext:text-xl ext:font-semibold ext:text-gray-900 ext:ml-2 sm:ext:ml-4 ext:truncate">
+        <h2
+          class="ext:hidden sm:ext:block ext:text-xl ext:font-semibold ext:text-gray-900 ext:ml-2 sm:ext:ml-4 ext:truncate"
+        >
           {{ title }}
         </h2>
       </div>
@@ -95,7 +124,9 @@ const title = computed(() => {
           type="button"
           :class="[
             'ext:px-2.5 sm:ext:px-3 ext:py-1.5 ext:text-sm ext:font-medium',
-            viewType === 'dayGridMonth' ? 'ext:bg-blue-500 ext:text-white' : 'ext:bg-white ext:text-gray-700 hover:ext:bg-gray-50'
+            viewType === 'dayGridMonth'
+              ? 'ext:bg-blue-500 ext:text-white'
+              : 'ext:bg-white ext:text-gray-700 hover:ext:bg-gray-50'
           ]"
           @click="emit('change-view', 'dayGridMonth')"
         >
@@ -105,7 +136,9 @@ const title = computed(() => {
           type="button"
           :class="[
             'ext:px-2.5 sm:ext:px-3 ext:py-1.5 ext:text-sm ext:font-medium ext:border-l ext:border-gray-300',
-            viewType === 'timeGridWeek' ? 'ext:bg-blue-500 ext:text-white' : 'ext:bg-white ext:text-gray-700 hover:ext:bg-gray-50'
+            viewType === 'timeGridWeek'
+              ? 'ext:bg-blue-500 ext:text-white'
+              : 'ext:bg-white ext:text-gray-700 hover:ext:bg-gray-50'
           ]"
           @click="emit('change-view', 'timeGridWeek')"
         >
@@ -115,7 +148,9 @@ const title = computed(() => {
           type="button"
           :class="[
             'ext:px-2.5 sm:ext:px-3 ext:py-1.5 ext:text-sm ext:font-medium ext:border-l ext:border-gray-300',
-            viewType === 'timeGridDay' ? 'ext:bg-blue-500 ext:text-white' : 'ext:bg-white ext:text-gray-700 hover:ext:bg-gray-50'
+            viewType === 'timeGridDay'
+              ? 'ext:bg-blue-500 ext:text-white'
+              : 'ext:bg-white ext:text-gray-700 hover:ext:bg-gray-50'
           ]"
           @click="emit('change-view', 'timeGridDay')"
         >
@@ -125,7 +160,9 @@ const title = computed(() => {
     </div>
 
     <!-- Title row: mobile only (below controls) -->
-    <h2 class="sm:ext:hidden ext:text-base ext:font-semibold ext:text-gray-900 ext:mt-1.5 ext:truncate">
+    <h2
+      class="sm:ext:hidden ext:text-base ext:font-semibold ext:text-gray-900 ext:mt-1.5 ext:truncate"
+    >
       {{ title }}
     </h2>
   </div>

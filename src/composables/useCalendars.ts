@@ -94,36 +94,44 @@ export function useCalendars() {
         return p.endsWith('/') ? p : p + '/'
       }
 
-      calendars.value = (discovered.map(cal => {
-        const calPath = normalize(cal.href)
+      calendars.value = discovered
+        .map((cal) => {
+          const calPath = normalize(cal.href)
 
-        const matchingShare = allShares.find(s => {
-          const sharePath = normalize(s.PathOrToken)
-          return (
-            sharePath === calPath ||
-            calPath.endsWith(sharePath) ||
-            sharePath.endsWith(calPath)
-          )
+          const matchingShare = allShares.find((s) => {
+            const sharePath = normalize(s.PathOrToken)
+            return (
+              sharePath === calPath || calPath.endsWith(sharePath) || sharePath.endsWith(calPath)
+            )
+          })
+
+          const ownerId = matchingShare ? cleanUserId(matchingShare.Owner) : null
+          if (
+            matchingShare &&
+            ownerId &&
+            ownerId.toLowerCase().trim() !== normalizedCurrentUserId
+          ) {
+            // If the recipient has NOT enabled this share, don't show it in the main list
+            if (
+              !matchingShare.EnabledByUser ||
+              matchingShare.HiddenByUser ||
+              !matchingShare.EnabledByOwner
+            ) {
+              return null
+            }
+
+            // It's an active shared calendar owned by someone else
+            loadUserProfile(ownerId)
+            return {
+              ...cal,
+              isShared: true,
+              owner: ownerId,
+              sharePathOrToken: matchingShare.PathOrToken
+            }
+          }
+          return cal
         })
-
-        const ownerId = matchingShare ? cleanUserId(matchingShare.Owner) : null
-        if (matchingShare && ownerId && ownerId.toLowerCase().trim() !== normalizedCurrentUserId) {
-          // If the recipient has NOT enabled this share, don't show it in the main list
-          if (!matchingShare.EnabledByUser || matchingShare.HiddenByUser || !matchingShare.EnabledByOwner) {
-            return null
-          }
-
-          // It's an active shared calendar owned by someone else
-          loadUserProfile(ownerId)
-          return {
-            ...cal,
-            isShared: true,
-            owner: ownerId,
-            sharePathOrToken: matchingShare.PathOrToken
-          }
-        }
-        return cal
-      }).filter(Boolean) as Calendar[])
+        .filter(Boolean) as Calendar[]
 
       // Add fallback for enabled shared calendars that were not found by discovery
       const discoveredHrefs = new Set(calendars.value.map((c) => normalize(c.href)))
@@ -179,32 +187,30 @@ export function useCalendars() {
       }
 
       // Identify pending invitations
-      pendingShares.value = allShares.filter(
-        share => {
-          const ownerId = cleanUserId(share.Owner)
-          if (ownerId.toLowerCase().trim() === normalizedCurrentUserId) return false
+      pendingShares.value = allShares.filter((share) => {
+        const ownerId = cleanUserId(share.Owner)
+        if (ownerId.toLowerCase().trim() === normalizedCurrentUserId) return false
 
-          // MUST be enabled by owner to be a valid invitation
-          if (!share.EnabledByOwner) return false
+        // MUST be enabled by owner to be a valid invitation
+        if (!share.EnabledByOwner) return false
 
-          // An invitation is "Pending" if it's NOT enabled by user AND it's STILL hidden (Radicale default)
-          if (share.EnabledByUser || !share.HiddenByUser) return false
+        // An invitation is "Pending" if it's NOT enabled by user AND it's STILL hidden (Radicale default)
+        if (share.EnabledByUser || !share.HiddenByUser) return false
 
-          // If explicitly shared with this user
-          if (share.User) {
-            const normalizedShareUser = share.User.toLowerCase().trim()
-            if (normalizedShareUser === normalizedCurrentUserId) {
-              return true
-            }
+        // If explicitly shared with this user
+        if (share.User) {
+          const normalizedShareUser = share.User.toLowerCase().trim()
+          if (normalizedShareUser === normalizedCurrentUserId) {
+            return true
           }
-
-          // Fallback discovery via path
-          const pathOrToken = share.PathOrToken.toLowerCase()
-          const isOurPath = pathOrToken.includes(`/${normalizedCurrentUserId}/`)
-
-          return isOurPath
         }
-      )
+
+        // Fallback discovery via path
+        const pathOrToken = share.PathOrToken.toLowerCase()
+        const isOurPath = pathOrToken.includes(`/${normalizedCurrentUserId}/`)
+
+        return isOurPath
+      })
 
       // Resolve owner profiles for all pending shares
       for (const share of pendingShares.value) {
@@ -300,7 +306,9 @@ export function useCalendars() {
     try {
       const currentUserId = await waitForUserId()
       const normalizedCurrentUserId = (currentUserId || '').toLowerCase().trim()
-      const path = calendar.sharePathOrToken || (calendar.href.startsWith('/caldav/') ? calendar.href.slice(7) : calendar.href)
+      const path =
+        calendar.sharePathOrToken ||
+        (calendar.href.startsWith('/caldav/') ? calendar.href.slice(7) : calendar.href)
 
       // If it's a token share or joined via link, remove from local storage
       if (path.includes('.token') || path.startsWith('/.token') || path.startsWith('.token')) {
@@ -346,7 +354,8 @@ export function useCalendars() {
       if (internalPath) {
         try {
           const pathParts = internalPath.split('/').filter(Boolean)
-          const calendarName = pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'shared-calendar'
+          const calendarName =
+            pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'shared-calendar'
 
           await client.createShare('map', {
             PathMapped: internalPath,
@@ -358,7 +367,10 @@ export function useCalendars() {
           })
           mappedSuccess = true
         } catch (e) {
-          console.warn('Direct mapped share creation not available, falling back to token share:', e)
+          console.warn(
+            'Direct mapped share creation not available, falling back to token share:',
+            e
+          )
         }
       }
 

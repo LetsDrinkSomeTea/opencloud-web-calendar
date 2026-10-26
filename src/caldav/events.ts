@@ -177,7 +177,8 @@ export async function updateEventOccurrence(
   })
 
   if (response.status === 401) throw new AuthenticationError()
-  if (response.status === 412) throw new ConflictError('Event was modified by another client', event.etag)
+  if (response.status === 412)
+    throw new ConflictError('Event was modified by another client', event.etag)
   if (!response.ok && response.status !== 204) {
     throw new CalDAVError(`Failed to update occurrence: ${response.statusText}`, response.status)
   }
@@ -199,7 +200,8 @@ export async function deleteEventOccurrence(
   })
 
   if (response.status === 401) throw new AuthenticationError()
-  if (response.status === 412) throw new ConflictError('Event was modified by another client', event.etag)
+  if (response.status === 412)
+    throw new ConflictError('Event was modified by another client', event.etag)
   if (!response.ok && response.status !== 204) {
     throw new CalDAVError(`Failed to delete occurrence: ${response.statusText}`, response.status)
   }
@@ -221,7 +223,8 @@ export async function updateEventSeries(
   })
 
   if (response.status === 401) throw new AuthenticationError()
-  if (response.status === 412) throw new ConflictError('Event was modified by another client', event.etag)
+  if (response.status === 412)
+    throw new ConflictError('Event was modified by another client', event.etag)
   if (!response.ok && response.status !== 204) {
     throw new CalDAVError(`Failed to update series: ${response.statusText}`, response.status)
   }

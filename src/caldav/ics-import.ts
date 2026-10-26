@@ -387,11 +387,7 @@ export async function executeImportPlan(
   return results
 }
 
-async function putRawICS(
-  href: string,
-  icsData: string,
-  isNew: boolean
-): Promise<string> {
+async function putRawICS(href: string, icsData: string, isNew: boolean): Promise<string> {
   const headers: Record<string, string> = {
     'Content-Type': 'text/calendar; charset=utf-8'
   }

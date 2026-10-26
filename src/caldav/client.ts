@@ -17,7 +17,13 @@ import {
 import * as sharing from './sharing'
 import type { Calendar, CalendarEvent, EventFormData, DateRange } from '../types/calendar'
 
-export { CalDAVError, AuthenticationError, NotFoundError, ConflictError, NetworkError } from './errors'
+export {
+  CalDAVError,
+  AuthenticationError,
+  NotFoundError,
+  ConflictError,
+  NetworkError
+} from './errors'
 export type { CreateCalendarData } from './calendar-management'
 export type { Share, ShareInfo, ShareType } from './sharing'
 
@@ -30,7 +36,11 @@ export interface CalDAVClient {
   updateEvent(event: CalendarEvent, formData: EventFormData): Promise<CalendarEvent>
   deleteEvent(event: CalendarEvent): Promise<void>
   fetchSingleEvent(href: string): Promise<CalendarEvent | null>
-  updateEventOccurrence(event: CalendarEvent, recurrenceId: string, formData: EventFormData): Promise<void>
+  updateEventOccurrence(
+    event: CalendarEvent,
+    recurrenceId: string,
+    formData: EventFormData
+  ): Promise<void>
   deleteEventOccurrence(event: CalendarEvent, recurrenceId: string): Promise<void>
   updateEventSeries(event: CalendarEvent, formData: EventFormData): Promise<void>
   createCalendar(calendarHomeUrl: string, data: CreateCalendarData): Promise<Calendar>
@@ -38,7 +48,10 @@ export interface CalDAVClient {
 
   // Sharing methods
   getSharingInfo(): Promise<sharing.ShareInfo>
-  listShares(type?: sharing.ShareType, filter?: { PathOrToken?: string; PathMapped?: string }): Promise<sharing.Share[]>
+  listShares(
+    type?: sharing.ShareType,
+    filter?: { PathOrToken?: string; PathMapped?: string }
+  ): Promise<sharing.Share[]>
   createShare(type: 'map' | 'token', data: any): Promise<{ PathOrToken: string }>
   updateShare(type: 'map' | 'token', data: any): Promise<void>
   deleteShare(type: 'map' | 'token', PathOrToken: string): Promise<void>

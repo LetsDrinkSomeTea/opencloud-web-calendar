@@ -3,7 +3,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import EventDialog from '../../src/components/EventDialog.vue'
 import { nextTick, ref } from 'vue'
 
-const mockFormData = ref({ summary: '', calendarHref: '', start: new Date(), end: new Date(), allDay: false, description: '', location: '' })
+const mockFormData = ref({
+  summary: '',
+  calendarHref: '',
+  start: new Date(),
+  end: new Date(),
+  allDay: false,
+  description: '',
+  location: ''
+})
 const mockSaving = ref(false)
 
 // Mock the composables
@@ -57,11 +65,13 @@ describe('EventDialog.vue', () => {
       props: { calendars: [] },
       attachTo: '#app'
     })
-    
+
     await nextTick()
-    
-    const saveButton = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('Save')) as HTMLButtonElement
-    
+
+    const saveButton = Array.from(document.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Save')
+    ) as HTMLButtonElement
+
     expect(saveButton).not.toBeUndefined()
     expect(saveButton.disabled).toBe(true)
   })
@@ -71,16 +81,18 @@ describe('EventDialog.vue', () => {
       props: { calendars: [] },
       attachTo: '#app'
     })
-    
+
     await nextTick()
-    
+
     const titleInput = document.querySelector('#event-title') as HTMLInputElement
     titleInput.value = '   '
     titleInput.dispatchEvent(new Event('input'))
     mockFormData.value.summary = '   '
     await nextTick()
-    
-    const saveButton = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('Save')) as HTMLButtonElement
+
+    const saveButton = Array.from(document.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Save')
+    ) as HTMLButtonElement
     expect(saveButton.disabled).toBe(true)
   })
 
@@ -89,16 +101,18 @@ describe('EventDialog.vue', () => {
       props: { calendars: [] },
       attachTo: '#app'
     })
-    
+
     await nextTick()
-    
+
     const titleInput = document.querySelector('#event-title') as HTMLInputElement
     titleInput.value = 'My Event'
     titleInput.dispatchEvent(new Event('input'))
     mockFormData.value.summary = 'My Event'
     await nextTick()
-    
-    const saveButton = Array.from(document.querySelectorAll('button')).find(b => b.textContent?.includes('Save')) as HTMLButtonElement
+
+    const saveButton = Array.from(document.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Save')
+    ) as HTMLButtonElement
     expect(saveButton.disabled).toBe(false)
   })
 })

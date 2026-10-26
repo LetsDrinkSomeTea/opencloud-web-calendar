@@ -37,10 +37,7 @@ export async function createCalendar(
     throw new ConflictError('Calendar with this name already exists')
   }
   if (!response.ok && response.status !== 201) {
-    throw new CalDAVError(
-      `Failed to create calendar: ${response.statusText}`,
-      response.status
-    )
+    throw new CalDAVError(`Failed to create calendar: ${response.statusText}`, response.status)
   }
 
   return {
@@ -66,10 +63,7 @@ export async function deleteCalendar(calendarHref: string): Promise<void> {
     return
   }
   if (!response.ok && response.status !== 204) {
-    throw new CalDAVError(
-      `Failed to delete calendar: ${response.statusText}`,
-      response.status
-    )
+    throw new CalDAVError(`Failed to delete calendar: ${response.statusText}`, response.status)
   }
 }
 

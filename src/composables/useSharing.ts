@@ -18,7 +18,9 @@ export function useSharing(calendarHref: string) {
     error.value = null
     try {
       // Radicale sharing API uses path without /caldav/ prefix for PathMapped
-      const internalPath = calendarHref.startsWith('/caldav/') ? calendarHref.slice(7) : calendarHref
+      const internalPath = calendarHref.startsWith('/caldav/')
+        ? calendarHref.slice(7)
+        : calendarHref
       shares.value = await client.listShares('all', { PathMapped: internalPath })
 
       // Load user profiles for all map shares
@@ -40,9 +42,12 @@ export function useSharing(calendarHref: string) {
     try {
       const resolvedUserId = await resolveUser(userIdOrEmail)
 
-      const internalPath = calendarHref.startsWith('/caldav/') ? calendarHref.slice(7) : calendarHref
+      const internalPath = calendarHref.startsWith('/caldav/')
+        ? calendarHref.slice(7)
+        : calendarHref
       const pathParts = internalPath.split('/').filter(Boolean)
-      const calendarName = pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'shared-calendar'
+      const calendarName =
+        pathParts.length > 0 ? pathParts[pathParts.length - 1] : 'shared-calendar'
 
       await client.createShare('map', {
         PathMapped: internalPath,
@@ -65,7 +70,9 @@ export function useSharing(calendarHref: string) {
     loading.value = true
     error.value = null
     try {
-      const internalPath = calendarHref.startsWith('/caldav/') ? calendarHref.slice(7) : calendarHref
+      const internalPath = calendarHref.startsWith('/caldav/')
+        ? calendarHref.slice(7)
+        : calendarHref
       const result = await client.createShare('token', {
         PathMapped: internalPath,
         Permissions: permissions,

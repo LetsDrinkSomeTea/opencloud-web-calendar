@@ -28,7 +28,8 @@ export function useUserProfiles() {
       const token = getAccessToken()
       if (!token) return cleanedId
 
-      const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : ''
+      const origin =
+        typeof window !== 'undefined' && window.location?.origin ? window.location.origin : ''
 
       // Try direct ID lookup first
       const url = `${origin}/graph/v1.0/users/${cleanedId}`
@@ -58,7 +59,11 @@ export function useUserProfiles() {
 
       if (searchResponse.ok) {
         const data = await searchResponse.json()
-        const user = data.value?.find((u: any) => u.id === cleanedId || u.onPremisesSamAccountName === cleanedId || u.mail === cleanedId) || data.value?.[0]
+        const user =
+          data.value?.find(
+            (u: any) =>
+              u.id === cleanedId || u.onPremisesSamAccountName === cleanedId || u.mail === cleanedId
+          ) || data.value?.[0]
         if (user) {
           const name = user.displayName || user.onPremisesSamAccountName || cleanedId
           userProfiles[cleanedId] = name
@@ -81,7 +86,8 @@ export function useUserProfiles() {
     const token = getAccessToken()
     if (!token) throw new Error('Not authenticated')
 
-    const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : ''
+    const origin =
+      typeof window !== 'undefined' && window.location?.origin ? window.location.origin : ''
     const url = `${origin}/graph/v1.0/users?$search=${encodeURIComponent('"' + userIdOrEmail + '"')}`
 
     const response = await fetch(url, {
@@ -99,19 +105,22 @@ export function useUserProfiles() {
     const users = data.value || []
 
     // Try to find exact match on username or mail
-    const exactMatch = users.find((u: any) =>
-      u.onPremisesSamAccountName === userIdOrEmail ||
-      u.mail === userIdOrEmail ||
-      u.displayName === userIdOrEmail
+    const exactMatch = users.find(
+      (u: any) =>
+        u.onPremisesSamAccountName === userIdOrEmail ||
+        u.mail === userIdOrEmail ||
+        u.displayName === userIdOrEmail
     )
 
     if (exactMatch && exactMatch.id) {
-      userProfiles[exactMatch.id] = exactMatch.displayName || exactMatch.onPremisesSamAccountName || exactMatch.id
+      userProfiles[exactMatch.id] =
+        exactMatch.displayName || exactMatch.onPremisesSamAccountName || exactMatch.id
       return exactMatch.id
     }
 
     if (users.length > 0 && users[0].id) {
-      userProfiles[users[0].id] = users[0].displayName || users[0].onPremisesSamAccountName || users[0].id
+      userProfiles[users[0].id] =
+        users[0].displayName || users[0].onPremisesSamAccountName || users[0].id
       return users[0].id
     }
 

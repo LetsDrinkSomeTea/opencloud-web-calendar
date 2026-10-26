@@ -175,10 +175,7 @@ export function useEventEditor() {
     try {
       if (editingEvent.value.isRecurring && editScope.value === 'single') {
         // Delete single occurrence
-        await client.deleteEventOccurrence(
-          editingEvent.value,
-          editingEvent.value.recurrenceId!
-        )
+        await client.deleteEventOccurrence(editingEvent.value, editingEvent.value.recurrenceId!)
       } else {
         // Delete entire event/series
         await client.deleteEvent(editingEvent.value)
