@@ -30,10 +30,10 @@ function checkboxId(calendar: Calendar) {
   <aside
     id="web-calendar-sidebar"
     :class="[
-      'ext:w-56 sm:ext:w-64 ext:border-r ext:border-role-outline-variant ext:bg-role-surface-container ext:text-role-on-surface ext:overflow-y-auto ext:shrink-0',
+      'ext:w-56 ext:sm:w-64 ext:border-r ext:border-role-outline-variant ext:bg-role-surface-container ext:text-role-on-surface ext:overflow-y-auto ext:shrink-0',
       'ext:absolute ext:inset-y-0 ext:left-0 ext:z-20 ext:transition-transform ext:duration-200 ext:will-change-transform',
-      'sm:ext:static sm:ext:z-auto sm:ext:transition-none sm:ext:shadow-none',
-      isOpen ? 'ext:translate-x-0 ext:shadow-lg' : 'ext:-translate-x-full sm:ext:translate-x-0'
+      'ext:sm:static ext:sm:z-auto ext:sm:transition-none ext:sm:shadow-none',
+      isOpen ? 'ext:translate-x-0 ext:shadow-lg' : 'ext:-translate-x-full ext:sm:translate-x-0'
     ]"
     :aria-label="$gettext('Calendars')"
   >

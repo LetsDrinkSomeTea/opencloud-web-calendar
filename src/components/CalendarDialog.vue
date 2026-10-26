@@ -84,7 +84,7 @@ defineExpose({ onConfirm })
 
     <fieldset class="ext:m-0 ext:p-0 ext:border-0">
       <legend class="ext:p-0 ext:mb-2">{{ $gettext('Color') }}</legend>
-      <div class="ext:grid ext:grid-cols-4 sm:ext:grid-cols-8 ext:gap-2">
+      <div class="ext:grid ext:grid-cols-4 ext:sm:grid-cols-8 ext:gap-2">
         <!-- Calendar colors are user data, so the swatches keep their fixed colors -->
         <oc-button
           v-for="color in presetColors"

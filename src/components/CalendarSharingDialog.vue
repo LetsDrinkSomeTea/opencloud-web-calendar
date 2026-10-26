@@ -128,7 +128,7 @@ function getCalDAVUrl(token: string) {
         {{ $gettext('Share with users') }}
       </h3>
       <form
-        class="ext:flex ext:flex-wrap sm:ext:flex-nowrap ext:items-end ext:gap-2 ext:mb-4"
+        class="ext:flex ext:flex-wrap ext:sm:flex-nowrap ext:items-end ext:gap-2 ext:mb-4"
         @submit.prevent="handleShareWithUser"
       >
         <oc-text-input

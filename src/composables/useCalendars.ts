@@ -87,12 +87,14 @@ export function useCalendars() {
       if (!currentUserId) throw new Error('User not authenticated')
       const normalizedCurrentUserId = currentUserId.toLowerCase().trim()
 
-      // Store calendar home URL for later use (calendar creation)
-      const principal = await discoverUserPrincipal()
-      const home = await discoverCalendarHome(principal)
-      calendarHomeUrl.value = home
+      // The calendar home doesn't change during a session, so it is only discovered once
+      // instead of on every poll. It is also used for calendar creation.
+      if (!calendarHomeUrl.value) {
+        const principal = await discoverUserPrincipal()
+        calendarHomeUrl.value = await discoverCalendarHome(principal)
+      }
 
-      const discovered = await client.discoverCalendars()
+      const discovered = await client.refreshCalendars(calendarHomeUrl.value)
       const allShares = await client.listShares('all')
 
       // Process discovered calendars and identify shared ones

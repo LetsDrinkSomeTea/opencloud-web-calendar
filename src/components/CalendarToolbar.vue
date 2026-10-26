@@ -48,14 +48,14 @@ const title = computed(() => {
 
 <template>
   <div
-    class="ext:border-b ext:border-role-outline-variant ext:bg-role-surface ext:px-3 sm:ext:px-4 ext:py-2 sm:ext:py-3"
+    class="ext:border-b ext:border-role-outline-variant ext:bg-role-surface ext:px-3 ext:sm:px-4 ext:py-2 ext:sm:py-3"
   >
     <!-- Controls row: nav buttons + (desktop) title on left, view switcher on right -->
     <div class="ext:flex ext:items-center ext:justify-between ext:gap-2">
-      <div class="ext:flex ext:items-center ext:gap-1.5 sm:ext:gap-2 ext:min-w-0">
+      <div class="ext:flex ext:items-center ext:gap-1.5 ext:sm:gap-2 ext:min-w-0">
         <!-- Sidebar toggle: mobile only -->
         <oc-button
-          class="sm:ext:hidden"
+          class="ext:sm:hidden"
           appearance="raw"
           :aria-label="$gettext('Toggle sidebar')"
           :aria-expanded="sidebarOpen ? 'true' : 'false'"
@@ -77,7 +77,7 @@ const title = computed(() => {
 
         <!-- Title: only visible on sm+ in this row -->
         <h2
-          class="ext:hidden sm:ext:block ext:m-0 ext:text-xl ext:font-semibold ext:text-role-on-surface ext:ml-2 sm:ext:ml-4 ext:truncate"
+          class="ext:hidden ext:sm:block ext:m-0 ext:text-xl ext:font-semibold ext:text-role-on-surface ext:ml-2 ext:sm:ml-4 ext:truncate"
           aria-live="polite"
         >
           {{ title }}
@@ -100,7 +100,7 @@ const title = computed(() => {
 
     <!-- Title row: mobile only (below controls) -->
     <h2
-      class="sm:ext:hidden ext:m-0 ext:text-base ext:font-semibold ext:text-role-on-surface ext:mt-1.5 ext:truncate"
+      class="ext:sm:hidden ext:m-0 ext:text-base ext:font-semibold ext:text-role-on-surface ext:mt-1.5 ext:truncate"
     >
       {{ title }}
     </h2>

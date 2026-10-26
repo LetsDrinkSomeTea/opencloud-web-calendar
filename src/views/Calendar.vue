@@ -453,7 +453,7 @@ useModalBinding({
       <!-- Mobile sidebar backdrop -->
       <div
         v-if="sidebarOpen"
-        class="sm:ext:hidden ext:absolute ext:inset-0 ext:z-10 ext:bg-role-scrim/30"
+        class="ext:sm:hidden ext:absolute ext:inset-0 ext:z-10 ext:bg-role-scrim/30"
         aria-hidden="true"
         @click="sidebarOpen = false"
       />
