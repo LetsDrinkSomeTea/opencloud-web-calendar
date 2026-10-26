@@ -15,15 +15,15 @@ and to close the most important feature gaps.
 - [x] Run lint, format check, type check and unit tests in CI
 - [x] Add `minimumReleaseAge` to the renovate config
 
-## 2. Fix time zone handling
+## 2. Fix time zone handling ✅
 
 Events are currently written as UTC without a `TZID` (`formatICALDateTime` in
 `src/caldav/ics-utils.ts`), so recurring events shift by one hour after a daylight saving
 time change. `VTIMEZONE` components sent by other clients are not registered.
 
-- [ ] Write `DTSTART`/`DTEND` with the user's `TZID` and include a `VTIMEZONE`
-- [ ] Register `VTIMEZONE` components from fetched and imported calendars with `ICAL.TimezoneService`
-- [ ] Add tests for recurring events across DST changes
+- [x] Write `DTSTART`/`DTEND` with the user's `TZID` and include a `VTIMEZONE`
+- [x] Register `VTIMEZONE` components from fetched and imported calendars with `ICAL.TimezoneService`
+- [x] Add tests for recurring events across DST changes
 
 ## 3. Use the OpenCloud platform
 
