@@ -14,6 +14,7 @@ A CalDAV calendar application integrated as a native [OpenCloud](https://openclo
 - All-day and timed events
 - Event conflict detection and resolution
 - Auto-save with optimistic updates
+- Tasks (`VTODO`) at `/web-calendar/tasks` ("Tasks" in the left navigation): lists of all collections that support tasks, quick add, due/start dates, priority, status, progress and categories. Recurring tasks show their next open occurrence and are completed one occurrence at a time; edits apply to the whole series
 - Translated into German (more languages welcome), following the language selected in OpenCloud
 
 ## Installation

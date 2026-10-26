@@ -75,7 +75,7 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
 
 - [ ] Reminders (`VALARM`)
 - [ ] Attendees and invitations (`ATTENDEE`, `ORGANIZER`, iTIP)
-- [ ] Tasks (`VTODO`)
+- [x] Tasks (`VTODO`)
 - [ ] Incremental sync via `sync-token` / `sync-collection` and periodic refresh
 - [ ] Free/busy lookup
 - [ ] Calendar export (`.ics`) and subscription URL
