@@ -25,7 +25,7 @@ time change. `VTIMEZONE` components sent by other clients are not registered.
 - [x] Register `VTIMEZONE` components from fetched and imported calendars with `ICAL.TimezoneService`
 - [x] Add tests for recurring events across DST changes
 
-## 3. Use the OpenCloud platform
+## 3. Use the OpenCloud platform ✅
 
 ### Translations
 
@@ -71,7 +71,7 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
 - [x] Read join links via `useRoute()` / `router.replace` instead of `window.location` and `hashchange`/`popstate` listeners
 - [x] Keep the current view and date in the URL so a reload restores them
 
-## 4. Features
+## 4. Features ✅
 
 - [x] Reminders (`VALARM`)
   - Notifications are only shown while the app is open (no push/service worker), for events of
@@ -91,7 +91,7 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
 - [x] Rename and recolor existing calendars
 - [x] Open `.ics` files from the Files app (context action "Import into calendar")
 
-## 5. Quality and housekeeping
+## 5. Quality and housekeeping ✅
 
 - [x] Replace the placeholder test in `tests/unit/App.spec.ts`
 - [x] Add unit tests for the CalDAV client, XML parsing/building and ICS handling
