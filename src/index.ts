@@ -47,13 +47,14 @@ export default defineWebApplication({
     ]
 
     // Shown by OpenCloud in the left sidebar (like Personal/Shares/Spaces in Files)
-    const navItems = ({ $router }: GlobalProperties): AppNavigationItem[] => [
+    // The runtime calls this before the router is installed, so `$router` is only read later
+    const navItems = (globalProperties: GlobalProperties): AppNavigationItem[] => [
       {
         name: () => $gettext('Calendar'),
         icon: 'calendar',
         route: { path: `/${appInfo.id}/` },
         // `/web-calendar/` is a prefix of the tasks route as well
-        isActive: () => $router.currentRoute.value.name !== `${appInfo.id}-tasks`,
+        isActive: () => globalProperties.$router?.currentRoute.value.name !== `${appInfo.id}-tasks`,
         priority: 10
       },
       {

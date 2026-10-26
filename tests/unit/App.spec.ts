@@ -96,6 +96,17 @@ describe('web-calendar app definition', () => {
     expect(items[0].isActive()).toBe(false)
   })
 
+  it('reads the router only when the navigation is rendered', () => {
+    // The runtime calls navItems with the global properties before the router is installed
+    const { navItems } = setupApp()
+    const globalProperties = {} as GlobalProperties
+    const items = navItems(globalProperties)
+
+    const currentRoute = { value: { name: 'web-calendar-tasks' } }
+    Object.assign(globalProperties, { $router: { currentRoute } })
+    expect(items[0].isActive()).toBe(false)
+  })
+
   it('provides an app menu item extension', () => {
     const { extensions, appInfo } = setupApp()
     expect(isRef(extensions)).toBe(true)
