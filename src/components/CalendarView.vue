@@ -176,111 +176,120 @@ defineExpose({
 </script>
 
 <template>
-  <div class="ext:flex-1 ext:overflow-auto">
+  <div class="web-calendar-view ext:flex-1 ext:overflow-auto">
     <FullCalendar ref="calendarRef" :options="calendarOptions" class="ext:h-full" />
   </div>
 </template>
 
 <style>
-.fc {
+/*
+ * Themes FullCalendar with the OpenCloud color roles, so it follows the active theme and color
+ * scheme without any detection. Everything is scoped to the calendar root so it can't leak into
+ * other apps.
+ */
+.web-calendar-view {
+  --fc-page-bg-color: var(--oc-role-surface);
+  --fc-neutral-bg-color: var(--oc-role-surface-container);
+  --fc-neutral-text-color: var(--oc-role-on-surface-variant);
+  --fc-border-color: var(--oc-role-outline-variant);
+  --fc-today-bg-color: var(--oc-role-primary-container);
+  --fc-now-indicator-color: var(--oc-role-error);
+  --fc-highlight-color: color-mix(in srgb, var(--oc-role-primary) 20%, transparent);
+  --fc-non-business-color: color-mix(in srgb, var(--oc-role-surface-container) 50%, transparent);
+  --fc-list-event-hover-bg-color: var(--oc-role-surface-container);
+  --fc-button-text-color: var(--oc-role-on-primary);
+  --fc-button-bg-color: var(--oc-role-primary);
+  --fc-button-border-color: var(--oc-role-primary);
+  --fc-button-hover-bg-color: var(--oc-role-primary-container);
+  --fc-button-hover-border-color: var(--oc-role-primary-container);
+  --fc-button-active-bg-color: var(--oc-role-primary-container);
+  --fc-button-active-border-color: var(--oc-role-primary-container);
+}
+
+.web-calendar-view .fc {
   height: 100%;
-  background-color: var(--oc-role-surface, #ffffff);
-  color: var(--oc-role-on-surface, #1f2937);
+  background-color: var(--oc-role-surface);
+  color: var(--oc-role-on-surface);
 }
 
-.fc-theme-standard td,
-.fc-theme-standard th {
-  border-color: var(--oc-role-outline-variant, #e5e7eb);
+.web-calendar-view .fc-theme-standard td,
+.web-calendar-view .fc-theme-standard th,
+.web-calendar-view .fc-theme-standard .fc-scrollgrid {
+  border-color: var(--oc-role-outline-variant);
 }
 
-.fc-theme-standard .fc-scrollgrid {
-  border-color: var(--oc-role-outline-variant, #e5e7eb);
+.web-calendar-view .fc .fc-button-primary:disabled {
+  background-color: var(--oc-role-outline);
+  border-color: var(--oc-role-outline);
 }
 
-.fc .fc-button-primary {
-  background-color: var(--oc-role-primary, #3b82f6);
-  border-color: var(--oc-role-primary, #3b82f6);
-  color: var(--oc-role-on-primary, #ffffff);
-}
-
-.fc .fc-button-primary:hover {
-  background-color: var(--oc-role-primary-container, #2563eb);
-  border-color: var(--oc-role-primary-container, #2563eb);
-  color: var(--oc-role-on-primary-container, #ffffff);
-}
-
-.fc .fc-button-primary:disabled {
-  background-color: var(--oc-role-outline, #93c5fd);
-  border-color: var(--oc-role-outline, #93c5fd);
-}
-
-.fc-event {
+.web-calendar-view .fc-event {
   cursor: pointer;
 }
 
-.fc-daygrid-day-number {
+.web-calendar-view .fc-daygrid-day-number {
   padding: 4px 8px;
-  color: var(--oc-role-on-surface, #1f2937);
+  color: var(--oc-role-on-surface);
 }
 
-.fc-col-header-cell-cushion {
+.web-calendar-view .fc-col-header-cell-cushion {
   padding: 8px;
-  color: var(--oc-role-on-surface-variant, #374151);
+  color: var(--oc-role-on-surface-variant);
 }
 
-.fc-daygrid-day {
-  background-color: var(--oc-role-surface, #ffffff);
+.web-calendar-view .fc-daygrid-day {
+  background-color: var(--oc-role-surface);
 }
 
-.fc-day-today {
-  background-color: var(--oc-role-primary-container, #eff6ff) !important;
+.web-calendar-view .fc-day-today .fc-daygrid-day-number {
+  color: var(--oc-role-on-primary-container);
 }
 
-.fc-daygrid-day-top {
-  color: var(--oc-role-on-surface, #1f2937);
+.web-calendar-view .fc-daygrid-day-top {
+  color: var(--oc-role-on-surface);
 }
 
-.fc-timegrid-slot-label {
-  color: var(--oc-role-outline, #6b7280);
+.web-calendar-view .fc-timegrid-slot-label {
+  color: var(--oc-role-on-surface-variant);
 }
 
-.fc-list-day-cushion {
-  background-color: var(--oc-role-surface-container, #f3f4f6);
-  color: var(--oc-role-on-surface, #1f2937);
+.web-calendar-view .fc-list-day-cushion {
+  background-color: var(--oc-role-surface-container);
+  color: var(--oc-role-on-surface);
 }
 
 /* Timegrid axis and slots */
-.fc .fc-timegrid-axis {
-  background-color: var(--oc-role-surface, #ffffff);
+.web-calendar-view .fc .fc-timegrid-axis {
+  background-color: var(--oc-role-surface);
 }
 
-.fc .fc-timegrid-slot {
-  border-color: var(--oc-role-outline-variant, #e5e7eb);
+.web-calendar-view .fc .fc-timegrid-slot {
+  border-color: var(--oc-role-outline-variant);
 }
 
 /* Column header background */
-.fc .fc-col-header-cell {
-  background-color: var(--oc-role-surface-container, #f9fafb);
+.web-calendar-view .fc .fc-col-header-cell {
+  background-color: var(--oc-role-surface-container);
 }
 
 /* Day grid "more" link */
-.fc .fc-more-link {
-  color: var(--oc-role-primary, #3b82f6);
+.web-calendar-view .fc .fc-more-link {
+  color: var(--oc-role-primary);
 }
 
 /* Now indicator */
-.fc .fc-timegrid-now-indicator-line {
-  border-color: var(--oc-role-error, #ef4444);
+.web-calendar-view .fc .fc-timegrid-now-indicator-line {
+  border-color: var(--oc-role-error);
 }
 
 /* Popover ("+2 more" events popup) */
-.fc .fc-popover {
-  background-color: var(--oc-role-surface-container, #ffffff);
-  border-color: var(--oc-role-outline-variant, #e5e7eb);
+.web-calendar-view .fc .fc-popover {
+  background-color: var(--oc-role-surface-container);
+  border-color: var(--oc-role-outline-variant);
 }
 
-.fc .fc-popover-header {
-  background-color: var(--oc-role-surface-container-high, #f3f4f6);
-  color: var(--oc-role-on-surface, #1f2937);
+.web-calendar-view .fc .fc-popover-header {
+  background-color: var(--oc-role-surface-container-high);
+  color: var(--oc-role-on-surface);
 }
 </style>
