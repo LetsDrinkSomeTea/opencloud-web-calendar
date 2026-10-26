@@ -1,2 +1,9 @@
 web-calendar:
-  config: {}
+  config:
+    # All options are optional, see "Configuration" in README.md for details.
+    caldavBasePath: /caldav
+    locationSearch:
+      enabled: true
+      url: https://nominatim.openstreetmap.org/search
+    defaultView: dayGridMonth # dayGridMonth | timeGridWeek | timeGridDay
+    # firstDayOfWeek: 1 # 0 = Sunday … 6 = Saturday, unset = derived from the language

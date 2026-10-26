@@ -4,9 +4,13 @@ import '@opencloud-eu/extension-sdk/tailwind.css'
 import { RouteRecordRaw } from 'vue-router'
 import { computed } from 'vue'
 import { initLanguage, t } from './composables/useLanguage'
+import { initCalendarConfig } from './config'
 
 export default defineWebApplication({
-  setup() {
+  setup({ applicationConfig }) {
+    // Validate the app config (manifest defaults merged with the admin's apps.yaml)
+    initCalendarConfig(applicationConfig)
+
     // Initialize language early
     initLanguage()
 

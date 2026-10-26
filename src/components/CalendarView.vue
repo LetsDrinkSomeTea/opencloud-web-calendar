@@ -15,6 +15,7 @@ import type {
 import type { EventResizeDoneArg } from '@fullcalendar/interaction'
 import type { CalendarEvent, Calendar } from '../types/calendar'
 import { getFullCalendarLocale } from '../composables/useLanguage'
+import { useCalendarConfig } from '../config'
 
 const props = defineProps<{
   events: CalendarEvent[]
@@ -30,6 +31,8 @@ const emit = defineEmits<{
   'date-select': [start: Date, end: Date, allDay: boolean]
   'event-drop': [event: CalendarEvent, start: Date, end: Date]
 }>()
+
+const { firstDayOfWeek } = useCalendarConfig()
 
 const calendarRef = ref<InstanceType<typeof FullCalendar> | null>(null)
 const lastEmittedDate = ref<number>(0)
@@ -70,6 +73,8 @@ const calendarOptions = computed<CalendarOptions>(() => ({
   initialDate: props.currentDate,
   headerToolbar: false,
   locale: getFullCalendarLocale(),
+  // Without a configured value the first day of the week is derived from the locale
+  ...(firstDayOfWeek !== null && { firstDay: firstDayOfWeek }),
   events: fullCalendarEvents.value,
   editable: true,
   selectable: true,

@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { t } from '../composables/useLanguage'
 import { useSharing } from '../composables/useSharing'
+import { withCalDAVBasePath } from '../config'
 import type { Calendar } from '../types/calendar'
 
 const props = defineProps<{
@@ -76,11 +77,7 @@ function getWebInviteUrl(token: string, perm: string) {
 }
 
 function getCalDAVUrl(token: string) {
-  const origin = window.location.origin
-  const caldavPath = token.startsWith('/caldav/')
-    ? token
-    : `/caldav${token.startsWith('/') ? '' : '/'}${token}`
-  return `${origin}${caldavPath}`
+  return `${window.location.origin}${withCalDAVBasePath(token)}`
 }
 </script>
 

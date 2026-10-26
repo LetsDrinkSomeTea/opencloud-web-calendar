@@ -71,6 +71,39 @@ additional_policies:
 
 Restart OpenCloud to pick up the new extension and configuration.
 
+## Configuration
+
+The defaults live under `config` in `src/manifest.json` (copied into `manifest.json` of the
+release). Administrators can override them in OpenCloud's `apps.yaml`:
+
+```yaml
+# apps.yaml
+web-calendar:
+  config:
+    caldavBasePath: /caldav
+    locationSearch:
+      enabled: true
+      url: https://nominatim.openstreetmap.org/search
+    defaultView: dayGridMonth
+    firstDayOfWeek: 1
+```
+
+| Option                   | Default                                      | Description                                                                                                                                                                                 |
+| ------------------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `caldavBasePath`         | `/caldav`                                    | Path of the CalDAV endpoint on the OpenCloud origin (the proxy route). The app only sends requests below this path.                                                                         |
+| `locationSearch.enabled` | `true`                                       | Suggest locations while typing in the event dialog. Set to `false` to disable all requests to the geocoder.                                                                                 |
+| `locationSearch.url`     | `https://nominatim.openstreetmap.org/search` | [Nominatim](https://nominatim.org/release-docs/latest/api/Search/) compatible search endpoint. Absolute `http(s)` URL or a same-origin path. Remember to allow it in the CSP `connect-src`. |
+| `defaultView`            | `dayGridMonth`                               | View shown when no view is given in the URL: `dayGridMonth`, `timeGridWeek` or `timeGridDay` (`month`, `week`, `day` are accepted as well).                                                 |
+| `firstDayOfWeek`         | _unset_                                      | First day of the week, `0` (Sunday) to `6` (Saturday). When unset it is derived from the user's language.                                                                                   |
+
+Invalid values are ignored (with a warning in the browser console) and the default is used.
+
+For local development, `src/config.json` can override the values for the dev server
+(`pnpm vite`), `dev/docker/opencloud/apps.yaml` is used by `docker compose`.
+
+The current view and date are kept in the URL (e.g. `/web-calendar/?view=week&date=2026-10-26`),
+so reloading the page or sharing the link restores them.
+
 ## Kubernetes / Helm Deployment
 
 For Kubernetes deployments using the OpenCloud Helm chart, you need to configure the following:

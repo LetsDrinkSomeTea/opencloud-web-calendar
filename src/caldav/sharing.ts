@@ -1,5 +1,6 @@
 import { authenticatedFetch } from './auth'
 import { CalDAVError } from './errors'
+import { getCalDAVBasePath } from '../config'
 
 export type ShareType = 'token' | 'map' | 'all'
 
@@ -33,14 +34,12 @@ export interface ShareInfo {
   SupportedActions: Record<string, any>
 }
 
-const SHARING_BASE = '/caldav/.sharing/v1'
-
 async function sharingRequest<T>(
   hook: string,
   type: ShareType = 'all',
   data: any = {}
 ): Promise<T> {
-  const url = `${SHARING_BASE}/${type}/${hook}`
+  const url = `${getCalDAVBasePath()}/.sharing/v1/${type}/${hook}`
   const response = await authenticatedFetch(url, {
     method: 'POST',
     headers: {
