@@ -1,11 +1,10 @@
 import translations from '../l10n/translations.json'
-import { defineWebApplication, Extension, AppMenuItemExtension } from '@opencloud-eu/web-pkg'
-import { urlJoin } from '@opencloud-eu/web-client'
+import { defineWebApplication } from '@opencloud-eu/web-pkg'
 import '@opencloud-eu/extension-sdk/tailwind.css'
 import { RouteRecordRaw } from 'vue-router'
-import { computed } from 'vue'
 import { useGettext } from 'vue3-gettext'
 import { initCalendarConfig } from './config'
+import { APP_ID, APP_ROUTE_NAME, useCalendarExtensions } from './extensions'
 
 export default defineWebApplication({
   setup({ applicationConfig }) {
@@ -15,7 +14,7 @@ export default defineWebApplication({
     const { $gettext } = useGettext()
 
     const appInfo = {
-      id: 'web-calendar',
+      id: APP_ID,
       name: $gettext('Web Calendar'),
       icon: 'calendar',
       color: '#3788d8'
@@ -24,7 +23,7 @@ export default defineWebApplication({
     const routes: RouteRecordRaw[] = [
       {
         path: '/',
-        name: 'web-calendar',
+        name: APP_ROUTE_NAME,
         component: () => import('./views/Calendar.vue'),
         meta: {
           authContext: 'user',
@@ -33,28 +32,12 @@ export default defineWebApplication({
       }
     ]
 
-    const extensions = () => {
-      return computed<Extension[]>(() => {
-        const menuItems: AppMenuItemExtension[] = [
-          {
-            id: `app.${appInfo.id}.menuItem`,
-            type: 'appMenuItem',
-            // Evaluated lazily so the label follows language changes
-            label: () => $gettext('Web Calendar'),
-            color: appInfo.color,
-            icon: appInfo.icon,
-            path: urlJoin(appInfo.id)
-          }
-        ]
-        return [...menuItems]
-      })
-    }
-
     return {
       appInfo,
       routes,
       translations,
-      extensions: extensions()
+      // App menu entry and the "Import into calendar" action for .ics files in the Files app
+      extensions: useCalendarExtensions(appInfo)
     }
   }
 })

@@ -83,11 +83,11 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
 - [ ] Tasks (`VTODO`)
 - [ ] Incremental sync via `sync-token` / `sync-collection` and periodic refresh
 - [ ] Free/busy lookup
-- [ ] Calendar export (`.ics`) and subscription URL
+- [x] Calendar export (`.ics`) and subscription URL
 - [ ] Search and filter events
 - [ ] Agenda / list view
-- [ ] Rename and recolor existing calendars
-- [ ] Open `.ics` files from the Files app ("Open with" / `fileExtensions`)
+- [x] Rename and recolor existing calendars
+- [x] Open `.ics` files from the Files app (context action "Import into calendar")
 
 ## 5. Quality and housekeeping
 

@@ -1,9 +1,11 @@
 import {
   dateFromQuery,
   dateToQuery,
+  parseImportFileParams,
   parseJoinParams,
   viewFromQuery,
   viewToQuery,
+  withoutImportFileParams,
   withoutJoinParams
 } from '../../src/utils/route-query'
 import type { CalendarViewType } from '../../src/config'
@@ -109,5 +111,34 @@ describe('route query mapping', () => {
         withoutJoinParams({ ...inviteQuery, owner: 'bob', view: 'week', date: '2026-10-26' })
       ).toEqual({ view: 'week', date: '2026-10-26' })
     })
+  })
+})
+
+describe('import file parameters', () => {
+  it('reads the file id and name set by the Files action', () => {
+    expect(parseImportFileParams({ importFile: 'a$b!c', importName: 'holidays.ics' })).toEqual({
+      fileId: 'a$b!c',
+      name: 'holidays.ics'
+    })
+    expect(parseImportFileParams({ importFile: ['a$b!c'] })).toEqual({
+      fileId: 'a$b!c',
+      name: undefined
+    })
+  })
+
+  it('ignores queries without a file id', () => {
+    expect(parseImportFileParams({ view: 'week' })).toBeNull()
+    expect(parseImportFileParams({ importFile: '' })).toBeNull()
+  })
+
+  it('removes only the import parameters', () => {
+    expect(
+      withoutImportFileParams({
+        view: 'week',
+        date: '2026-10-26',
+        importFile: 'x',
+        importName: 'y'
+      })
+    ).toEqual({ view: 'week', date: '2026-10-26' })
   })
 })

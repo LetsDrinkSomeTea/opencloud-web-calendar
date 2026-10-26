@@ -11,6 +11,10 @@ A CalDAV calendar application integrated as a native [OpenCloud](https://openclo
 - Create, edit and delete calendar events
 - Drag & drop event rescheduling
 - Multiple calendar support with color coding
+- Rename and recolor calendars
+- Import `.ics` files, also straight from the Files app ("Import into calendar")
+- Export whole calendars or single events as `.ics`
+- Subscription URL for external CalDAV clients (Thunderbird, DAVx⁵, Apple Calendar, …)
 - All-day and timed events
 - Event conflict detection and resolution
 - Auto-save with optimistic updates
@@ -128,6 +132,39 @@ requires server-side scheduling (CalDAV Scheduling, RFC 6638, or iMIP email), wh
   want attendees to be notified.
 - "Download invitation" in the event dialog saves the event as an iTIP request
   (`METHOD:REQUEST`), which can be sent to attendees by email manually.
+
+## Importing `.ics` files from the Files app
+
+`.ics` files in the Files app get an **Import into calendar** action in their context menu. It
+opens the calendar (`/web-calendar/?importFile=<file id>&importName=<file name>`), downloads the
+file through the OpenCloud WebDAV API and shows the import dialog with the file preselected, where
+the target (new or existing calendar) is chosen. The query parameters are removed from the URL
+once the file has been loaded.
+
+## External calendar clients (subscription URL)
+
+**Copy subscription URL** in a calendar's menu copies the CalDAV address of the calendar
+(e.g. `https://cloud.example.com/caldav/<user>/<calendar>/`). **Export as .ics** downloads the
+whole calendar (all events and tasks, time zones deduplicated) as a single file instead.
+
+External clients cannot log in with OpenID Connect, so they authenticate with **HTTP Basic auth
+using the OpenCloud user name and an app token** as password. The OpenCloud proxy validates the
+token (`auth-app` service, `PROXY_ENABLE_APP_AUTH`, enabled by default) and forwards the request
+with the `X-Remote-User` header like for the web app, so no change to the CalDAV route is needed.
+
+App tokens can be created via the API of the `auth-app` service (see the
+[auth-app documentation](https://github.com/opencloud-eu/opencloud/tree/main/services/auth-app)):
+
+```bash
+# authenticated as the user, e.g. with the access token of a browser session
+curl -X POST 'https://cloud.example.com/auth-app/tokens?expiry=8760h' \
+     -H 'Authorization: Bearer <access token>'
+```
+
+or by an admin with `opencloud auth-app create --user-name=<user> --expiration=8760h` (needs access
+to the reva gateway). Newer OpenCloud versions may also offer app tokens in the account settings. Use the
+returned `token` as the password in the calendar client. App tokens are not invalidated when the
+user is disabled in an external IdP, and they expire after the given time.
 
 ## Kubernetes / Helm Deployment
 
@@ -256,7 +293,7 @@ The application is built with:
 
 - `CalendarView.vue` - Main calendar component using FullCalendar
 - `CalendarToolbar.vue` - Navigation and view switching controls
-- `CalendarSidebar.vue` - Calendar list with visibility toggles
+- `CalendarSidebar.vue` - Calendar list with visibility toggles and per-calendar actions (edit, share, export, subscription URL, delete)
 - `EventDialog.vue` - Event creation and editing modal
 
 ### Composables
@@ -272,6 +309,7 @@ The CalDAV client (`src/caldav/client.ts`) handles:
 - Calendar discovery via PROPFIND
 - Event fetching via REPORT
 - Event creation, updates and deletion via PUT/DELETE
+- Calendar creation (MKCALENDAR), renaming/recoloring (PROPPATCH) and export (REPORT, `src/caldav/export.ts`)
 - ETag-based conflict detection
 
 ## License

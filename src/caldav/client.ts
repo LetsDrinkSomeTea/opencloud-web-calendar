@@ -12,8 +12,11 @@ import {
 import {
   createCalendar as createCalendarRequest,
   deleteCalendar as deleteCalendarRequest,
-  type CreateCalendarData
+  updateCalendar as updateCalendarRequest,
+  type CreateCalendarData,
+  type UpdateCalendarData
 } from './calendar-management'
+import { exportCalendar, type CalendarExport, type CalendarExportMeta } from './export'
 import * as sharing from './sharing'
 import type { Calendar, CalendarEvent, EventFormData, DateRange } from '../types/calendar'
 
@@ -24,7 +27,8 @@ export {
   ConflictError,
   NetworkError
 } from './errors'
-export type { CreateCalendarData } from './calendar-management'
+export type { CreateCalendarData, UpdateCalendarData } from './calendar-management'
+export type { CalendarExport, CalendarExportMeta } from './export'
 export type { Share, ShareInfo, ShareType } from './sharing'
 
 export interface CalDAVClient {
@@ -44,7 +48,9 @@ export interface CalDAVClient {
   deleteEventOccurrence(event: CalendarEvent, recurrenceId: string): Promise<void>
   updateEventSeries(event: CalendarEvent, formData: EventFormData): Promise<void>
   createCalendar(calendarHomeUrl: string, data: CreateCalendarData): Promise<Calendar>
+  updateCalendar(calendarHref: string, data: UpdateCalendarData): Promise<void>
   deleteCalendar(calendarHref: string): Promise<void>
+  exportCalendar(calendarHref: string, meta?: CalendarExportMeta): Promise<CalendarExport>
 
   // Sharing methods
   getSharingInfo(): Promise<sharing.ShareInfo>
@@ -85,7 +91,9 @@ export function createCalDAVClient(): CalDAVClient {
     deleteEventOccurrence,
     updateEventSeries,
     createCalendar: createCalendarRequest,
+    updateCalendar: updateCalendarRequest,
     deleteCalendar: deleteCalendarRequest,
+    exportCalendar,
 
     // Sharing methods
     getSharingInfo: sharing.getSharingInfo,

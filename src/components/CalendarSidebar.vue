@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useGettext } from 'vue3-gettext'
 import type { Calendar } from '../types/calendar'
 import type { Share } from '../caldav/client'
+import { canEditCalendar } from '../composables/useCalendarEditor'
+import { SM_BREAKPOINT_QUERY, useMediaQuery } from '../composables/useMediaQuery'
 
-defineProps<{
+const props = defineProps<{
   calendars: readonly Calendar[]
   pendingShares?: readonly Share[]
   userProfiles?: Record<string, string>
@@ -13,16 +17,87 @@ defineProps<{
 const emit = defineEmits<{
   toggle: [calendarHref: string]
   create: []
+  edit: [calendarHref: string]
   delete: [calendarHref: string]
   share: [calendarHref: string]
+  export: [calendarHref: string]
+  copyUrl: [calendarHref: string]
   import: []
   acceptShare: [share: Share]
   declineShare: [share: Share]
   refresh: []
 }>()
 
+const { $gettext } = useGettext()
+
+// Below the `sm` breakpoint the sidebar is an off-canvas drawer. While it is closed it is moved
+// out of view, so it must also leave the tab order and the accessibility tree.
+const isWideScreen = useMediaQuery(SM_BREAKPOINT_QUERY)
+const isHidden = computed(() => !props.isOpen && !isWideScreen.value)
+
+function calendarId(calendar: Calendar) {
+  return calendar.href.replace(/[^a-zA-Z0-9_-]/g, '_')
+}
+
 function checkboxId(calendar: Calendar) {
-  return `web-calendar-visible-${calendar.href.replace(/[^a-zA-Z0-9_-]/g, '_')}`
+  return `web-calendar-visible-${calendarId(calendar)}`
+}
+
+function actionsToggleId(calendar: Calendar) {
+  return `web-calendar-actions-${calendarId(calendar)}`
+}
+
+interface CalendarAction {
+  name: string
+  label: string
+  icon: string
+  title?: string
+  handler: () => void
+}
+
+function calendarActions(calendar: Calendar): CalendarAction[] {
+  const href = calendar.href
+  const actions: CalendarAction[] = []
+  if (canEditCalendar(calendar)) {
+    actions.push({
+      name: 'edit',
+      label: $gettext('Edit calendar'),
+      icon: 'pencil',
+      handler: () => emit('edit', href)
+    })
+  }
+  if (!calendar.readOnly && !calendar.isShared) {
+    actions.push({
+      name: 'share',
+      label: $gettext('Share calendar'),
+      icon: 'share',
+      handler: () => emit('share', href)
+    })
+  }
+  actions.push(
+    {
+      name: 'export',
+      label: $gettext('Export as .ics'),
+      icon: 'download-2',
+      handler: () => emit('export', href)
+    },
+    {
+      name: 'copy-url',
+      label: $gettext('Copy subscription URL'),
+      icon: 'links',
+      title: $gettext(
+        'CalDAV address for other calendar apps. They sign in with your user name and an app token.'
+      ),
+      handler: () => emit('copyUrl', href)
+    },
+    {
+      name: 'delete',
+      label: calendar.isShared ? $gettext('Leave calendar') : $gettext('Delete calendar'),
+      icon: calendar.isShared ? 'logout-box-r' : 'delete-bin',
+      handler: () => emit('delete', href)
+    }
+  )
+  return actions
 }
 </script>
 
@@ -36,6 +111,7 @@ function checkboxId(calendar: Calendar) {
       isOpen ? 'ext:translate-x-0 ext:shadow-lg' : 'ext:-translate-x-full ext:sm:translate-x-0'
     ]"
     :aria-label="$gettext('Calendars')"
+    :inert="isHidden"
   >
     <div class="ext:p-4">
       <!-- Pending Shares Section -->
@@ -132,7 +208,7 @@ function checkboxId(calendar: Calendar) {
         <li
           v-for="calendar in calendars"
           :key="calendar.href"
-          class="ext:group ext:flex ext:flex-col ext:gap-0.5"
+          class="web-calendar-sidebar-item ext:group ext:flex ext:flex-col ext:gap-0.5"
         >
           <div class="ext:flex ext:items-center ext:gap-2">
             <!-- The checkbox takes the user's calendar color instead of the primary role -->
@@ -155,37 +231,41 @@ function checkboxId(calendar: Calendar) {
               />
               <span class="ext:truncate">{{ calendar.displayName }}</span>
             </label>
-            <div class="ext:flex ext:items-center ext:gap-0.5">
-              <oc-button
-                v-if="!calendar.readOnly && !calendar.isShared"
-                class="ext:shrink-0"
-                appearance="raw"
-                size="small"
-                :aria-label="$gettext('Share calendar')"
-                :title="$gettext('Share calendar')"
-                @click.stop="emit('share', calendar.href)"
-              >
-                <oc-icon name="share" fill-type="line" size="small" />
-              </oc-button>
-              <oc-button
-                class="ext:shrink-0"
-                appearance="raw"
-                size="small"
-                :aria-label="
-                  calendar.isShared ? $gettext('Leave calendar') : $gettext('Delete calendar')
-                "
-                :title="
-                  calendar.isShared ? $gettext('Leave calendar') : $gettext('Delete calendar')
-                "
-                @click.stop="emit('delete', calendar.href)"
-              >
-                <oc-icon
-                  :name="calendar.isShared ? 'logout-box-r' : 'delete-bin'"
-                  fill-type="line"
-                  size="small"
-                />
-              </oc-button>
-            </div>
+            <oc-button
+              :id="actionsToggleId(calendar)"
+              class="ext:shrink-0"
+              appearance="raw"
+              size="small"
+              :aria-label="$gettext('Actions for %{name}', { name: calendar.displayName })"
+              :title="$gettext('Calendar actions')"
+            >
+              <oc-icon name="more-2" fill-type="line" size="small" />
+            </oc-button>
+            <oc-drop
+              :drop-id="`${actionsToggleId(calendar)}-drop`"
+              :toggle="`#${actionsToggleId(calendar)}`"
+              :title="calendar.displayName"
+              mode="click"
+              position="bottom-end"
+              padding-size="small"
+              close-on-click
+            >
+              <oc-list>
+                <li v-for="action in calendarActions(calendar)" :key="action.name">
+                  <oc-button
+                    :class="`web-calendar-action-${action.name}`"
+                    class="ext:w-full ext:p-2"
+                    appearance="raw"
+                    justify-content="left"
+                    :title="action.title"
+                    @click="action.handler"
+                  >
+                    <oc-icon :name="action.icon" fill-type="line" size="small" />
+                    <span>{{ action.label }}</span>
+                  </oc-button>
+                </li>
+              </oc-list>
+            </oc-drop>
           </div>
           <div
             v-if="calendar.isShared"

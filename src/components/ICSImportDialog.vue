@@ -15,6 +15,8 @@ const props = defineProps<{
   calendars: readonly Calendar[]
   calendarHomeUrl: string
   defaultCalendar: Calendar | null
+  /** File opened from the Files app; used until another file is picked */
+  initialFile?: File | null
 }>()
 
 const emit = defineEmits<{
@@ -31,7 +33,8 @@ const newCalendarName = ref('')
 const selectedMergeCalendarHref = ref<string | null>(null)
 const showDetails = ref(false)
 
-const selectedFile = computed(() => selectedFiles.value?.[0] ?? null)
+const pickedFile = computed(() => selectedFiles.value?.[0] ?? null)
+const selectedFile = computed(() => pickedFile.value ?? props.initialFile ?? null)
 const selectedMergeCalendar = computed(
   () => props.calendars.find((c) => c.href === selectedMergeCalendarHref.value) ?? null
 )
@@ -44,11 +47,15 @@ watch(importMode, (mode) => {
 })
 
 // Suggest calendar name from filename
-watch(selectedFile, (file) => {
-  if (file && importMode.value === 'new-calendar' && !newCalendarName.value) {
-    newCalendarName.value = file.name.replace(/\.ics$/i, '')
-  }
-})
+watch(
+  selectedFile,
+  (file) => {
+    if (file && importMode.value === 'new-calendar' && !newCalendarName.value) {
+      newCalendarName.value = file.name.replace(/\.ics$/i, '')
+    }
+  },
+  { immediate: true }
+)
 
 const isBusy = computed(() =>
   ['reading', 'parsing', 'analyzing', 'importing'].includes(phase.value)
@@ -114,10 +121,21 @@ async function handleImport() {
         file-types=".ics,text/calendar"
         preview-icon="calendar"
         preview-icon-fill-type="line"
-        :description-message="
-          selectedFile ? `${(selectedFile.size / 1024).toFixed(1)} KB` : undefined
-        "
+        :description-message="pickedFile ? `${(pickedFile.size / 1024).toFixed(1)} KB` : undefined"
       />
+      <p
+        v-if="initialFile && !pickedFile"
+        id="web-calendar-import-initial-file"
+        class="ext:m-0 ext:flex ext:items-center ext:gap-2 ext:text-sm"
+      >
+        <oc-icon name="calendar" fill-type="line" size="small" />
+        <span>{{
+          $gettext('From Files: %{name} (%{size} KB)', {
+            name: initialFile.name,
+            size: (initialFile.size / 1024).toFixed(1)
+          })
+        }}</span>
+      </p>
 
       <!-- Mode selection -->
       <fieldset class="ext:m-0 ext:p-0 ext:border-0 ext:space-y-2">
