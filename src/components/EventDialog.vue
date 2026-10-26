@@ -6,6 +6,9 @@ import { useEventEditor } from '../composables/useEventEditor'
 import type { Calendar, RecurrenceFormData } from '../types/calendar'
 import { formatDateForInput, formatTimeForInput } from '../utils/date'
 import { generateICS } from '../caldav/ics-utils'
+import { toInvitationICS } from '../caldav/attendees'
+import EventReminders from './EventReminders.vue'
+import EventAttendees from './EventAttendees.vue'
 import { useLocationSearch } from '../composables/useLocationSearch'
 import { translateError } from '../utils/error-message'
 
@@ -260,6 +263,33 @@ async function handleDelete() {
   }
 }
 
+function downloadICS(icsContent: string, suffix = '') {
+  const safeName = (formData.value.summary || 'event').replace(/[^a-zA-Z0-9_\- ]/g, '_').trim()
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${safeName}${suffix}.ics`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+/** The event as iTIP request (`METHOD:REQUEST`), e.g. to attach it to an email */
+function handleDownloadInvitation() {
+  const isSeries = editScope.value !== 'single'
+  const icsContent = generateICS(
+    {
+      ...formData.value,
+      uid: editingEvent.value?.uid ?? formData.value.uid,
+      ...(!isSeries && { recurrence: undefined })
+    },
+    { sourceICS: editingEvent.value?.icsData }
+  )
+  downloadICS(toInvitationICS(icsContent), '-invitation')
+}
+
 function handleExport() {
   if (!editingEvent.value) return
 
@@ -277,16 +307,7 @@ function handleExport() {
     icsContent = editingEvent.value.icsData
   }
 
-  const safeName = (formData.value.summary || 'event').replace(/[^a-zA-Z0-9_\- ]/g, '_').trim()
-  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${safeName}.ics`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  downloadICS(icsContent)
 }
 
 defineExpose({ onConfirm })
@@ -565,6 +586,24 @@ defineExpose({ onConfirm })
         :label="$gettext('Description')"
         :placeholder="$gettext('Add description')"
         rows="3"
+      />
+
+      <!-- Reminders -->
+      <EventReminders
+        :model-value="formData.alarms ?? []"
+        :all-day="formData.allDay"
+        :disabled="isReadOnly"
+        @update:model-value="formData.alarms = $event"
+      />
+
+      <!-- Attendees -->
+      <EventAttendees
+        :attendees="formData.attendees ?? []"
+        :organizer="formData.organizer"
+        :disabled="isReadOnly"
+        @update:attendees="formData.attendees = $event"
+        @update:organizer="formData.organizer = $event"
+        @download-invitation="handleDownloadInvitation"
       />
 
       <!-- Error -->

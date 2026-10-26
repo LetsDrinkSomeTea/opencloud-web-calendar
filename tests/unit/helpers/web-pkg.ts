@@ -1,4 +1,5 @@
 import { reactive } from 'vue'
+import { vi } from 'vitest'
 import type { Modal } from '@opencloud-eu/web-pkg'
 
 /**
@@ -33,9 +34,22 @@ export const messageStore = reactive({
   }
 })
 
+export const userStore = reactive({
+  user: null as { id?: string; mail?: string; displayName?: string } | null
+})
+
+export const graphUsers = {
+  getUser: vi.fn(),
+  listUsers: vi.fn(async () => [])
+}
+
 export function resetStores() {
   modalStore.modals = []
   messageStore.messages = []
+  userStore.user = null
+  graphUsers.getUser.mockReset()
+  graphUsers.listUsers.mockReset()
+  graphUsers.listUsers.mockResolvedValue([])
 }
 
 export const modalActionsTarget = (modal: Modal) => `oc-modal-actions-${modal.id}`
@@ -43,5 +57,7 @@ export const modalActionsTarget = (modal: Modal) => `oc-modal-actions-${modal.id
 export const webPkgMock = {
   modalActionsTarget,
   useModals: () => modalStore,
-  useMessages: () => messageStore
+  useMessages: () => messageStore,
+  useUserStore: () => userStore,
+  useClientService: () => ({ graphAuthenticated: { users: graphUsers } })
 }

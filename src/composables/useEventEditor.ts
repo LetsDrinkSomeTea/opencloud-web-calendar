@@ -28,7 +28,20 @@ function createEmptyFormData(calendarHref: string): EventFormData {
     end,
     allDay: false,
     description: '',
-    location: ''
+    location: '',
+    alarms: [],
+    attendees: []
+  }
+}
+
+/** Copies of the reminders, attendees and organizer of an event for the form */
+function extrasFromEvent(
+  event: CalendarEvent
+): Pick<EventFormData, 'alarms' | 'attendees' | 'organizer'> {
+  return {
+    alarms: (event.alarms ?? []).map((alarm) => ({ ...alarm })),
+    attendees: (event.attendees ?? []).map((attendee) => ({ ...attendee })),
+    organizer: event.organizer ? { ...event.organizer } : undefined
   }
 }
 
@@ -104,7 +117,8 @@ export function useEventEditor() {
       end: new Date(event.end),
       allDay: event.allDay,
       description: event.description || '',
-      location: event.location || ''
+      location: event.location || '',
+      ...extrasFromEvent(event)
     }
   }
 
@@ -213,7 +227,8 @@ export function useEventEditor() {
         end: new Date(serverEvent.end),
         allDay: serverEvent.allDay,
         description: serverEvent.description || '',
-        location: serverEvent.location || ''
+        location: serverEvent.location || '',
+        ...extrasFromEvent(serverEvent)
       }
       editingEvent.value = serverEvent
       conflictData.value = null

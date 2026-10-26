@@ -73,8 +73,13 @@ unscoped `!important` stylesheet in `src/views/Calendar.vue`.
 
 ## 4. Features
 
-- [ ] Reminders (`VALARM`)
-- [ ] Attendees and invitations (`ATTENDEE`, `ORGANIZER`, iTIP)
+- [x] Reminders (`VALARM`)
+  - Notifications are only shown while the app is open (no push/service worker), for events of
+    the currently loaded range
+- [x] Attendees and invitations (`ATTENDEE`, `ORGANIZER`, iTIP)
+  - iTIP delivery: **not possible with Radicale**, which has no CalDAV scheduling (RFC 6638) or
+    iMIP. Invitations can be downloaded as `METHOD:REQUEST`; Radicale >= 3.5.5 can email
+    attendees via its `email` hook (server configuration, see README)
 - [ ] Tasks (`VTODO`)
 - [ ] Incremental sync via `sync-token` / `sync-collection` and periodic refresh
 - [ ] Free/busy lookup
