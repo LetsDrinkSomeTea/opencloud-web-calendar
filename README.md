@@ -13,6 +13,8 @@ A CalDAV calendar application integrated as a native [OpenCloud](https://openclo
 - Multiple calendar support with color coding
 - All-day and timed events
 - Event conflict detection and resolution
+- Incremental sync (`sync-collection`, RFC 6578) every 30 seconds and on window focus, paused while the tab is hidden
+- Busy hint in the event editor when the chosen time overlaps busy time in your visible calendars (`free-busy-query`)
 - Auto-save with optimistic updates
 - Translated into German (more languages welcome), following the language selected in OpenCloud
 
