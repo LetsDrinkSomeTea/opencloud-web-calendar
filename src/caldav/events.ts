@@ -97,7 +97,7 @@ export async function updateEvent(
   event: CalendarEvent,
   formData: EventFormData
 ): Promise<CalendarEvent> {
-  const icsData = generateICS({ ...formData, uid: event.uid })
+  const icsData = generateICS({ ...formData, uid: event.uid }, { sourceICS: event.icsData })
 
   const response = await authenticatedFetch(event.href, {
     method: 'PUT',

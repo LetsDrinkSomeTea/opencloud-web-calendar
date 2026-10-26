@@ -2,6 +2,7 @@ import ICAL from 'ical.js'
 import { authenticatedFetch } from './auth'
 import { CalDAVError, AuthenticationError } from './errors'
 import { parseEvents } from './xml-parser'
+import { buildVTimezone, collectReferencedTimezones, registerTimezones } from './timezone'
 
 // --- Types ---
 
@@ -80,6 +81,8 @@ export function parseICSFile(icsText: string): {
   }
 
   const comp = new ICAL.Component(jcalData)
+  // Register the file's VTIMEZONEs before any time value is read
+  registerTimezones(comp)
   const vevents = comp.getAllSubcomponents('vevent')
 
   if (vevents.length === 0) {
@@ -154,6 +157,17 @@ export function parseICSFile(icsText: string): {
       const tzid = vtz.getFirstPropertyValue('tzid') as string | null
       if (tzid && referencedTzids.has(tzid)) {
         newCal.addSubcomponent(vtz)
+        referencedTzids.delete(tzid)
+      }
+    }
+
+    // Generate definitions for referenced IANA zones the file does not define
+    const masterStart = master.getFirstPropertyValue('dtstart') as ICAL.Time | null
+    const fromYear = (masterStart ? masterStart.year : new Date().getUTCFullYear()) - 1
+    for (const tzid of referencedTzids) {
+      const generated = buildVTimezone(tzid, fromYear)
+      if (generated) {
+        newCal.addSubcomponent(generated)
       }
     }
 
@@ -177,19 +191,6 @@ export function parseICSFile(icsText: string): {
   }
 
   return { groups, errors }
-}
-
-function collectReferencedTimezones(vevents: ICAL.Component[]): Set<string> {
-  const tzids = new Set<string>()
-  for (const vevent of vevents) {
-    for (const prop of vevent.getAllProperties()) {
-      const tzid = prop.getParameter('tzid') as string | null
-      if (tzid) {
-        tzids.add(tzid)
-      }
-    }
-  }
-  return tzids
 }
 
 function generateStableUID(vevent: ICAL.Component): string {

@@ -1,5 +1,16 @@
 import ICAL from 'ical.js'
 import type { CalendarEvent, EventFormData, DateRange, RecurrenceFormData } from '../types/calendar'
+import {
+  addTimeProperty,
+  ensureVTimezone,
+  getLocalTimezone,
+  isUTCTimezone,
+  registerTimezones,
+  resolveWriteTimezone,
+  setTimeProperty,
+  toZonedTime,
+  type WriteTimezone
+} from './timezone'
 
 /**
  * Parse an ICS string and return one or more CalendarEvent objects.
@@ -15,6 +26,8 @@ export function parseICS(
   try {
     const jcalData = ICAL.parse(icsData)
     const comp = new ICAL.Component(jcalData)
+    // Must happen before any time value is read, so TZIDs resolve to their zone
+    registerTimezones(comp)
     const vevents = comp.getAllSubcomponents('vevent')
 
     if (vevents.length === 0) return []
@@ -54,7 +67,7 @@ export function parseICS(
     for (const exc of exceptions) {
       const recId = exc.getFirstPropertyValue('recurrence-id') as ICAL.Time
       if (recId) {
-        exceptionMap.set(recId.toString(), exc)
+        exceptionMap.set(timeKey(recId), exc)
       }
     }
 
@@ -64,7 +77,7 @@ export function parseICS(
     for (const prop of exdateProps) {
       const values = prop.getValues() as ICAL.Time[]
       for (const val of values) {
-        exdates.add(val.toString())
+        exdates.add(timeKey(val))
       }
     }
 
@@ -76,14 +89,17 @@ export function parseICS(
     const duration = masterEvent.duration
 
     // Set expansion bounds
-    const rangeStart = range
-      ? ICAL.Time.fromJSDate(range.start, false)
-      : ICAL.Time.fromJSDate(new Date(Date.now() - 365 * 86400000), false)
-    const rangeEnd = range
-      ? ICAL.Time.fromJSDate(range.end, false)
-      : ICAL.Time.fromJSDate(new Date(Date.now() + 365 * 86400000), false)
+    const rangeStart = ICAL.Time.fromJSDate(
+      range ? range.start : new Date(Date.now() - 365 * 86400000),
+      true
+    )
+    const rangeEnd = ICAL.Time.fromJSDate(
+      range ? range.end : new Date(Date.now() + 365 * 86400000),
+      true
+    )
 
-    // Use ical.js expansion
+    // Use ical.js expansion. Occurrences keep the zone of DTSTART, so the local time of
+    // the day stays the same across daylight saving time changes.
     const iter = masterEvent.iterator(dtstart)
     let next: ICAL.Time | null
     const MAX_OCCURRENCES = 500 // safety limit
@@ -103,20 +119,22 @@ export function parseICS(
       if (occEnd.compare(rangeStart) < 0) continue
 
       // Check if this occurrence is excluded
+      const nextKey = timeKey(next)
+      if (exdates.has(nextKey)) continue
+
+      // Recurrence ids are reported in the zone of the master's DTSTART
       const nextStr = next.toString()
-      if (exdates.has(nextStr)) continue
 
       // Check if there's an exception override
-      const exceptionVevent = exceptionMap.get(nextStr)
+      const exceptionVevent = exceptionMap.get(nextKey)
       if (exceptionVevent) {
         const excEvent = parseVevent(exceptionVevent, href, etag, calendarHref, icsData)
         if (excEvent) {
-          const recId = exceptionVevent.getFirstPropertyValue('recurrence-id') as ICAL.Time
           results.push({
             ...excEvent,
             isRecurring: true,
             rrule: rruleStr,
-            recurrenceId: recId.toString()
+            recurrenceId: nextStr
           })
         }
         continue
@@ -199,49 +217,122 @@ function parseVevent(
   }
 }
 
-export function generateICS(formData: EventFormData): string {
-  const uid = formData.uid || generateUID()
-  const now = new Date()
-  const dtstamp = formatICALDateTime(now)
+/**
+ * Key to match RECURRENCE-ID/EXDATE values against occurrences independent of the zone
+ * they are written in.
+ */
+function timeKey(time: ICAL.Time): string {
+  return time.isDate ? time.toString() : String(time.toUnixTime())
+}
 
-  let dtstart: string
-  let dtend: string
+export interface GenerateICSOptions {
+  /** IANA time zone for date-time values, defaults to the browser's zone */
+  timezone?: string
+  /** ICS of the event being replaced; its TZID (and VTIMEZONE) are kept */
+  sourceICS?: string
+}
+
+export function generateICS(formData: EventFormData, options: GenerateICSOptions = {}): string {
+  const uid = formData.uid || generateUID()
+
+  const calendar = new ICAL.Component('vcalendar')
+  calendar.addPropertyWithValue('version', '2.0')
+  calendar.addPropertyWithValue('prodid', '-//OpenCloud//Calendar//EN')
+
+  const vevent = new ICAL.Component('vevent')
+  vevent.addPropertyWithValue('uid', uid)
+  vevent.addPropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), true))
 
   if (formData.allDay) {
-    dtstart = `DTSTART;VALUE=DATE:${formatICALDate(formData.start)}`
-    dtend = `DTEND;VALUE=DATE:${formatICALDate(formData.end)}`
+    addTimeProperty(vevent, 'dtstart', toDateValue(formData.start), null)
+    addTimeProperty(vevent, 'dtend', toDateValue(formData.end), null)
   } else {
-    dtstart = `DTSTART:${formatICALDateTime(formData.start)}`
-    dtend = `DTEND:${formatICALDateTime(formData.end)}`
+    let source: ICAL.Component | null = null
+    if (options.sourceICS) {
+      try {
+        source = new ICAL.Component(ICAL.parse(options.sourceICS))
+      } catch {
+        source = null
+      }
+    }
+    const preferredTzid = options.timezone ?? (source ? getMasterTzid(source) : null)
+    const timezone = resolveEventTimezone(preferredTzid, formData.start, source)
+    if (timezone) {
+      calendar.addSubcomponent(timezone.vtimezone)
+    }
+    const tzid = timezone?.tzid ?? null
+    addTimeProperty(vevent, 'dtstart', toZonedTime(formData.start, timezone), tzid)
+    addTimeProperty(vevent, 'dtend', toZonedTime(formData.end, timezone), tzid)
   }
 
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//OpenCloud//Calendar//EN',
-    'BEGIN:VEVENT',
-    `UID:${uid}`,
-    `DTSTAMP:${dtstamp}`,
-    dtstart,
-    dtend,
-    `SUMMARY:${escapeICALText(formData.summary)}`
-  ]
+  vevent.addPropertyWithValue('summary', formData.summary)
 
   if (formData.recurrence) {
-    lines.push(`RRULE:${buildRRuleString(formData.recurrence, formData.allDay)}`)
+    vevent.addPropertyWithValue(
+      'rrule',
+      ICAL.Recur.fromString(buildRRuleString(formData.recurrence, formData.allDay))
+    )
   }
 
   if (formData.description) {
-    lines.push(`DESCRIPTION:${escapeICALText(formData.description)}`)
+    vevent.addPropertyWithValue('description', formData.description)
   }
 
   if (formData.location) {
-    lines.push(`LOCATION:${escapeICALText(formData.location)}`)
+    vevent.addPropertyWithValue('location', formData.location)
   }
 
-  lines.push('END:VEVENT', 'END:VCALENDAR')
+  calendar.addSubcomponent(vevent)
 
-  return lines.join('\r\n')
+  return calendar.toString()
+}
+
+/**
+ * Pick the zone date-time values of an event are written in: the preferred TZID (usually
+ * the one the event already has) or else the browser's zone. Returns null for UTC.
+ */
+function resolveEventTimezone(
+  preferredTzid: string | null | undefined,
+  start: Date,
+  source?: ICAL.Component | null
+): WriteTimezone | null {
+  // Let the time zone definition start a year before the event
+  const fromYear = start.getUTCFullYear() - 1
+  if (preferredTzid) {
+    if (isUTCTimezone(preferredTzid)) return null
+    const preferred = resolveWriteTimezone(preferredTzid, fromYear, source)
+    if (preferred) return preferred
+  }
+  return resolveWriteTimezone(getLocalTimezone(), fromYear, source)
+}
+
+function findMasterVevent(calendar: ICAL.Component): ICAL.Component | null {
+  for (const vevent of calendar.getAllSubcomponents('vevent')) {
+    if (!vevent.getFirstPropertyValue('recurrence-id')) {
+      return vevent
+    }
+  }
+  return null
+}
+
+/**
+ * TZID of the DTSTART of the master event, null for UTC, floating and all-day values.
+ */
+function getMasterTzid(calendar: ICAL.Component): string | null {
+  const master = findMasterVevent(calendar) ?? calendar.getFirstSubcomponent('vevent')
+  const prop = master?.getFirstProperty('dtstart')
+  if (!prop) return null
+  const tzid = prop.getParameter('tzid')
+  return typeof tzid === 'string' && tzid ? tzid : null
+}
+
+function toDateValue(date: Date): ICAL.Time {
+  return ICAL.Time.fromData({
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+    isDate: true
+  })
 }
 
 function buildRRuleString(rec: RecurrenceFormData, allDay: boolean): string {
@@ -261,7 +352,8 @@ function buildRRuleString(rec: RecurrenceFormData, allDay: boolean): string {
     if (allDay) {
       parts.push(`UNTIL=${formatICALDate(rec.until)}`)
     } else {
-      parts.push(`UNTIL=${formatICALDateTime(rec.until)}`)
+      // RFC 5545: UNTIL must be in UTC when DTSTART has a TZID
+      parts.push(`UNTIL=${formatICALDateTimeUTC(rec.until)}`)
     }
   }
 
@@ -298,6 +390,32 @@ export function parseRRuleToFormData(rruleStr: string): RecurrenceFormData {
 }
 
 /**
+ * Parse a recurrence id as reported by parseICS (wall time in the zone of the master's
+ * DTSTART, `Z` suffixed for UTC, date only for all-day events).
+ */
+function parseRecurrenceId(recurrenceId: string, masterDtstart: ICAL.Time | null): ICAL.Time {
+  if (masterDtstart?.isDate) {
+    return ICAL.Time.fromDateString(recurrenceId.substring(0, 10))
+  }
+  const time = ICAL.Time.fromDateTimeString(recurrenceId)
+  if (time.zone === ICAL.Timezone.utcTimezone || !masterDtstart) {
+    return time
+  }
+  return new ICAL.Time(
+    {
+      year: time.year,
+      month: time.month,
+      day: time.day,
+      hour: time.hour,
+      minute: time.minute,
+      second: time.second,
+      isDate: false
+    },
+    masterDtstart.zone
+  )
+}
+
+/**
  * Update an existing ICS resource to add an EXDATE (exclude one occurrence)
  * and optionally add an exception VEVENT with RECURRENCE-ID.
  */
@@ -308,33 +426,25 @@ export function addExceptionToICS(
 ): string {
   const jcalData = ICAL.parse(icsData)
   const comp = new ICAL.Component(jcalData)
-  const vevents = comp.getAllSubcomponents('vevent')
+  registerTimezones(comp)
 
   // Find master event (one without RECURRENCE-ID)
-  let masterVevent: ICAL.Component | null = null
-  for (const vevent of vevents) {
-    if (!vevent.getFirstPropertyValue('recurrence-id')) {
-      masterVevent = vevent
-      break
-    }
-  }
-
+  const masterVevent = findMasterVevent(comp)
   if (!masterVevent) return icsData
 
-  // Parse the recurrence-id into an ICAL.Time
-  const masterDtstart = masterVevent.getFirstPropertyValue('dtstart') as ICAL.Time
-  const isDate = masterDtstart?.isDate || false
-  const recIdTime = isDate
-    ? ICAL.Time.fromDateString(recurrenceId)
-    : ICAL.Time.fromDateTimeString(recurrenceId)
+  // RECURRENCE-ID and EXDATE use the same value type and zone as the master's DTSTART
+  const masterDtstart = masterVevent.getFirstPropertyValue('dtstart') as ICAL.Time | null
+  const masterTzid = getMasterTzid(comp)
+  const recIdTime = parseRecurrenceId(recurrenceId, masterDtstart)
+  const recIdTzid = recIdTime.zone === ICAL.Timezone.utcTimezone ? null : masterTzid
 
   if (exceptionFormData) {
-    // Adding a modified occurrence: add EXDATE + new VEVENT with RECURRENCE-ID
+    // Adding a modified occurrence: add a new VEVENT with RECURRENCE-ID
     // First, remove any existing exception for this recurrence-id
-    const existingExceptions = comp.getAllSubcomponents('vevent')
-    for (const exc of existingExceptions) {
+    const recIdKey = timeKey(recIdTime)
+    for (const exc of comp.getAllSubcomponents('vevent')) {
       const excRecId = exc.getFirstPropertyValue('recurrence-id') as ICAL.Time | null
-      if (excRecId && excRecId.toString() === recurrenceId) {
+      if (excRecId && timeKey(excRecId) === recIdKey) {
         comp.removeSubcomponent(exc)
       }
     }
@@ -344,34 +454,28 @@ export function addExceptionToICS(
     const masterEvent = new ICAL.Event(masterVevent)
 
     excVevent.addPropertyWithValue('uid', masterEvent.uid)
-    excVevent.addPropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), false))
+    excVevent.addPropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), true))
 
     // Set RECURRENCE-ID
-    const recIdProp = excVevent.addPropertyWithValue('recurrence-id', recIdTime)
-    if (isDate) {
-      recIdProp.setParameter('value', 'DATE')
-    }
+    addTimeProperty(excVevent, 'recurrence-id', recIdTime, recIdTzid)
 
     // Set start/end
     if (exceptionFormData.allDay) {
-      const startProp = excVevent.addPropertyWithValue(
-        'dtstart',
-        ICAL.Time.fromJSDate(exceptionFormData.start, false)
-      )
-      startProp.setParameter('value', 'DATE')
-      ;(startProp.getFirstValue() as ICAL.Time).isDate = true
-      const endProp = excVevent.addPropertyWithValue(
-        'dtend',
-        ICAL.Time.fromJSDate(exceptionFormData.end, false)
-      )
-      endProp.setParameter('value', 'DATE')
-      ;(endProp.getFirstValue() as ICAL.Time).isDate = true
+      addTimeProperty(excVevent, 'dtstart', toDateValue(exceptionFormData.start), null)
+      addTimeProperty(excVevent, 'dtend', toDateValue(exceptionFormData.end), null)
     } else {
-      excVevent.addPropertyWithValue(
-        'dtstart',
-        ICAL.Time.fromJSDate(exceptionFormData.start, false)
+      // Keep the zone of the series
+      const timezone = resolveEventTimezone(
+        masterTzid,
+        masterDtstart ? masterDtstart.toJSDate() : exceptionFormData.start,
+        comp
       )
-      excVevent.addPropertyWithValue('dtend', ICAL.Time.fromJSDate(exceptionFormData.end, false))
+      if (timezone) {
+        ensureVTimezone(comp, timezone)
+      }
+      const tzid = timezone?.tzid ?? null
+      addTimeProperty(excVevent, 'dtstart', toZonedTime(exceptionFormData.start, timezone), tzid)
+      addTimeProperty(excVevent, 'dtend', toZonedTime(exceptionFormData.end, timezone), tzid)
     }
 
     excVevent.addPropertyWithValue('summary', exceptionFormData.summary)
@@ -385,10 +489,7 @@ export function addExceptionToICS(
     comp.addSubcomponent(excVevent)
   } else {
     // Deleting a single occurrence: just add EXDATE to master
-    const exdateProp = masterVevent.addPropertyWithValue('exdate', recIdTime)
-    if (isDate) {
-      exdateProp.setParameter('value', 'DATE')
-    }
+    addTimeProperty(masterVevent, 'exdate', recIdTime, recIdTzid)
   }
 
   return comp.toString()
@@ -400,17 +501,10 @@ export function addExceptionToICS(
 export function updateSeriesICS(icsData: string, formData: EventFormData): string {
   const jcalData = ICAL.parse(icsData)
   const comp = new ICAL.Component(jcalData)
-  const vevents = comp.getAllSubcomponents('vevent')
+  registerTimezones(comp)
 
   // Find master event
-  let masterVevent: ICAL.Component | null = null
-  for (const vevent of vevents) {
-    if (!vevent.getFirstPropertyValue('recurrence-id')) {
-      masterVevent = vevent
-      break
-    }
-  }
-
+  const masterVevent = findMasterVevent(comp)
   if (!masterVevent) return icsData
 
   // Update summary
@@ -431,16 +525,19 @@ export function updateSeriesICS(icsData: string, formData: EventFormData): strin
   }
 
   // Update start/end
+  masterVevent.removeAllProperties('duration')
   if (formData.allDay) {
-    const startTime = ICAL.Time.fromJSDate(formData.start, false)
-    startTime.isDate = true
-    const endTime = ICAL.Time.fromJSDate(formData.end, false)
-    endTime.isDate = true
-    masterVevent.updatePropertyWithValue('dtstart', startTime)
-    masterVevent.updatePropertyWithValue('dtend', endTime)
+    setTimeProperty(masterVevent, 'dtstart', toDateValue(formData.start), null)
+    setTimeProperty(masterVevent, 'dtend', toDateValue(formData.end), null)
   } else {
-    masterVevent.updatePropertyWithValue('dtstart', ICAL.Time.fromJSDate(formData.start, false))
-    masterVevent.updatePropertyWithValue('dtend', ICAL.Time.fromJSDate(formData.end, false))
+    // Keep the zone of the event, fall back to the browser's zone
+    const timezone = resolveEventTimezone(getMasterTzid(comp), formData.start, comp)
+    if (timezone) {
+      ensureVTimezone(comp, timezone)
+    }
+    const tzid = timezone?.tzid ?? null
+    setTimeProperty(masterVevent, 'dtstart', toZonedTime(formData.start, timezone), tzid)
+    setTimeProperty(masterVevent, 'dtend', toZonedTime(formData.end, timezone), tzid)
   }
 
   // Update RRULE
@@ -451,7 +548,7 @@ export function updateSeriesICS(icsData: string, formData: EventFormData): strin
   }
 
   // Update DTSTAMP
-  masterVevent.updatePropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), false))
+  masterVevent.updatePropertyWithValue('dtstamp', ICAL.Time.fromJSDate(new Date(), true))
 
   return comp.toString()
 }
@@ -462,7 +559,7 @@ export function generateUID(): string {
   return `${timestamp}-${random}@opencloud`
 }
 
-function formatICALDateTime(date: Date): string {
+function formatICALDateTimeUTC(date: Date): string {
   return date
     .toISOString()
     .replace(/[-:]/g, '')
@@ -474,8 +571,4 @@ function formatICALDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}${month}${day}`
-}
-
-function escapeICALText(text: string): string {
-  return text.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
 }
