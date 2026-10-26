@@ -31,6 +31,7 @@ export function buildPropfindCalendars(): string {
     <c:calendar-description/>
     <ic:calendar-color/>
     <cs:getctag/>
+    <c:supported-calendar-component-set/>
   </d:prop>
 </d:propfind>`
 }
@@ -50,6 +51,25 @@ export function buildCalendarQuery(start: Date, end: Date): string {
       <c:comp-filter name="VEVENT">
         <c:time-range start="${startStr}" end="${endStr}"/>
       </c:comp-filter>
+    </c:comp-filter>
+  </c:filter>
+</c:calendar-query>`
+}
+
+/**
+ * calendar-query REPORT for all VTODO components of a collection. Tasks are fetched without a
+ * time range, since tasks without DUE/DTSTART would never match one.
+ */
+export function buildTaskQuery(): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<c:calendar-query xmlns:d="${DAV_NS}" xmlns:c="${CALDAV_NS}">
+  <d:prop>
+    <d:getetag/>
+    <c:calendar-data/>
+  </d:prop>
+  <c:filter>
+    <c:comp-filter name="VCALENDAR">
+      <c:comp-filter name="VTODO"/>
     </c:comp-filter>
   </c:filter>
 </c:calendar-query>`

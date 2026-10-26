@@ -12,6 +12,8 @@ export interface CalendarData {
   description?: string
   resourceType?: string[]
   readOnly?: boolean
+  /** Component types from `supported-calendar-component-set` (e.g. VEVENT, VTODO); undefined if not advertised */
+  components?: string[]
 }
 
 export interface EventData {

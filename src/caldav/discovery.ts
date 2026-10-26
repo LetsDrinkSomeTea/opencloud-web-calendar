@@ -61,7 +61,8 @@ export async function listCalendars(calendarHomeUrl: string): Promise<Calendar[]
     ctag: data.ctag || '',
     description: data.description,
     visible: true,
-    readOnly: data.readOnly
+    readOnly: data.readOnly,
+    components: data.components
   }))
 }
 

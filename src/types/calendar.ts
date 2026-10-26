@@ -9,6 +9,8 @@ export interface Calendar {
   isShared?: boolean
   owner?: string
   sharePathOrToken?: string
+  /** Supported component types (VEVENT, VTODO, …); undefined means all (RFC 4791 5.2.3) */
+  components?: readonly string[]
 }
 
 export interface CalendarEvent {
