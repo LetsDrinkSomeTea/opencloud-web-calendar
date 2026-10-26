@@ -32,10 +32,10 @@ time change. `VTIMEZONE` components sent by other clients are not registered.
 The app ships its own i18n (`src/i18n/translations.ts`, `t()`), which only supports English
 and German and does not follow language changes made in OpenCloud.
 
-- [ ] Switch to `vue3-gettext` (`useGettext`, `$gettext`)
-- [ ] Add `l10n/` with `template.pot`, `.po` files and the `l10n:extract` / `l10n:compile` scripts
-- [ ] Return `translations` from `defineWebApplication`
-- [ ] Remove `useLanguage` and `src/i18n/`
+- [x] Switch to `vue3-gettext` (`useGettext`, `$gettext`)
+- [x] Add `l10n/` with `template.pot`, `.po` files and the `l10n:extract` / `l10n:compile` scripts
+- [x] Return `translations` from `defineWebApplication`
+- [x] Remove `useLanguage` and `src/i18n/`
 
 ### Design system
 
