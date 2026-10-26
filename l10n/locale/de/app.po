@@ -263,35 +263,54 @@ msgstr "Geteilt von:"
 msgid "Shared via link"
 msgstr "Über Link geteilt"
 
-#: src/components/CalendarToolbar.vue:27
+#: src/components/CalendarToolbar.vue:39
 msgid "Month"
 msgstr "Monat"
 
-#: src/components/CalendarToolbar.vue:28
+#: src/components/CalendarToolbar.vue:40
 msgid "Week"
 msgstr "Woche"
 
-#: src/components/CalendarToolbar.vue:29
+#: src/components/CalendarToolbar.vue:41
 msgid "Day"
 msgstr "Tag"
 
-#: src/components/CalendarToolbar.vue:60
+#: src/components/CalendarToolbar.vue:42
+msgid "Agenda"
+msgstr "Agenda"
+
+#: src/components/CalendarToolbar.vue:132
 msgid "Toggle sidebar"
 msgstr "Seitenleiste ein-/ausblenden"
 
-#: src/components/CalendarToolbar.vue:69
+#: src/components/CalendarToolbar.vue:141
 msgid "Today"
 msgstr "Heute"
 
-#: src/components/CalendarToolbar.vue:71
+#: src/components/CalendarToolbar.vue:143
 msgid "Previous"
 msgstr "Zurück"
 
-#: src/components/CalendarToolbar.vue:74
+#: src/components/CalendarToolbar.vue:146
 msgid "Next"
 msgstr "Weiter"
 
-#: src/components/CalendarToolbar.vue:88
+#: src/components/CalendarToolbar.vue:172
+#: src/components/CalendarToolbar.vue:173
+#: src/components/CalendarToolbar.vue:185
+msgid "Search events"
+msgstr "Termine durchsuchen"
+
+#: src/components/CalendarToolbar.vue:185
+msgid "Close search"
+msgstr "Suche schließen"
+
+#: src/components/CalendarToolbar.vue:194
+#: src/components/CalendarToolbar.vue:200
+msgid "New event"
+msgstr "Neuer Termin"
+
+#: src/components/CalendarToolbar.vue:212
 msgid "View"
 msgstr "Ansicht"
 
@@ -531,7 +550,7 @@ msgstr "Beschreibung hinzufügen"
 msgid "Delete this event"
 msgstr "Diesen Termin löschen"
 
-#: src/components/EventDialog.vue:611 src/views/Calendar.vue:370
+#: src/components/EventDialog.vue:611 src/views/Calendar.vue:456
 msgid "Delete"
 msgstr "Löschen"
 
@@ -551,7 +570,7 @@ msgstr "Abbrechen"
 msgid "Saving..."
 msgstr "Speichern..."
 
-#: src/components/EventDialog.vue:643 src/views/Calendar.vue:475
+#: src/components/EventDialog.vue:643 src/views/Calendar.vue:561
 msgid "Save"
 msgstr "Speichern"
 
@@ -704,6 +723,44 @@ msgstr "Importieren"
 #: src/components/InviteJoinDialog.vue:24
 msgid "You have been invited to join the calendar \"%{name}\"."
 msgstr "Sie wurden eingeladen, dem Kalender „%{name}“ beizutreten."
+
+#: src/components/SearchResults.vue:55
+msgid "All day"
+msgstr "Ganztägig"
+
+#: src/components/SearchResults.vue:79
+msgid "Searching events from %{start} to %{end}."
+msgstr "Durchsucht werden Termine vom %{start} bis %{end}."
+
+#: src/components/SearchResults.vue:81
+msgid "Only the loaded events from %{start} to %{end} are searched."
+msgstr "Nur die geladenen Termine vom %{start} bis %{end} werden durchsucht."
+
+#: src/components/SearchResults.vue:85 src/components/SearchResults.vue:108
+msgid "Searching…"
+msgstr "Suche läuft…"
+
+#: src/components/SearchResults.vue:87
+msgid "No events found for “%{query}”."
+msgstr "Keine Termine für „%{query}“ gefunden."
+
+#: src/components/SearchResults.vue:89
+msgid "%{count} event found"
+msgid_plural "%{count} events found"
+msgstr[0] "%{count} Termin gefunden"
+msgstr[1] "%{count} Termine gefunden"
+
+#: src/components/SearchResults.vue:98
+msgid "Search results"
+msgstr "Suchergebnisse"
+
+#: src/components/SearchResults.vue:114
+msgid "The server search failed."
+msgstr "Die Suche auf dem Server ist fehlgeschlagen."
+
+#: src/components/SearchResults.vue:147
+msgid "(No title)"
+msgstr "(Kein Titel)"
 
 #: src/composables/useCalendars.ts:236
 msgid "Failed to load calendars"
@@ -890,35 +947,35 @@ msgstr "Sie haben keine Berechtigung für diese Aktion."
 msgid "An unexpected error occurred."
 msgstr "Ein unerwarteter Fehler ist aufgetreten."
 
-#: src/views/Calendar.vue:126
+#: src/views/Calendar.vue:133
 msgid "You are already subscribed to this calendar."
 msgstr "Sie haben diesen Kalender bereits abonniert."
 
-#: src/views/Calendar.vue:134
+#: src/views/Calendar.vue:141
 msgid "Shared Calendar"
 msgstr "Geteilter Kalender"
 
-#: src/views/Calendar.vue:166
+#: src/views/Calendar.vue:173
 msgid "Failed to load the calendar file"
 msgstr "Die Kalenderdatei konnte nicht geladen werden"
 
-#: src/views/Calendar.vue:176
+#: src/views/Calendar.vue:183
 msgid "Joined calendar successfully"
 msgstr "Kalender erfolgreich beigetreten"
 
-#: src/views/Calendar.vue:336
+#: src/views/Calendar.vue:416
 msgid "Failed to move event"
 msgstr "Der Termin konnte nicht verschoben werden"
 
-#: src/views/Calendar.vue:360
+#: src/views/Calendar.vue:446
 msgid "Leave Calendar"
 msgstr "Kalender verlassen"
 
-#: src/views/Calendar.vue:360
+#: src/views/Calendar.vue:446
 msgid "Delete Calendar"
 msgstr "Kalender löschen"
 
-#: src/views/Calendar.vue:362
+#: src/views/Calendar.vue:448
 msgid ""
 "Are you sure you want to leave '%{name}'? You will no longer have access to "
 "this calendar."
@@ -926,7 +983,7 @@ msgstr ""
 "Möchten Sie '%{name}' wirklich verlassen? Sie haben danach keinen Zugriff "
 "mehr auf diesen Kalender."
 
-#: src/views/Calendar.vue:366
+#: src/views/Calendar.vue:452
 msgid ""
 "Are you sure you want to delete '%{name}'? All events in this calendar will "
 "be permanently deleted."
@@ -934,29 +991,29 @@ msgstr ""
 "Möchten Sie '%{name}' wirklich löschen? Alle Termine in diesem Kalender "
 "werden unwiderruflich gelöscht."
 
-#: src/views/Calendar.vue:370
+#: src/views/Calendar.vue:456
 msgid "Leave"
 msgstr "Verlassen"
 
-#: src/views/Calendar.vue:401
+#: src/views/Calendar.vue:487
 msgid "Calendar exported"
 msgstr "Kalender exportiert"
 
-#: src/views/Calendar.vue:402
+#: src/views/Calendar.vue:488
 msgid "%{skipped} of %{total} entries could not be read and were left out."
 msgstr ""
 "%{skipped} von %{total} Einträgen konnten nicht gelesen werden und wurden "
 "ausgelassen."
 
-#: src/views/Calendar.vue:411
+#: src/views/Calendar.vue:497
 msgid "Failed to export calendar"
 msgstr "Der Kalender konnte nicht exportiert werden"
 
-#: src/views/Calendar.vue:426
+#: src/views/Calendar.vue:512
 msgid "Subscription URL copied"
 msgstr "Abonnement-URL kopiert"
 
-#: src/views/Calendar.vue:427
+#: src/views/Calendar.vue:513
 msgid ""
 "Use it in your calendar app together with your user name and an app token as "
 "password."
@@ -964,34 +1021,34 @@ msgstr ""
 "Verwenden Sie sie in Ihrer Kalender-App zusammen mit Ihrem Benutzernamen und "
 "einem App-Token als Passwort."
 
-#: src/views/Calendar.vue:432
+#: src/views/Calendar.vue:518
 msgid "Failed to copy the subscription URL"
 msgstr "Die Abonnement-URL konnte nicht kopiert werden"
 
-#: src/views/Calendar.vue:467
+#: src/views/Calendar.vue:553
 msgid "Edit calendar: %{name}"
 msgstr "Kalender bearbeiten: %{name}"
 
-#: src/views/Calendar.vue:468
+#: src/views/Calendar.vue:554
 msgid "New Calendar"
 msgstr "Neuer Kalender"
 
-#: src/views/Calendar.vue:475
+#: src/views/Calendar.vue:561
 msgid "Create"
 msgstr "Erstellen"
 
-#: src/views/Calendar.vue:484
+#: src/views/Calendar.vue:570
 msgid "Import Calendar"
 msgstr "Kalender importieren"
 
-#: src/views/Calendar.vue:503
+#: src/views/Calendar.vue:589
 msgid "Share calendar: %{name}"
 msgstr "Kalender teilen: %{name}"
 
-#: src/views/Calendar.vue:520
+#: src/views/Calendar.vue:606
 msgid "Join Shared Calendar"
 msgstr "Geteiltem Kalender beitreten"
 
-#: src/views/Calendar.vue:526
+#: src/views/Calendar.vue:612
 msgid "Join Calendar"
 msgstr "Kalender beitreten"

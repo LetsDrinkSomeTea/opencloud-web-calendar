@@ -4,6 +4,7 @@ import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
+import listPlugin from '@fullcalendar/list'
 import type {
   CalendarOptions,
   EventInput,
@@ -15,18 +16,19 @@ import type {
 import type { EventResizeDoneArg } from '@fullcalendar/interaction'
 import type { CalendarEvent, Calendar } from '../types/calendar'
 import { useFullCalendarLocale } from '../composables/useFullCalendarLocale'
-import { useCalendarConfig } from '../config'
+import { useCalendarConfig, type CalendarViewType } from '../config'
+import { AGENDA_DAYS } from '../utils/new-event'
 
 const props = defineProps<{
   events: CalendarEvent[]
   calendars: readonly Calendar[]
   currentDate: Date
-  viewType: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'
+  viewType: CalendarViewType
 }>()
 
 const emit = defineEmits<{
   'date-change': [date: Date]
-  'view-change': [view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay']
+  'view-change': [view: CalendarViewType]
   'event-click': [event: CalendarEvent]
   'date-select': [start: Date, end: Date, allDay: boolean]
   'event-drop': [event: CalendarEvent, start: Date, end: Date]
@@ -69,9 +71,22 @@ const fullCalendarEvents = computed<EventInput[]>(() => {
   })
 })
 
+/**
+ * Agenda: a list of the next days starting at the current date, prev/next move by that many
+ * days. Times are shown in the list, unlike in the grids.
+ */
+const AGENDA_VIEWS: CalendarOptions['views'] = {
+  listAgenda: {
+    type: 'list',
+    duration: { days: AGENDA_DAYS },
+    displayEventTime: true
+  }
+}
+
 const calendarOptions = computed<CalendarOptions>(() => ({
-  plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
+  plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
   initialView: props.viewType,
+  views: AGENDA_VIEWS,
   initialDate: props.currentDate,
   headerToolbar: false,
   locale: locale.value,
@@ -167,7 +182,12 @@ function today() {
   }
 }
 
+function updateSize() {
+  calendarRef.value?.getApi().updateSize()
+}
+
 defineExpose({
+  updateSize,
   goToDate,
   prev,
   next,
@@ -280,6 +300,30 @@ defineExpose({
 /* Now indicator */
 .web-calendar-view .fc .fc-timegrid-now-indicator-line {
   border-color: var(--oc-role-error);
+}
+
+/* List (agenda) view */
+.web-calendar-view .fc .fc-list {
+  border-color: var(--oc-role-outline-variant);
+}
+
+.web-calendar-view .fc .fc-list-day-cushion,
+.web-calendar-view .fc .fc-list-day-text,
+.web-calendar-view .fc .fc-list-day-side-text {
+  color: var(--oc-role-on-surface);
+}
+
+.web-calendar-view .fc .fc-list-event-time {
+  color: var(--oc-role-on-surface-variant);
+}
+
+.web-calendar-view .fc .fc-list-event:hover td {
+  background-color: var(--oc-role-surface-container);
+}
+
+.web-calendar-view .fc .fc-list-empty {
+  background-color: var(--oc-role-surface);
+  color: var(--oc-role-on-surface-variant);
 }
 
 /* Popover ("+2 more" events popup) */

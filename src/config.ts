@@ -1,6 +1,6 @@
 import type { AppConfigObject } from '@opencloud-eu/web-pkg'
 
-export type CalendarViewType = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'
+export type CalendarViewType = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listAgenda'
 
 export interface LocationSearchConfig {
   enabled: boolean
@@ -14,12 +14,18 @@ export interface CalendarConfig {
   defaultView: CalendarViewType
   /** 0 = Sunday … 6 = Saturday, `null` = derived from the locale */
   firstDayOfWeek: number | null
+  /**
+   * Search window in months before and after the current date for the server side search,
+   * `0` = only the loaded events are searched
+   */
+  searchRangeMonths: number
 }
 
 export const CALENDAR_VIEWS: readonly CalendarViewType[] = [
   'dayGridMonth',
   'timeGridWeek',
-  'timeGridDay'
+  'timeGridDay',
+  'listAgenda'
 ]
 
 export const DEFAULT_CONFIG: Readonly<CalendarConfig> = Object.freeze({
@@ -29,13 +35,15 @@ export const DEFAULT_CONFIG: Readonly<CalendarConfig> = Object.freeze({
     url: 'https://nominatim.openstreetmap.org/search'
   }),
   defaultView: 'dayGridMonth',
-  firstDayOfWeek: null
+  firstDayOfWeek: null,
+  searchRangeMonths: 12
 })
 
 const VIEW_ALIASES: Record<string, CalendarViewType> = {
   month: 'dayGridMonth',
   week: 'timeGridWeek',
-  day: 'timeGridDay'
+  day: 'timeGridDay',
+  agenda: 'listAgenda'
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -104,6 +112,18 @@ export function parseFirstDayOfWeek(value: unknown): number | null {
   return num >= 0 && num <= 6 ? num : null
 }
 
+/** Accepts whole months from 0 (server search disabled) to 120 */
+export function parseSearchRangeMonths(value: unknown): number | null {
+  const num =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim() !== ''
+        ? Number(value)
+        : NaN
+  if (!Number.isInteger(num)) return null
+  return num >= 0 && num <= 120 ? num : null
+}
+
 /**
  * Turns the raw `applicationConfig` (manifest defaults merged with the admin's apps.yaml)
  * into a validated config. Invalid or missing values fall back to the defaults.
@@ -114,7 +134,8 @@ export function parseCalendarConfig(raw: unknown): CalendarConfig {
     caldavBasePath: DEFAULT_CONFIG.caldavBasePath,
     locationSearch: { ...DEFAULT_CONFIG.locationSearch },
     defaultView: DEFAULT_CONFIG.defaultView,
-    firstDayOfWeek: DEFAULT_CONFIG.firstDayOfWeek
+    firstDayOfWeek: DEFAULT_CONFIG.firstDayOfWeek,
+    searchRangeMonths: DEFAULT_CONFIG.searchRangeMonths
   }
 
   if (input.caldavBasePath !== undefined) {
@@ -153,6 +174,12 @@ export function parseCalendarConfig(raw: unknown): CalendarConfig {
     const parsed = parseFirstDayOfWeek(input.firstDayOfWeek)
     if (parsed !== null) config.firstDayOfWeek = parsed
     else warnInvalid('firstDayOfWeek', input.firstDayOfWeek)
+  }
+
+  if (input.searchRangeMonths !== undefined) {
+    const parsed = parseSearchRangeMonths(input.searchRangeMonths)
+    if (parsed !== null) config.searchRangeMonths = parsed
+    else warnInvalid('searchRangeMonths', input.searchRangeMonths)
   }
 
   return config

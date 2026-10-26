@@ -55,6 +55,37 @@ export function buildCalendarQuery(start: Date, end: Date): string {
 </c:calendar-query>`
 }
 
+/**
+ * calendar-query REPORT (RFC 4791, 9.7.5) for events in the time range whose property contains
+ * the text. CalDAV filters can't combine properties with OR, so each property needs its own
+ * query. Radicale compares lower cased texts, other servers use the `i;unicode-casemap`
+ * collation; neither ignores diacritics.
+ */
+export function buildCalendarTextSearchQuery(
+  property: string,
+  text: string,
+  start: Date,
+  end: Date
+): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<c:calendar-query xmlns:d="${DAV_NS}" xmlns:c="${CALDAV_NS}">
+  <d:prop>
+    <d:getetag/>
+    <c:calendar-data/>
+  </d:prop>
+  <c:filter>
+    <c:comp-filter name="VCALENDAR">
+      <c:comp-filter name="VEVENT">
+        <c:time-range start="${formatDateTimeUTC(start)}" end="${formatDateTimeUTC(end)}"/>
+        <c:prop-filter name="${escapeXml(property)}">
+          <c:text-match collation="i;unicode-casemap">${escapeXml(text)}</c:text-match>
+        </c:prop-filter>
+      </c:comp-filter>
+    </c:comp-filter>
+  </c:filter>
+</c:calendar-query>`
+}
+
 export function buildMkCalendar(displayName: string, description?: string, color?: string): string {
   const descriptionProp = description
     ? `    <c:calendar-description>${escapeXml(description)}</c:calendar-description>\n`

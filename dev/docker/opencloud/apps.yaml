@@ -5,5 +5,6 @@ web-calendar:
     locationSearch:
       enabled: true
       url: https://nominatim.openstreetmap.org/search
-    defaultView: dayGridMonth # dayGridMonth | timeGridWeek | timeGridDay
+    defaultView: dayGridMonth # dayGridMonth | timeGridWeek | timeGridDay | listAgenda
     # firstDayOfWeek: 1 # 0 = Sunday … 6 = Saturday, unset = derived from the language
+    # searchRangeMonths: 12 # months before/after the current date searched on the server, 0 = loaded events only

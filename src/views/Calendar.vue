@@ -1,12 +1,13 @@
 <!-- eslint-disable vue/multi-word-component-names -- route view loaded only via the router, never used as a tag; the file name is referenced in index.ts and the roadmap -->
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, unref } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, unref, nextTick } from 'vue'
 import { useGettext } from 'vue3-gettext'
 import { useMessages, useModals, useRoute, useRouter } from '@opencloud-eu/web-pkg'
 import type { LocationQuery } from 'vue-router'
 import CalendarToolbar from '../components/CalendarToolbar.vue'
 import CalendarSidebar from '../components/CalendarSidebar.vue'
 import CalendarView from '../components/CalendarView.vue'
+import SearchResults from '../components/SearchResults.vue'
 import CalendarDialog from '../components/CalendarDialog.vue'
 import ICSImportDialog from '../components/ICSImportDialog.vue'
 import CalendarSharingDialog from '../components/CalendarSharingDialog.vue'
@@ -22,6 +23,9 @@ import { useErrorMessage } from '../composables/useErrorMessage'
 import { useReminders } from '../composables/useReminders'
 import { useFileImport } from '../composables/useFileImport'
 import { downloadICS } from '../utils/download'
+import { useEventSearch } from '../composables/useEventSearch'
+import { getDefaultEventStart } from '../utils/new-event'
+import { isShortcutTarget } from '../utils/shortcuts'
 import { getExtendedRange } from '../utils/date'
 import { getCalDAVClient } from '../caldav/client'
 import { useCalendarConfig, type CalendarViewType } from '../config'
@@ -30,6 +34,8 @@ import {
   dateToQuery,
   parseImportFileParams,
   parseJoinParams,
+  searchFromQuery,
+  searchToQuery,
   viewFromQuery,
   viewToQuery,
   withoutImportFileParams,
@@ -44,7 +50,8 @@ const config = useCalendarConfig()
 const { $gettext } = useGettext()
 const { showMessage } = useMessages()
 const { showError } = useErrorMessage()
-const { dispatchModal } = useModals()
+const modals = useModals()
+const { dispatchModal } = modals
 
 const {
   calendars,
@@ -63,7 +70,7 @@ const {
   userProfiles
 } = useCalendars()
 
-const { fetchEvents, getVisibleEvents, updateEventInCache } = useEvents()
+const { fetchEvents, getVisibleEvents, updateEventInCache, currentRange } = useEvents()
 
 const { openCreate, openEdit } = useEventEditor()
 const {
@@ -196,6 +203,41 @@ const visibleEvents = computed(() => getVisibleEvents(calendars.value as any))
 
 // Reminders of the loaded events while the app is open
 useReminders(visibleEvents)
+// Search query, kept in the route (`?q=…`) so it survives a reload
+const searchQuery = ref(searchFromQuery(unref(route).query.q))
+
+const search = useEventSearch({
+  query: searchQuery,
+  calendars: () => calendars.value,
+  loadedEvents: () => visibleEvents.value,
+  loadedRange: () => currentRange.value
+})
+
+function handleSearch(query: string) {
+  searchQuery.value = query
+}
+
+watch(searchQuery, (query) => {
+  const q = searchToQuery(query)
+  if (unref(route).query.q === q) return
+  replaceRoute((query, hash) => {
+    const next: LocationQuery = { ...query }
+    if (q) next.q = q
+    else delete next.q
+    return [next, hash]
+  })
+})
+
+// The calendar is hidden (not unmounted) while search results are shown; FullCalendar measures
+// its size only while visible
+watch(
+  () => search.active.value,
+  async (active) => {
+    if (active) return
+    await nextTick()
+    calendarViewRef.value?.updateSize()
+  }
+)
 
 function syncRouteQuery() {
   const view = viewToQuery(viewType.value)
@@ -210,9 +252,13 @@ watch([viewType, currentDate], syncRouteQuery)
 // Follow changes of the route made from outside (e.g. an edited URL). Runs synchronously so our
 // own, still pending route updates can be told apart and don't reset newer local state.
 watch(
-  () => [unref(route).query.view, unref(route).query.date] as const,
-  ([view, date]) => {
+  () => [unref(route).query.view, unref(route).query.date, unref(route).query.q] as const,
+  ([view, date, q]) => {
     if (pendingRouteUpdates > 0) return
+    const newQuery = searchFromQuery(q)
+    if (newQuery !== searchQuery.value) {
+      searchQuery.value = newQuery
+    }
     const newView = viewFromQuery(view)
     if (newView && newView !== viewType.value) {
       viewType.value = newView
@@ -278,7 +324,41 @@ function handleToday() {
   currentDate.value = new Date()
 }
 
+const canCreateEvent = computed(() => !!getDefaultCalendar())
+
+/** "New event" button: next full hour today, or 9:00 on the shown day */
+function handleNewEvent() {
+  const defaultCalendar = getDefaultCalendar()
+  if (!defaultCalendar) return
+  openCreate(defaultCalendar.href, getDefaultEventStart(viewType.value, currentDate.value))
+}
+
+/**
+ * Keyboard shortcuts: `t` = today, ←/→ = previous/next. Ignored while typing, with modifier
+ * keys and while a modal is open.
+ */
+function handleShortcut(event: KeyboardEvent) {
+  if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
+  if (modals.activeModal || !isShortcutTarget(event.target)) return
+  if (event.key === 't' || event.key === 'T') {
+    if (event.shiftKey) return
+    handleToday()
+  } else if (event.key === 'ArrowLeft') {
+    handlePrev()
+  } else if (event.key === 'ArrowRight') {
+    handleNext()
+  } else {
+    return
+  }
+  event.preventDefault()
+}
+
+onMounted(() => document.addEventListener('keydown', handleShortcut))
+onBeforeUnmount(() => document.removeEventListener('keydown', handleShortcut))
+
 function handleViewChange(view: CalendarViewType) {
+  // Choosing a view leaves the search results
+  searchQuery.value = ''
   viewType.value = view
 }
 
@@ -339,11 +419,17 @@ async function handleEventDrop(event: CalendarEvent, start: Date, end: Date) {
 }
 
 async function handleEventSaved() {
-  await loadEventsForCurrentRange()
+  await Promise.all([
+    loadEventsForCurrentRange(),
+    search.active.value ? search.refresh() : undefined
+  ])
 }
 
 async function handleEventDeleted() {
-  await loadEventsForCurrentRange()
+  await Promise.all([
+    loadEventsForCurrentRange(),
+    search.active.value ? search.refresh() : undefined
+  ])
 }
 
 function handleCreateCalendar() {
@@ -537,11 +623,15 @@ useModalBinding({
       :current-date="currentDate"
       :view-type="viewType"
       :sidebar-open="sidebarOpen"
+      :search-query="searchQuery"
+      :can-create="canCreateEvent"
       @prev="handlePrev"
       @next="handleNext"
       @today="handleToday"
       @change-view="handleViewChange"
       @toggle-sidebar="toggleSidebar"
+      @new-event="handleNewEvent"
+      @search="handleSearch"
     />
 
     <div class="ext:flex ext:flex-1 ext:overflow-hidden ext:relative">
@@ -572,7 +662,20 @@ useModalBinding({
         @refresh="loadCalendars"
       />
 
+      <SearchResults
+        v-if="search.active.value"
+        :query="searchQuery"
+        :results="search.results.value"
+        :calendars="calendars"
+        :range="search.range.value"
+        :loading="search.loading.value"
+        :server-failed="search.serverFailed.value"
+        :server-search-enabled="search.serverSearchEnabled.value"
+        @event-click="handleEventClick"
+      />
+
       <CalendarView
+        v-show="!search.active.value"
         ref="calendarViewRef"
         :events="visibleEvents"
         :calendars="calendars"

@@ -36,13 +36,15 @@ describe('parseCalendarConfig', () => {
         caldavBasePath: '/dav/calendars/',
         locationSearch: { enabled: false, url: 'https://geo.example.com/search' },
         defaultView: 'timeGridWeek',
-        firstDayOfWeek: 0
+        firstDayOfWeek: 0,
+        searchRangeMonths: 6
       })
     ).toEqual({
       caldavBasePath: '/dav/calendars',
       locationSearch: { enabled: false, url: 'https://geo.example.com/search' },
       defaultView: 'timeGridWeek',
-      firstDayOfWeek: 0
+      firstDayOfWeek: 0,
+      searchRangeMonths: 6
     })
   })
 
@@ -113,7 +115,9 @@ describe('parseCalendarConfig', () => {
       ['timeGridDay', 'timeGridDay'],
       ['month', 'dayGridMonth'],
       ['Week', 'timeGridWeek'],
-      ['day', 'timeGridDay']
+      ['day', 'timeGridDay'],
+      ['listAgenda', 'listAgenda'],
+      ['agenda', 'listAgenda']
     ])('maps %j to %j', (input, expected) => {
       expect(parseCalendarConfig({ defaultView: input }).defaultView).toBe(expected)
     })
@@ -136,6 +140,22 @@ describe('parseCalendarConfig', () => {
 
     it.each([-1, 8, 1.5, 'monday', '', true, null])('uses the locale for %j', (input) => {
       expect(parseCalendarConfig({ firstDayOfWeek: input }).firstDayOfWeek).toBeNull()
+    })
+  })
+
+  describe('searchRangeMonths', () => {
+    it.each([
+      [0, 0],
+      [12, 12],
+      ['24', 24],
+      [120, 120]
+    ])('maps %j to %j', (input, expected) => {
+      expect(parseCalendarConfig({ searchRangeMonths: input }).searchRangeMonths).toBe(expected)
+    })
+
+    it.each([-1, 121, 1.5, 'year', '', true, null])('uses the default for %j', (input) => {
+      expect(parseCalendarConfig({ searchRangeMonths: input }).searchRangeMonths).toBe(12)
+      expect(console.warn).toHaveBeenCalled()
     })
   })
 

@@ -5,13 +5,15 @@ import type { CalendarViewType } from '../config'
 const VIEW_TO_QUERY: Record<CalendarViewType, string> = {
   dayGridMonth: 'month',
   timeGridWeek: 'week',
-  timeGridDay: 'day'
+  timeGridDay: 'day',
+  listAgenda: 'agenda'
 }
 
 const QUERY_TO_VIEW: Record<string, CalendarViewType> = {
   month: 'dayGridMonth',
   week: 'timeGridWeek',
-  day: 'timeGridDay'
+  day: 'timeGridDay',
+  agenda: 'listAgenda'
 }
 
 /** Query parameters of invite links created in the sharing dialog */
@@ -50,6 +52,21 @@ export function viewFromQuery(value: QueryInput): CalendarViewType | null {
   if (!v) return null
   if (v in VIEW_TO_QUERY) return v as CalendarViewType
   return QUERY_TO_VIEW[v.toLowerCase()] ?? null
+}
+
+/** Longest search query kept from the URL */
+export const MAX_SEARCH_QUERY_LENGTH = 200
+
+/** Reads the search query (`?q=…`), `''` when there is none */
+export function searchFromQuery(value: QueryInput): string {
+  const v = firstValue(value)
+  return v ? v.trim().slice(0, MAX_SEARCH_QUERY_LENGTH) : ''
+}
+
+/** Value for the `q` query parameter, `undefined` removes it */
+export function searchToQuery(search: string): string | undefined {
+  const trimmed = search.trim().slice(0, MAX_SEARCH_QUERY_LENGTH)
+  return trimmed || undefined
 }
 
 function pad(n: number): string {

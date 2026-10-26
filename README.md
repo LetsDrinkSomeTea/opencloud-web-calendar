@@ -7,7 +7,9 @@ A CalDAV calendar application integrated as a native [OpenCloud](https://openclo
 ## Features
 
 - CalDAV integration with OpenCloud backend
-- Month, week and day views
+- Month, week, day and agenda (list of the next 30 days) views
+- Search events by title, location and description (case and diacritics insensitive)
+- Keyboard shortcuts: `t` jumps to today, `←` / `→` go to the previous / next period
 - Create, edit and delete calendar events
 - Drag & drop event rescheduling
 - Multiple calendar support with color coding
@@ -92,6 +94,7 @@ web-calendar:
       url: https://nominatim.openstreetmap.org/search
     defaultView: dayGridMonth
     firstDayOfWeek: 1
+    searchRangeMonths: 12
 ```
 
 | Option                   | Default                                      | Description                                                                                                                                                                                 |
@@ -99,16 +102,24 @@ web-calendar:
 | `caldavBasePath`         | `/caldav`                                    | Path of the CalDAV endpoint on the OpenCloud origin (the proxy route). The app only sends requests below this path.                                                                         |
 | `locationSearch.enabled` | `true`                                       | Suggest locations while typing in the event dialog. Set to `false` to disable all requests to the geocoder.                                                                                 |
 | `locationSearch.url`     | `https://nominatim.openstreetmap.org/search` | [Nominatim](https://nominatim.org/release-docs/latest/api/Search/) compatible search endpoint. Absolute `http(s)` URL or a same-origin path. Remember to allow it in the CSP `connect-src`. |
-| `defaultView`            | `dayGridMonth`                               | View shown when no view is given in the URL: `dayGridMonth`, `timeGridWeek` or `timeGridDay` (`month`, `week`, `day` are accepted as well).                                                 |
+| `defaultView`            | `dayGridMonth`                               | View shown when no view is given in the URL: `dayGridMonth`, `timeGridWeek`, `timeGridDay` or `listAgenda` (`month`, `week`, `day`, `agenda` are accepted as well).                         |
 | `firstDayOfWeek`         | _unset_                                      | First day of the week, `0` (Sunday) to `6` (Saturday). When unset it is derived from the user's language.                                                                                   |
+
+| `searchRangeMonths` | `12` | The search queries the server (CalDAV `text-match`) for events this many months before and after today, `0` to `120`. With `0` only the events already loaded for the calendar view are searched. |
 
 Invalid values are ignored (with a warning in the browser console) and the default is used.
 
 For local development, `src/config.json` can override the values for the dev server
 (`pnpm vite`), `dev/docker/opencloud/apps.yaml` is used by `docker compose`.
 
-The current view and date are kept in the URL (e.g. `/web-calendar/?view=week&date=2026-10-26`),
-so reloading the page or sharing the link restores them.
+The current view, date and search are kept in the URL (e.g. `/web-calendar/?view=week&date=2026-10-26`,
+`?view=agenda&q=meeting`), so reloading the page or sharing the link restores them.
+
+The search matches every word of the query against the title, location and description of events,
+ignoring case and diacritics. Events already loaded are filtered in the browser; the server is
+queried with one CalDAV `text-match` REPORT per property and calendar for the longest word of the
+query. Radicale (as of 3.8) compares texts lower cased but not diacritics insensitive, so outside the
+loaded range "muller" does not find "Müller" ("müller" does).
 
 ## Reminders and Invitations
 
