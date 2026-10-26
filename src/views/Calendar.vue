@@ -420,7 +420,7 @@ async function handleImported() {
     <ConfirmDialog
       :is-open="confirmAction?.isOpen || false"
       :title="confirmAction?.type === 'leave' ? t('Leave Calendar') : t('Delete Calendar')"
-      :message="confirmAction?.type === 'leave' 
+      :message="confirmAction?.type === 'leave'
         ? t(`Are you sure you want to leave '%{name}'? You will no longer have access to this calendar.`, { name: confirmAction?.calendarName || '' })
         : t(`Are you sure you want to delete '%{name}'? All events in this calendar will be permanently deleted.`, { name: confirmAction?.calendarName || '' })"
       :confirm-text="confirmAction?.type === 'leave' ? t('Leave') : t('Delete')"

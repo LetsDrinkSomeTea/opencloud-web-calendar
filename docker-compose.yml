@@ -1,6 +1,6 @@
 services:
   opencloud:
-    image: ${OC_IMAGE:-opencloudeu/opencloud-rolling:latest}
+    image: ${OC_IMAGE:-opencloudeu/opencloud-rolling:8.1.0}
     networks:
       - opencloud-net
     entrypoint: /bin/sh
@@ -26,7 +26,7 @@ services:
       - ./dev/docker/opencloud/apps.yaml:/etc/opencloud/apps.yaml
       - ./dev/docker/opencloud/proxy.yaml:/etc/opencloud/proxy.yaml
       - ./dev/docker/opencloud/csp.yaml:/etc/opencloud/csp.yaml
-      - ./dist:/web/apps/skeleton
+      - ./dist:/web/apps/web-calendar
     depends_on:
       - traefik
 

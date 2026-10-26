@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
@@ -39,7 +39,7 @@ const fullCalendarEvents = computed<EventInput[]>(() => {
   return props.events.map((event) => {
     const calendar = props.calendars.find(c => c.href === event.calendarHref)
     const isReadOnly = calendar?.readOnly || false
-    
+
     return {
       id: event.recurrenceId ? `${event.uid}_${event.recurrenceId}` : event.uid,
       title: event.summary,

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch, ref } from 'vue'
+import { computed, watch } from 'vue'
 import { useEventEditor } from '../composables/useEventEditor'
 import type { Calendar, RecurrenceFormData } from '../types/calendar'
 import { formatDateForInput, formatTimeForInput } from '../utils/date'
