@@ -5,6 +5,8 @@ const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '@_',
   removeNSPrefix: true,
+  // Keep values like "2024" or "true" (display names, ctags) as strings
+  parseTagValue: false,
   isArray: (name) => name === 'response'
 })
 
@@ -14,17 +16,14 @@ interface ParsedMultistatus {
   }
 }
 
+interface ParsedPropstat {
+  prop?: Record<string, unknown>
+  status?: string
+}
+
 interface ParsedResponse {
   href?: string
-  propstat?:
-    | {
-        prop?: Record<string, unknown>
-        status?: string
-      }
-    | Array<{
-        prop?: Record<string, unknown>
-        status?: string
-      }>
+  propstat?: ParsedPropstat | ParsedPropstat[]
 }
 
 export function parseMultistatus(xml: string): ParsedResponse[] {
@@ -34,28 +33,36 @@ export function parseMultistatus(xml: string): ParsedResponse[] {
   return Array.isArray(responses) ? responses : [responses]
 }
 
-export function parseCurrentUserPrincipal(xml: string): string | null {
-  const responses = parseMultistatus(xml)
-  for (const response of responses) {
-    const propstat = Array.isArray(response.propstat) ? response.propstat[0] : response.propstat
-    const principal = propstat?.prop?.['current-user-principal'] as { href?: string } | undefined
-    if (principal?.href) {
-      return principal.href
+/**
+ * Returns the `prop` objects of all successful (HTTP 200) propstats of a response.
+ * Servers may return several propstats per response (e.g. one 200 and one 404) in any order.
+ */
+function getSuccessfulProps(response: ParsedResponse): Record<string, unknown>[] {
+  const propstats = Array.isArray(response.propstat) ? response.propstat : [response.propstat]
+  return propstats
+    .filter((propstat) => propstat?.prop && (!propstat.status || propstat.status.includes('200')))
+    .map((propstat) => propstat!.prop!)
+}
+
+function findHrefProperty(xml: string, name: string): string | null {
+  for (const response of parseMultistatus(xml)) {
+    for (const prop of getSuccessfulProps(response)) {
+      const value = prop[name] as { href?: unknown } | undefined
+      const href = extractString(value?.href)
+      if (href) {
+        return href
+      }
     }
   }
   return null
 }
 
+export function parseCurrentUserPrincipal(xml: string): string | null {
+  return findHrefProperty(xml, 'current-user-principal')
+}
+
 export function parseCalendarHomeSet(xml: string): string | null {
-  const responses = parseMultistatus(xml)
-  for (const response of responses) {
-    const propstat = Array.isArray(response.propstat) ? response.propstat[0] : response.propstat
-    const homeSet = propstat?.prop?.['calendar-home-set'] as { href?: string } | undefined
-    if (homeSet?.href) {
-      return homeSet.href
-    }
-  }
-  return null
+  return findHrefProperty(xml, 'calendar-home-set')
 }
 
 export function parseCalendars(xml: string): CalendarData[] {
@@ -135,12 +142,12 @@ export function parseEvents(xml: string): EventData[] {
     const href = response.href
     if (!href) continue
 
-    const propstat = Array.isArray(response.propstat) ? response.propstat[0] : response.propstat
-    const prop = propstat?.prop
-    if (!prop) continue
-
-    const etag = extractString(prop['getetag'])
-    const calendarData = extractString(prop['calendar-data'])
+    let etag: string | undefined
+    let calendarData: string | undefined
+    for (const prop of getSuccessfulProps(response)) {
+      etag ??= extractString(prop['getetag'])
+      calendarData ??= extractString(prop['calendar-data'])
+    }
 
     if (etag && calendarData) {
       events.push({
